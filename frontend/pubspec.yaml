@@ -35,6 +35,21 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
 
+  intl: ^0.19.0            # For formatting dates (e.g., "Dec 12, 2025")
+
+  # 2. Camera & Input
+  image_picker: ^1.0.7     # To open Camera and Gallery
+  image_cropper: ^8.0.0    # To crop the photo before analysis
+
+  # 3. Local Storage (The Database)
+  hive: ^2.2.3             # Fast NoSQL database for History
+  hive_flutter: ^1.1.0     # Flutter helper for Hive
+  shared_preferences: ^2.2.2 # To save simple things like "IsLoggedIn = true"
+
+  # 4. Networking (Future Proofing)
+  http: ^1.2.0             # To eventually talk to your Python backend
+  path_provider: ^2.1.2    # To find where to store files on the phone
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
