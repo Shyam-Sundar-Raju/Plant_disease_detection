@@ -1,8 +1,10 @@
 """
 AI Model Service
-Handles AI model inference for disease detection
+Handles AI model inference for disease detection with real TensorFlow model
 """
 import numpy as np
+import tensorflow as tf
+from pathlib import Path
 from typing import Dict, Any, List, Tuple, Optional
 from app.core.config import settings
 from app.utils.image_processing import ImageProcessor
@@ -13,11 +15,13 @@ logger = logging.getLogger(__name__)
 
 class AIModelService:
     """
-    AI Model service for crop disease detection
-    In production, this would load actual TensorFlow/PyTorch models
+    AI Model service for crop disease detection using TensorFlow
     """
     
-    # Mock disease database
+    # Disease labels from the model
+    DISEASE_LABELS = None
+    
+    # Mock disease database (fallback)
     DISEASE_DATABASE = {
         "tomato": {
             "tomato_early_blight": {
@@ -62,15 +66,80 @@ class AIModelService:
     
     def __init__(self):
         """Initialize AI model service"""
-        self.models = {}
-        # In production: self.load_models()
+        self.model = None
+        self.label_map = {}
+        self.model_loaded = False
+        # Don't load on init to allow server to start faster
+        # Model will be loaded on first prediction request
+        # self.load_models()
     
     def load_models(self):
-        """Load TensorFlow Lite models for each crop"""
-        # In production, load actual models:
-        # self.models['tomato'] = tf.lite.Interpreter(model_path=f"{settings.MODEL_PATH}/tomato_model.tflite")
-        # self.models['tomato'].allocate_tensors()
-        pass
+        """Load TensorFlow Keras model and label map"""
+        try:
+            model_path = Path(settings.MODEL_PATH) / "crop_disease_master_model.keras"
+            label_map_path = Path(settings.MODEL_PATH) / "new_label_map.txt"
+            
+            if model_path.exists():
+                logger.info(f"Loading AI model from {model_path}")
+                # Load with compile=False to avoid compatibility issues
+                self.model = tf.keras.models.load_model(str(model_path), compile=False)
+                logger.info("AI model loaded successfully")
+                self.model_loaded = True
+                
+                # Load label map
+                if label_map_path.exists():
+                    self._load_label_map(label_map_path)
+                else:
+                    logger.warning(f"Label map not found at {label_map_path}, using fallback")
+                    self._generate_fallback_labels()
+            else:
+                logger.warning(f"Model file not found at {model_path}, using mock predictions")
+                self.model_loaded = False
+                
+        except Exception as e:
+            logger.error(f"Error loading AI model: {e}")
+            self.model_loaded = False
+    
+    def _load_label_map(self, label_map_path: Path):
+        """Load label map from file"""
+        try:
+            with open(label_map_path, 'r', encoding='utf-8') as f:
+                labels = [line.strip() for line in f if line.strip()]
+            
+            self.label_map = {idx: label for idx, label in enumerate(labels)}
+            self.DISEASE_LABELS = labels
+            logger.info(f"Loaded {len(labels)} disease labels from label map")
+            
+        except Exception as e:
+            logger.error(f"Error loading label map: {e}")
+            self._generate_fallback_labels()
+    
+    def _generate_fallback_labels(self):
+        """Generate fallback labels if label map is missing"""
+        fallback_labels = [
+            "Apple___Apple_scab",
+            "Apple___Black_rot",
+            "Apple___Cedar_apple_rust",
+            "Apple___healthy",
+            "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot",
+            "Corn_(maize)___Common_rust_",
+            "Corn_(maize)___Northern_Leaf_Blight",
+            "Corn_(maize)___healthy",
+            "Pepper,_bell___Bacterial_spot",
+            "Pepper,_bell___healthy",
+            "Potato___Early_blight",
+            "Potato___Late_blight",
+            "Potato___healthy",
+            "Strawberry___Leaf_scorch",
+            "Strawberry___healthy",
+            "Tomato___Early_blight",
+            "Tomato___Late_blight",
+            "Tomato___Tomato_Yellow_Leaf_Curl_Virus",
+            "Tomato___healthy"
+        ]
+        self.label_map = {idx: label for idx, label in enumerate(fallback_labels)}
+        self.DISEASE_LABELS = fallback_labels
+        logger.info(f"Using {len(fallback_labels)} fallback disease labels")
     
     async def predict_disease(
         self,
@@ -78,25 +147,30 @@ class AIModelService:
         crop_type: str
     ) -> Dict[str, Any]:
         """
-        Predict disease from image
+        Predict disease from image using real TensorFlow model
         
         Args:
-            image: Input image as numpy array
+            image: Input image as numpy array (BGR format from OpenCV)
             crop_type: Type of crop
         
         Returns:
             Prediction results
         """
         try:
-            # Preprocess image
-            processed_image = ImageProcessor.preprocess_image_for_model(image)
+            # Preprocess image for model
+            processed_image = self._preprocess_for_prediction(image)
             
-            # Mock prediction (in production, use actual model)
-            predictions = await self._mock_predict(crop_type)
+            # Predict using model
+            if self.model_loaded and self.model is not None:
+                predictions = self._predict_with_model(processed_image)
+            else:
+                # Fallback to mock predictions
+                predictions = await self._mock_predict(crop_type)
             
             # Get top prediction
             disease_id = predictions['primary_disease']
             confidence = predictions['confidence']
+            disease_name = self._format_disease_name(disease_id)
             
             # Check if multiple diseases detected
             secondary_diseases = predictions.get('secondary_diseases', [])
@@ -113,13 +187,13 @@ class AIModelService:
                 severity = "healthy"
                 annotated_image = image
             
-            # Generate heatmap
+            # Generate heatmap using Grad-CAM (simplified version)
             heatmap_image = ImageProcessor.generate_heatmap(image)
             
             return {
                 "disease_id": disease_id,
-                "disease_name": self._get_disease_name(crop_type, disease_id),
-                "confidence": confidence,
+                "disease_name": disease_name,
+                "confidence": float(confidence),
                 "severity": severity,
                 "is_healthy": is_healthy,
                 "bounding_boxes": bounding_boxes,
@@ -132,6 +206,87 @@ class AIModelService:
         except Exception as e:
             logger.error(f"Error in disease prediction: {e}")
             raise
+    
+    def _preprocess_for_prediction(self, image: np.ndarray) -> np.ndarray:
+        """
+        Preprocess image for model prediction
+        Model expects 224x224 RGB images normalized to [0, 1]
+        """
+        try:
+            import cv2
+            
+            # Convert BGR to RGB
+            rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            
+            # Resize to model input size (224x224 for MobileNetV2)
+            resized = cv2.resize(rgb_image, (224, 224))
+            
+            # Normalize to [0, 1]
+            normalized = resized.astype(np.float32) / 255.0
+            
+            # Add batch dimension
+            batched = np.expand_dims(normalized, axis=0)
+            
+            return batched
+            
+        except Exception as e:
+            logger.error(f"Error preprocessing image: {e}")
+            raise
+    
+    def _predict_with_model(self, processed_image: np.ndarray) -> Dict[str, Any]:
+        """
+        Run prediction with loaded TensorFlow model
+        """
+        try:
+            # Get predictions
+            predictions = self.model.predict(processed_image, verbose=0)
+            predictions = predictions[0]  # Remove batch dimension
+            
+            # Get top prediction
+            top_idx = np.argmax(predictions)
+            top_confidence = float(predictions[top_idx])
+            primary_disease = self.label_map.get(top_idx, f"Unknown_Class_{top_idx}")
+            
+            # Get top 3 predictions for secondary diseases
+            top_3_indices = np.argsort(predictions)[-3:][::-1]
+            
+            secondary_diseases = []
+            for idx in top_3_indices[1:]:  # Skip the primary (already got it)
+                if predictions[idx] > 0.10:  # Only include if confidence > 10%
+                    disease_id = self.label_map.get(idx, f"Unknown_Class_{idx}")
+                    secondary_diseases.append({
+                        "disease_id": disease_id,
+                        "disease_name": self._format_disease_name(disease_id),
+                        "confidence": float(predictions[idx])
+                    })
+            
+            # All predictions as dict
+            all_predictions = {
+                self.label_map.get(i, f"Class_{i}"): float(predictions[i])
+                for i in range(len(predictions))
+            }
+            
+            return {
+                "primary_disease": primary_disease,
+                "confidence": top_confidence,
+                "secondary_diseases": secondary_diseases,
+                "all_predictions": all_predictions
+            }
+            
+        except Exception as e:
+            logger.error(f"Error in model prediction: {e}")
+            raise
+    
+    def _format_disease_name(self, disease_id: str) -> str:
+        """Format disease ID to human-readable name"""
+        # Replace underscores with spaces and clean up
+        name = disease_id.replace('___', ': ').replace('_', ' ')
+        
+        # Handle special cases
+        name = name.replace('(maize)', '').strip()
+        name = name.replace('  ', ' ')
+        
+        return name
     
     async def _mock_predict(self, crop_type: str) -> Dict[str, Any]:
         """

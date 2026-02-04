@@ -18,13 +18,15 @@ class FileHandler:
     
     @staticmethod
     def ensure_upload_dir():
-        """Ensure upload directory exists"""
+        """Ensure upload directory exists and return the path"""
         upload_path = Path(settings.UPLOAD_DIR)
         upload_path.mkdir(parents=True, exist_ok=True)
         
         # Create subdirectories
-        for subdir in ['images', 'heatmaps', 'reports']:
+        for subdir in ['images', 'heatmaps', 'reports', 'videos']:
             (upload_path / subdir).mkdir(exist_ok=True)
+        
+        return str(upload_path)
     
     @staticmethod
     def generate_filename(original_filename: str, prefix: str = "") -> str:

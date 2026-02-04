@@ -79,7 +79,7 @@ async def update_profile(
         updated_user["_id"] = str(updated_user["_id"])
         updated_user.pop("hashed_password", None)
         
-        logger.info(f"Profile updated for user: {user_id}")
+        logger.info(f"Profile updated for user: {str(user_object_id)}")
         
         return updated_user
         

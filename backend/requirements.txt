@@ -2,6 +2,7 @@
 fastapi==0.109.0
 uvicorn[standard]==0.27.0
 python-multipart==0.0.6
+python-dotenv==1.0.0
 
 # Database
 motor==3.3.2
@@ -49,3 +50,10 @@ mypy==1.8.0
 
 # Monitoring (optional)
 prometheus-fastapi-instrumentator==6.1.0
+
+# Production server
+gunicorn==21.2.0
+
+# AI/ML Libraries
+tensorflow==2.15.0
+scikit-learn==1.4.0

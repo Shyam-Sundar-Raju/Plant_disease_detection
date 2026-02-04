@@ -72,8 +72,26 @@ class Settings(BaseSettings):
     SEVERITY_MEDIUM_THRESHOLD: float = 0.40
     
     # Language Support
-    SUPPORTED_LANGUAGES: List[str] = ["en", "hi", "kn", "ta", "te", "mr", "bn"]
+    SUPPORTED_LANGUAGES: Union[str, List[str]] = ["en", "hi", "kn", "ta", "te", "mr", "bn"]
     DEFAULT_LANGUAGE: str = "en"
+    
+    @field_validator('SUPPORTED_LANGUAGES', mode='before')
+    @classmethod
+    def parse_supported_languages(cls, v):
+        """Parse supported languages from string or list"""
+        if isinstance(v, str):
+            try:
+                # Try to parse as JSON array
+                parsed = json.loads(v)
+                if isinstance(parsed, list):
+                    return parsed
+            except json.JSONDecodeError:
+                # If not JSON, split by comma
+                if ',' in v:
+                    return [lang.strip() for lang in v.split(',')]
+                # Single language
+                return [v]
+        return v
     
     # Email Configuration (for password reset)
     SMTP_HOST: Optional[str] = None

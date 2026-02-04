@@ -11,7 +11,7 @@ from bson import ObjectId
 
 from app.core.database import get_database
 from app.core.security import get_current_user
-from app.models.schemas import HistoryEntry, HistoryAnalytics, HistoryFilter, CropType, SeverityLevel
+from app.models.schemas import HistoryResponse, AnalyticsResponse, HistoryFilter, CropType, SeverityLevel, DiagnosisResponse, HistoryAnalytics
 from app.utils.pdf_generator import PDFReportGenerator
 from app.utils.localization import get_language_from_request
 from app.services.remediation_service import remediation_service
@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/history", tags=["History"])
 
 
-@router.get("/", response_model=list[HistoryEntry])
+@router.get("/", response_model=HistoryResponse)
 async def get_history(
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
