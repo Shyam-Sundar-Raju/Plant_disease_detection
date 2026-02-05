@@ -1,0 +1,264 @@
+import 'package:flutter/material.dart';
+
+import '../services/location_service.dart';
+import '../services/token_storage.dart';
+import '../services/user_api.dart';
+
+class ProfilePage extends StatefulWidget {
+  const ProfilePage({super.key});
+
+  static const String routeName = '/profile';
+
+  @override
+  State<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
+  final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _locationService = const LocationService();
+  final _tokenStorage = const TokenStorage();
+  final _userApi = UserApi();
+
+  final List<Map<String, String>> _languages = const [
+    {'code': 'en', 'label': 'English'},
+    {'code': 'hi', 'label': 'हिन्दी'},
+    {'code': 'ta', 'label': 'தமிழ்'},
+    {'code': 'te', 'label': 'తెలుగు'},
+    {'code': 'kn', 'label': 'ಕನ್ನಡ'},
+    {'code': 'ml', 'label': 'മലയാളം'},
+  ];
+
+  bool _isLoading = false;
+  bool _isUpdatingLocation = false;
+  String? _errorMessage;
+  String _selectedLanguage = 'en';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfile();
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _phoneController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadProfile() async {
+    final cached = await _tokenStorage.readUserProfile();
+    if (cached != null) {
+      _applyProfile(cached);
+    }
+
+    final accessToken = await _tokenStorage.readAccessToken();
+    if (accessToken == null || accessToken.isEmpty) {
+      return;
+    }
+
+    try {
+      final profile = await _userApi.getProfile(accessToken: accessToken);
+      await _tokenStorage.saveUserProfile(profile);
+      if (!mounted) {
+        return;
+      }
+      _applyProfile(profile);
+    } catch (_) {
+      // Keep cached data if request fails.
+    }
+  }
+
+  void _applyProfile(Map<String, dynamic> profile) {
+    _nameController.text = profile['name']?.toString() ?? '';
+    _emailController.text = profile['email']?.toString() ?? '';
+    _phoneController.text = profile['phone']?.toString() ?? '';
+
+    final preferredLanguage = profile['preferred_language']?.toString();
+    if (preferredLanguage != null && preferredLanguage.isNotEmpty) {
+      _selectedLanguage = preferredLanguage;
+    }
+
+    final location = profile['location'];
+    if (location is Map<String, dynamic>) {
+      // keep location cached via profile, no user input required
+    }
+
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  Future<void> _updateProfile() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    final accessToken = await _tokenStorage.readAccessToken();
+    if (accessToken == null || accessToken.isEmpty) {
+      setState(() {
+        _errorMessage = 'Missing access token.';
+      });
+      return;
+    }
+
+    setState(() {
+      _isUpdatingLocation = true;
+    });
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final location = await _locationService.getCurrentLocation();
+      final profile = await _userApi.updateProfile(
+        accessToken: accessToken,
+        name: _nameController.text.trim(),
+        preferredLanguage: _selectedLanguage,
+        latitude: location.latitude,
+        longitude: location.longitude,
+      );
+
+      await _tokenStorage.saveUserProfile(profile);
+
+      if (!mounted) {
+        return;
+      }
+
+      _applyProfile(profile);
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Profile updated.')));
+    } catch (error) {
+      setState(() {
+        _errorMessage = error.toString().replaceFirst('Exception: ', '');
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _isUpdatingLocation = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Profile')),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                TextFormField(
+                  controller: _nameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Name',
+                    border: OutlineInputBorder(),
+                  ),
+                  textInputAction: TextInputAction.next,
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Name is required.';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _emailController,
+                  decoration: const InputDecoration(
+                    labelText: 'Email',
+                    border: OutlineInputBorder(),
+                  ),
+                  readOnly: true,
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _phoneController,
+                  decoration: const InputDecoration(
+                    labelText: 'Phone',
+                    border: OutlineInputBorder(),
+                  ),
+                  readOnly: true,
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  value: _selectedLanguage,
+                  decoration: const InputDecoration(
+                    labelText: 'Preferred language',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: _languages
+                      .map(
+                        (language) => DropdownMenuItem<String>(
+                          value: language['code'],
+                          child: Text(language['label'] ?? ''),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (value) {
+                    if (value == null) {
+                      return;
+                    }
+                    setState(() {
+                      _selectedLanguage = value;
+                    });
+                  },
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Location will be updated using GPS when you save.',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ),
+                    if (_isUpdatingLocation)
+                      const SizedBox(
+                        height: 18,
+                        width: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                if (_errorMessage != null)
+                  Text(
+                    _errorMessage!,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                const SizedBox(height: 12),
+                ElevatedButton(
+                  onPressed: _isLoading ? null : _updateProfile,
+                  child: _isLoading
+                      ? const SizedBox(
+                          height: 18,
+                          width: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Update profile'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

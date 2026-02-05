@@ -49,6 +49,17 @@ dependencies:
   # 4. Networking (Future Proofing)
   http: ^1.2.0             # To eventually talk to your Python backend
   path_provider: ^2.1.2    # To find where to store files on the phone
+  
+  # Networking & API
+  dio: ^5.4.0
+  http_parser: ^4.0.0
+  
+  # State Management & Storage
+  provider: ^6.1.1
+  flutter_secure_storage: ^9.0.0
+  
+  # Media & Location
+  geolocator: ^10.1.0
 
 dev_dependencies:
   flutter_test:
@@ -59,7 +70,7 @@ dev_dependencies:
   # activated in the `analysis_options.yaml` file located at the root of your
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
-  flutter_lints: ^6.0.0
+  flutter_lints: ^3.0.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

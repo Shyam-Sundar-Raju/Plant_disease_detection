@@ -340,7 +340,8 @@ async def forgot_password(
                 )
         
         return {
-            "message": "If the account exists, a reset code will be sent"
+            "message": "If the account exists, a reset code will be sent",
+            "reset_token": reset_token
         }
         
     except Exception as e:
@@ -380,7 +381,7 @@ async def reset_password(
         new_password_hash = get_password_hash(reset_data.new_password)
         
         await db.users.update_one(
-            {"_id": reset_request["user_id"]},
+            {"_id": ObjectId(reset_request["user_id"])},
             {
                 "$set": {
                     "hashed_password": new_password_hash,
