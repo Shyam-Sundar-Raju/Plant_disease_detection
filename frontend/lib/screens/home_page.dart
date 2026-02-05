@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 import '../services/location_service.dart';
 import '../services/history_api.dart';
+import '../services/auth_api.dart';
 import '../services/token_storage.dart';
 import '../services/user_api.dart';
 import '../services/weather_api.dart';
@@ -23,6 +25,7 @@ class _HomePageState extends State<HomePage> {
   final _locationService = const LocationService();
   final _weatherApi = WeatherApi();
   final _historyApi = HistoryApi();
+  final _authApi = AuthApi();
   Map<String, dynamic>? _profile;
   bool _isRefreshingProfile = false;
   WeatherInfo? _weatherInfo;
@@ -31,7 +34,7 @@ class _HomePageState extends State<HomePage> {
   Map<String, dynamic>? _historyAnalytics;
   List<Map<String, dynamic>> _historyItems = [];
   bool _isLoadingHistory = false;
-  String? _historyError;
+  bool _isOnline = false;
 
   Future<void> _logout() async {
     await _tokenStorage.clearTokens();
@@ -93,6 +96,12 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
+    _initializeData();
+    _updateConnectivity();
+  }
+
+  Future<void> _initializeData() async {
+    await _refreshTokenIfWifi();
     _loadCachedProfile();
     _refreshProfile();
     _loadWeather();
@@ -100,6 +109,50 @@ class _HomePageState extends State<HomePage> {
     _loadCachedAnalytics();
     _loadHistory();
     _loadAnalytics();
+  }
+
+  Future<void> _updateConnectivity() async {
+    final connectivity = await Connectivity().checkConnectivity();
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _isOnline =
+          connectivity.contains(ConnectivityResult.wifi) ||
+          connectivity.contains(ConnectivityResult.mobile);
+    });
+  }
+
+  Future<void> _refreshTokenIfWifi() async {
+    final connectivity = await Connectivity().checkConnectivity();
+    if (!connectivity.contains(ConnectivityResult.wifi)) {
+      return;
+    }
+
+    final refreshToken = await _tokenStorage.readRefreshToken();
+    if (refreshToken == null || refreshToken.isEmpty) {
+      return;
+    }
+
+    try {
+      final result = await _authApi.refreshToken(refreshToken: refreshToken);
+
+      final accessToken = result['access_token']?.toString();
+      final newRefreshToken = result['refresh_token']?.toString();
+      final tokenType = result['token_type']?.toString();
+
+      if (accessToken == null || newRefreshToken == null) {
+        return;
+      }
+
+      await _tokenStorage.saveTokens(
+        accessToken: accessToken,
+        refreshToken: newRefreshToken,
+        tokenType: tokenType,
+      );
+    } catch (_) {
+      // Ignore refresh errors and keep existing tokens.
+    }
   }
 
   Future<void> _loadCachedHistory() async {
@@ -127,7 +180,6 @@ class _HomePageState extends State<HomePage> {
 
     setState(() {
       _isLoadingHistory = true;
-      _historyError = null;
     });
 
     try {
@@ -147,13 +199,8 @@ class _HomePageState extends State<HomePage> {
       setState(() {
         _historyItems = history;
       });
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _historyError = error.toString().replaceFirst('Exception: ', '');
-      });
+    } catch (_) {
+      // Keep cached history if request fails.
     } finally {
       if (mounted) {
         setState(() {
@@ -303,6 +350,13 @@ class _HomePageState extends State<HomePage> {
       appBar: AppBar(
         title: const Text('Session'),
         actions: [
+          Icon(
+            _isOnline ? Icons.wifi : Icons.wifi_off,
+            color: _isOnline
+                ? Theme.of(context).colorScheme.primary
+                : Theme.of(context).colorScheme.error,
+          ),
+          const SizedBox(width: 8),
           PopupMenuButton<String>(
             icon: const Icon(Icons.account_circle),
             onSelected: (value) {
@@ -368,11 +422,6 @@ class _HomePageState extends State<HomePage> {
           const SizedBox(height: 12),
           if (_isLoadingHistory)
             const Center(child: CircularProgressIndicator())
-          else if (_historyError != null)
-            Text(
-              _historyError!,
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
-            )
           else if (_historyItems.isEmpty)
             const Text('No history yet.')
           else

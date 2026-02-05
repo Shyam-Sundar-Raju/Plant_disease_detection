@@ -31,8 +31,11 @@ class HistoryApi {
     );
 
     final data = response.data;
-    if (data is List) {
-      return data.whereType<Map<String, dynamic>>().toList();
+    if (data is Map<String, dynamic>) {
+      final items = data['items'];
+      if (items is List) {
+        return items.whereType<Map<String, dynamic>>().toList();
+      }
     }
 
     throw Exception('Unexpected history response format.');

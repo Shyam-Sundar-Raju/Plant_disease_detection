@@ -82,6 +82,17 @@ class AuthApi {
     return _toJsonMap(response.data);
   }
 
+  Future<Map<String, dynamic>> refreshToken({
+    required String refreshToken,
+  }) async {
+    final response = await _dio.post(
+      '/auth/refresh',
+      data: {'refresh_token': refreshToken},
+    );
+
+    return _toJsonMap(response.data);
+  }
+
   Map<String, dynamic> _toJsonMap(dynamic data) {
     if (data is Map<String, dynamic>) {
       return data;

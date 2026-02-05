@@ -207,7 +207,7 @@ async def refresh_token(
         user_id = payload.get("sub")
         
         # Verify user exists
-        user = await db.users.find_one({"_id": user_id})
+        user = await db.users.find_one({"_id": ObjectId(user_id)})
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,

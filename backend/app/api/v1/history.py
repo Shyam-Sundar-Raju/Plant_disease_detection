@@ -60,16 +60,22 @@ async def get_history(
                 query["created_at"]["$lte"] = end_date
         
         # Get history
+        total = await db.history.count_documents(query)
         cursor = db.history.find(query).sort("created_at", -1).skip(skip).limit(limit)
         history = await cursor.to_list(length=limit)
-        
+
         # Format results
         for entry in history:
             entry["_id"] = str(entry["_id"])
-        
+
         logger.info(f"History fetched for user: {user_id}, filters: {query}")
-        
-        return history
+
+        return {
+            "total": total,
+            "items": history,
+            "limit": limit,
+            "offset": skip
+        }
         
     except Exception as e:
         logger.error(f"Error getting history: {e}")
