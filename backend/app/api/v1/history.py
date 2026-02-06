@@ -44,7 +44,7 @@ async def get_history(
         user_id = str(current_user["_id"])
         
         # Build query
-        query = {"user_id": user_id}
+        query = {"user_id": user_id, "is_deleted": {"$ne": True}}
         
         if crop_type:
             query["crop_type"] = crop_type.value
@@ -147,7 +147,7 @@ async def get_analytics(
         user_id = str(current_user["_id"])
         
         # Get all history for the user
-        cursor = db.history.find({"user_id": user_id})
+        cursor = db.history.find({"user_id": user_id, "is_deleted": {"$ne": True}})
         history = await cursor.to_list(length=None)
         
         # Calculate statistics

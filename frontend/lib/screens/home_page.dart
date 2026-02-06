@@ -351,6 +351,11 @@ class _HomePageState extends State<HomePage> {
       appBar: AppBar(
         title: const Text('Session'),
         actions: [
+          IconButton(
+            onPressed: _initializeData,
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Refresh',
+          ),
           Icon(
             _isOnline ? Icons.wifi : Icons.wifi_off,
             color: _isOnline

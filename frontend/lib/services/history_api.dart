@@ -83,10 +83,22 @@ class HistoryApi {
       throw Exception('Failed to download report.');
     }
 
-    final directory = await getApplicationDocumentsDirectory();
+    final directory = await _resolveDownloadDirectory();
     final file = File('${directory.path}/diagnosis_report_$diagnosisId.pdf');
     await file.writeAsBytes(bytes, flush: true);
 
     return file.path;
+  }
+
+  Future<Directory> _resolveDownloadDirectory() async {
+    if (Platform.isAndroid) {
+      final downloadDir = Directory('/storage/emulated/0/Download');
+      if (await downloadDir.exists()) {
+        return downloadDir;
+      }
+    }
+
+    final fallback = await getApplicationDocumentsDirectory();
+    return fallback;
   }
 }

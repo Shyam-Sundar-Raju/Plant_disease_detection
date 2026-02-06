@@ -10,7 +10,10 @@ from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_JUSTIFY
 from io import BytesIO
 from datetime import datetime
 from typing import Dict, Any, Optional
+from pathlib import Path
 import logging
+
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -117,6 +120,20 @@ class PDFReportGenerator:
             story.append(diagnosis_table)
             story.append(Spacer(1, 0.3 * inch))
             
+            # Images
+            PDFReportGenerator._add_image_section(
+                story,
+                heading_style,
+                "Captured Image",
+                diagnosis_data.get("image_url")
+            )
+            PDFReportGenerator._add_image_section(
+                story,
+                heading_style,
+                "Heatmap",
+                diagnosis_data.get("heatmap_url")
+            )
+
             # Treatment Plan
             if treatment_data:
                 story.append(Paragraph("Recommended Treatment Plan", heading_style))
@@ -183,3 +200,44 @@ class PDFReportGenerator:
         except Exception as e:
             logger.error(f"Error generating PDF report: {e}")
             raise
+
+    @staticmethod
+    def _add_image_section(
+        story: list,
+        heading_style: ParagraphStyle,
+        title: str,
+        image_url: Optional[str]
+    ) -> None:
+        """Add a local image to the report if available."""
+        if not image_url:
+            return
+
+        file_path = PDFReportGenerator._resolve_local_path(image_url)
+        if file_path is None:
+            return
+
+        try:
+            image_path = str(file_path)
+            story.append(Paragraph(title, heading_style))
+            story.append(Spacer(1, 0.1 * inch))
+            story.append(Image(image_path, width=5.5 * inch, height=3.2 * inch))
+            story.append(Spacer(1, 0.2 * inch))
+        except Exception as e:
+            logger.error(f"Error adding image to report: {e}")
+
+    @staticmethod
+    def _resolve_local_path(image_url: str) -> Optional[Path]:
+        """Resolve /uploads/... URL to local file path."""
+        if not image_url:
+            return None
+
+        if image_url.startswith("/uploads/"):
+            relative_path = image_url.replace("/uploads/", "")
+        else:
+            return None
+
+        file_path = Path(settings.UPLOAD_DIR) / relative_path
+        if not file_path.exists():
+            return None
+
+        return file_path

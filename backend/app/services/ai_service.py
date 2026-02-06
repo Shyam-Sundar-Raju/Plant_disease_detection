@@ -157,6 +157,10 @@ class AIModelService:
             Prediction results
         """
         try:
+            # Load model on first use
+            if not self.model_loaded:
+                self.load_models()
+
             # Preprocess image for model
             processed_image = self._preprocess_for_prediction(image)
             
@@ -178,17 +182,33 @@ class AIModelService:
             # Determine if healthy
             is_healthy = 'healthy' in disease_id.lower()
             
-            # Generate bounding boxes
+            # Generate heatmap and bounding boxes
+            bounding_boxes = []
+            annotated_image = image
+            heatmap_image = image
+            
             if not is_healthy:
-                annotated_image, bounding_boxes = ImageProcessor.detect_bounding_boxes(image)
+                cam = None
+                if self.model_loaded and self.model is not None:
+                    cam = self._compute_grad_cam(processed_image)
+                
+                if cam is not None:
+                    heatmap_image = ImageProcessor.generate_heatmap_from_cam(image, cam)
+                    bounding_boxes = ImageProcessor.boxes_from_heatmap(cam, image.shape)
+                    annotated_image, bounding_boxes = ImageProcessor.detect_bounding_boxes(
+                        image,
+                        bounding_boxes
+                    )
+                else:
+                    heatmap_image = ImageProcessor.generate_heatmap(image)
+                    annotated_image, bounding_boxes = ImageProcessor.detect_bounding_boxes(image)
+                
                 severity = ImageProcessor.calculate_severity(image, bounding_boxes)
             else:
                 bounding_boxes = []
                 severity = "healthy"
                 annotated_image = image
-            
-            # Generate heatmap using Grad-CAM (simplified version)
-            heatmap_image = ImageProcessor.generate_heatmap(image)
+                heatmap_image = ImageProcessor.generate_heatmap(image)
             
             return {
                 "disease_id": disease_id,
@@ -276,6 +296,58 @@ class AIModelService:
         except Exception as e:
             logger.error(f"Error in model prediction: {e}")
             raise
+
+    def _compute_grad_cam(self, processed_image: np.ndarray) -> Optional[np.ndarray]:
+        """
+        Compute Grad-CAM heatmap for the top prediction.
+        Returns a 2D array normalized to [0, 1] or None on failure.
+        """
+        try:
+            if self.model is None:
+                return None
+
+            last_conv = self._get_last_conv_layer_name()
+            if last_conv is None:
+                return None
+
+            grad_model = tf.keras.models.Model(
+                [self.model.inputs],
+                [self.model.get_layer(last_conv).output, self.model.output]
+            )
+
+            with tf.GradientTape() as tape:
+                conv_outputs, predictions = grad_model(processed_image)
+                pred_index = tf.argmax(predictions[0])
+                pred_score = predictions[:, pred_index]
+
+            grads = tape.gradient(pred_score, conv_outputs)
+            if grads is None:
+                return None
+
+            pooled_grads = tf.reduce_mean(grads, axis=(0, 1, 2))
+            conv_outputs = conv_outputs[0]
+            heatmap = tf.reduce_sum(conv_outputs * pooled_grads, axis=-1)
+            heatmap = tf.maximum(heatmap, 0)
+            max_val = tf.reduce_max(heatmap)
+            if max_val == 0:
+                return None
+            heatmap = heatmap / max_val
+
+            return heatmap.numpy()
+        except Exception as e:
+            logger.error(f"Error generating Grad-CAM: {e}")
+            return None
+
+    def _get_last_conv_layer_name(self) -> Optional[str]:
+        """Find the last Conv2D layer name in the model."""
+        try:
+            for layer in reversed(self.model.layers):
+                if isinstance(layer, tf.keras.layers.Conv2D):
+                    return layer.name
+            return None
+        except Exception as e:
+            logger.error(f"Error locating last conv layer: {e}")
+            return None
     
     def _format_disease_name(self, disease_id: str) -> str:
         """Format disease ID to human-readable name"""
