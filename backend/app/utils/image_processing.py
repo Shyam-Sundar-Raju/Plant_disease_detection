@@ -72,7 +72,7 @@ class ImageProcessor:
             laplacian = cv2.Laplacian(gray, cv2.CV_64F)
             variance = laplacian.var()
             
-            is_acceptable = variance >= threshold
+            is_acceptable = bool(variance >= threshold)
             
             return {
                 "is_acceptable": is_acceptable,

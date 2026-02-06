@@ -1,0 +1,307 @@
+import 'dart:io';
+
+import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:video_player/video_player.dart';
+import 'package:video_thumbnail/video_thumbnail.dart';
+
+import '../services/blur_detector.dart';
+import '../services/diagnosis_api.dart';
+import '../services/token_storage.dart';
+import 'diagnosis_result_page.dart';
+
+class CropCapturePage extends StatefulWidget {
+  const CropCapturePage({super.key});
+
+  static const String routeName = '/capture';
+
+  @override
+  State<CropCapturePage> createState() => _CropCapturePageState();
+}
+
+class _CropCapturePageState extends State<CropCapturePage> {
+  final _picker = ImagePicker();
+  final _diagnosisApi = DiagnosisApi();
+  final _tokenStorage = const TokenStorage();
+  final _blurDetector = const BlurDetector();
+
+  bool _isSubmitting = false;
+
+  final List<_CropItem> _crops = const [
+    _CropItem(code: 'apple', label: 'Apple'),
+    _CropItem(code: 'corn', label: 'Corn'),
+    _CropItem(code: 'pepper', label: 'Pepper'),
+    _CropItem(code: 'potato', label: 'Potato'),
+    _CropItem(code: 'strawberry', label: 'Strawberry'),
+    _CropItem(code: 'tomato', label: 'Tomato'),
+  ];
+
+  Future<void> _onCropSelected(_CropItem crop) async {
+    final option = await showModalBottomSheet<_MediaOption>(
+      context: context,
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.photo_library),
+                title: const Text('Gallery image'),
+                onTap: () => Navigator.pop(
+                  context,
+                  const _MediaOption(
+                    source: ImageSource.gallery,
+                    isVideo: false,
+                  ),
+                ),
+              ),
+              ListTile(
+                leading: const Icon(Icons.video_library),
+                title: const Text('Gallery video'),
+                onTap: () => Navigator.pop(
+                  context,
+                  const _MediaOption(
+                    source: ImageSource.gallery,
+                    isVideo: true,
+                  ),
+                ),
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_camera),
+                title: const Text('Camera image'),
+                onTap: () => Navigator.pop(
+                  context,
+                  const _MediaOption(
+                    source: ImageSource.camera,
+                    isVideo: false,
+                  ),
+                ),
+              ),
+              ListTile(
+                leading: const Icon(Icons.videocam),
+                title: const Text('Camera video'),
+                onTap: () => Navigator.pop(
+                  context,
+                  const _MediaOption(source: ImageSource.camera, isVideo: true),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+
+    if (option == null) {
+      return;
+    }
+
+    if (option.isVideo) {
+      final video = await _picker.pickVideo(source: option.source);
+      if (video == null) {
+        return;
+      }
+
+      final frameFile = await _extractFrame(File(video.path));
+      if (frameFile == null) {
+        _showError('Unable to extract a frame from video.');
+        return;
+      }
+
+      await _processImage(crop, frameFile);
+      return;
+    }
+
+    final image = await _picker.pickImage(source: option.source);
+    if (image == null) {
+      return;
+    }
+
+    await _processImage(crop, File(image.path));
+  }
+
+  Future<File?> _extractFrame(File videoFile) async {
+    try {
+      final controller = VideoPlayerController.file(videoFile);
+      await controller.initialize();
+      final duration = controller.value.duration;
+      await controller.dispose();
+
+      final timeMs = duration.inMilliseconds ~/ 2;
+      final bytes = await VideoThumbnail.thumbnailData(
+        video: videoFile.path,
+        imageFormat: ImageFormat.PNG,
+        timeMs: timeMs,
+        quality: 90,
+      );
+
+      if (bytes == null) {
+        return null;
+      }
+
+      final tempDir = await getTemporaryDirectory();
+      final file = File(
+        '${tempDir.path}/frame_${DateTime.now().millisecondsSinceEpoch}.png',
+      );
+      await file.writeAsBytes(bytes, flush: true);
+      return file;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _processImage(_CropItem crop, File imageFile) async {
+    try {
+      final isBlurry = await _blurDetector.isBlurry(
+        imageFile,
+        threshold: 200.0,
+      );
+      if (isBlurry) {
+        await showDialog<void>(
+          context: context,
+          builder: (context) {
+            return AlertDialog(
+              title: const Text('Image is blurry'),
+              content: const Text(
+                'Please retake the image for a clearer result.',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('OK'),
+                ),
+              ],
+            );
+          },
+        );
+        return;
+      }
+
+      final accessToken = await _tokenStorage.readAccessToken();
+      if (accessToken == null || accessToken.isEmpty) {
+        _showError('Missing access token. Please log in again.');
+        return;
+      }
+
+      final profile = await _tokenStorage.readUserProfile();
+      final language = profile?['preferred_language']?.toString();
+
+      setState(() {
+        _isSubmitting = true;
+      });
+
+      final result = await _diagnosisApi.createDiagnosis(
+        accessToken: accessToken,
+        cropType: crop.code,
+        imageFile: imageFile,
+        language: language,
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) =>
+              DiagnosisResultPage(cropLabel: crop.label, result: result),
+        ),
+      );
+    } catch (error) {
+      _showError(error.toString().replaceFirst('Exception: ', ''));
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
+    }
+  }
+
+  void _showError(String message) {
+    if (!mounted) {
+      return;
+    }
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Select crop')),
+      body: Stack(
+        children: [
+          GridView.builder(
+            padding: const EdgeInsets.all(20),
+            itemCount: _crops.length,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              mainAxisSpacing: 16,
+              crossAxisSpacing: 16,
+              childAspectRatio: 0.9,
+            ),
+            itemBuilder: (context, index) {
+              final crop = _crops[index];
+              return InkWell(
+                onTap: () => _onCropSelected(crop),
+                borderRadius: BorderRadius.circular(16),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        child: Image.asset(
+                          crop.assetPath,
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) {
+                            return const Icon(Icons.eco, size: 48);
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        crop.label,
+                        style: Theme.of(context).textTheme.titleSmall,
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+          if (_isSubmitting)
+            Container(
+              color: Colors.black54,
+              child: const Center(child: CircularProgressIndicator()),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CropItem {
+  const _CropItem({required this.code, required this.label});
+
+  final String code;
+  final String label;
+
+  String get assetPath => 'assets/images/crops/$code.png';
+}
+
+class _MediaOption {
+  const _MediaOption({required this.source, required this.isVideo});
+
+  final ImageSource source;
+  final bool isVideo;
+}

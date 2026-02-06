@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'screens/auth/forgot_password_page.dart';
 import 'screens/auth/login_page.dart';
 import 'screens/auth/register_page.dart';
+import 'screens/crop_capture_page.dart';
 import 'screens/home_page.dart';
 import 'screens/profile_page.dart';
 import 'services/token_storage.dart';
@@ -30,6 +31,7 @@ class PlantDiseaseApp extends StatelessWidget {
         ForgotPasswordPage.routeName: (_) => const ForgotPasswordPage(),
         HomePage.routeName: (_) => const HomePage(),
         ProfilePage.routeName: (_) => const ProfilePage(),
+        CropCapturePage.routeName: (_) => const CropCapturePage(),
       },
     );
   }

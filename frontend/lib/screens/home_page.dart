@@ -8,6 +8,7 @@ import '../services/token_storage.dart';
 import '../services/user_api.dart';
 import '../services/weather_api.dart';
 import 'auth/login_page.dart';
+import 'crop_capture_page.dart';
 import 'profile_page.dart';
 
 class HomePage extends StatefulWidget {
@@ -435,6 +436,17 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.pushNamed(context, CropCapturePage.routeName);
+        },
+        child: const Icon(Icons.camera_alt),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      bottomNavigationBar: const BottomAppBar(
+        shape: CircularNotchedRectangle(),
+        child: SizedBox(height: 48),
       ),
     );
   }
