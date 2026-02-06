@@ -347,9 +347,10 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Session'),
+        title: const Text('Field dashboard'),
         actions: [
           IconButton(
             onPressed: _initializeData,
@@ -358,9 +359,7 @@ class _HomePageState extends State<HomePage> {
           ),
           Icon(
             _isOnline ? Icons.wifi : Icons.wifi_off,
-            color: _isOnline
-                ? Theme.of(context).colorScheme.primary
-                : Theme.of(context).colorScheme.error,
+            color: _isOnline ? scheme.primary : scheme.error,
           ),
           const SizedBox(width: 8),
           PopupMenuButton<String>(
@@ -379,74 +378,118 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          Text(
-            'Welcome, ${_profile?['name']?.toString() ?? 'Farmer'}',
-            style: Theme.of(context).textTheme.headlineSmall,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFFF5F1EA), Color(0xFFE7F0E8)],
           ),
-          const SizedBox(height: 8),
-          Text(
-            _profile?['email']?.toString() ?? '-',
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-          if (_isRefreshingProfile)
-            const Padding(
-              padding: EdgeInsets.only(top: 8),
-              child: LinearProgressIndicator(),
-            ),
-          const SizedBox(height: 20),
-          Text(
-            'Current weather',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 12),
-          if (_isLoadingWeather)
-            const Center(child: CircularProgressIndicator())
-          else if (_weatherError != null)
-            Text(
-              _weatherError!,
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
-            )
-          else if (_weatherInfo != null)
-            _WeatherCard(weather: _weatherInfo!)
-          else
-            const Text('Weather data unavailable.'),
-          const SizedBox(height: 24),
-          Text(
-            'History analytics',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 12),
-          _AnalyticsCard(analytics: _historyAnalytics),
-          const SizedBox(height: 24),
-          Text(
-            'History records',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 12),
-          if (_isLoadingHistory)
-            const Center(child: CircularProgressIndicator())
-          else if (_historyItems.isEmpty)
-            const Text('No history yet.')
-          else
-            ..._historyItems.map(
-              (item) => _HistoryCard(
-                item: item,
-                onDelete: () =>
-                    _deleteHistoryItem(item['_id']?.toString() ?? ''),
-                onDownload: () =>
-                    _downloadReport(item['diagnosis_id']?.toString() ?? ''),
+        ),
+        child: SafeArea(
+          child: ListView(
+            padding: const EdgeInsets.all(20),
+            children: [
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 28,
+                        backgroundColor: scheme.primary.withOpacity(0.12),
+                        child: Icon(Icons.eco, color: scheme.primary, size: 28),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Welcome, ${_profile?['name']?.toString() ?? 'Farmer'}',
+                              style: Theme.of(context).textTheme.titleLarge,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              _profile?['email']?.toString() ?? '-',
+                              style: Theme.of(context).textTheme.bodyMedium,
+                            ),
+                          ],
+                        ),
+                      ),
+                      Chip(
+                        label: Text(_isOnline ? 'Online' : 'Offline'),
+                        backgroundColor: _isOnline
+                            ? scheme.primary.withOpacity(0.12)
+                            : null,
+                        labelStyle: TextStyle(
+                          color: _isOnline ? scheme.primary : scheme.error,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        side: BorderSide(
+                          color: _isOnline ? scheme.primary : scheme.error,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-            ),
-        ],
+              if (_isRefreshingProfile)
+                const Padding(
+                  padding: EdgeInsets.only(top: 8),
+                  child: LinearProgressIndicator(),
+                ),
+              const SizedBox(height: 20),
+              _SectionHeader(
+                title: 'Current weather',
+                subtitle: 'Live conditions near your farm',
+              ),
+              const SizedBox(height: 12),
+              if (_isLoadingWeather)
+                const Center(child: CircularProgressIndicator())
+              else if (_weatherError != null)
+                Text(_weatherError!, style: TextStyle(color: scheme.error))
+              else if (_weatherInfo != null)
+                _WeatherCard(weather: _weatherInfo!)
+              else
+                const Text('Weather data unavailable.'),
+              const SizedBox(height: 24),
+              _SectionHeader(
+                title: 'History analytics',
+                subtitle: 'Trends from your recent scans',
+              ),
+              const SizedBox(height: 12),
+              _AnalyticsCard(analytics: _historyAnalytics),
+              const SizedBox(height: 24),
+              _SectionHeader(
+                title: 'History records',
+                subtitle: 'Download or remove past reports',
+              ),
+              const SizedBox(height: 12),
+              if (_isLoadingHistory)
+                const Center(child: CircularProgressIndicator())
+              else if (_historyItems.isEmpty)
+                const Text('No history yet.')
+              else
+                ..._historyItems.map(
+                  (item) => _HistoryCard(
+                    item: item,
+                    onDelete: () =>
+                        _deleteHistoryItem(item['_id']?.toString() ?? ''),
+                    onDownload: () =>
+                        _downloadReport(item['diagnosis_id']?.toString() ?? ''),
+                  ),
+                ),
+            ],
+          ),
+        ),
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
           Navigator.pushNamed(context, CropCapturePage.routeName);
         },
-        child: const Icon(Icons.camera_alt),
+        icon: const Icon(Icons.camera_alt),
+        label: const Text('Scan crop'),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: const BottomAppBar(
@@ -464,41 +507,66 @@ class _WeatherCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(12),
+        color: scheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: scheme.outline.withOpacity(0.25)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            weather.locationName,
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 6),
           Row(
             children: [
-              if (weather.conditionIconUrl.isNotEmpty)
-                Image.network(weather.conditionIconUrl, width: 40, height: 40),
-              if (weather.conditionIconUrl.isNotEmpty) const SizedBox(width: 8),
               Expanded(
-                child: Text(
-                  weather.conditionText,
-                  style: Theme.of(context).textTheme.bodyLarge,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      weather.locationName,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      weather.conditionText,
+                      style: Theme.of(context).textTheme.bodyLarge,
+                    ),
+                  ],
                 ),
               ),
-              Text(
-                '${weather.tempC.toStringAsFixed(1)} C',
-                style: Theme.of(context).textTheme.headlineSmall,
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  if (weather.conditionIconUrl.isNotEmpty)
+                    Image.network(
+                      weather.conditionIconUrl,
+                      width: 44,
+                      height: 44,
+                    ),
+                  Text(
+                    '${weather.tempC.toStringAsFixed(1)} C',
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
+                ],
               ),
             ],
           ),
           const SizedBox(height: 12),
-          Text('Feels like: ${weather.feelsLikeC.toStringAsFixed(1)} C'),
-          Text('Humidity: ${weather.humidity}%'),
-          Text('Wind: ${weather.windKph.toStringAsFixed(1)} kph'),
+          Wrap(
+            spacing: 12,
+            runSpacing: 8,
+            children: [
+              _InfoChip(
+                label: 'Feels ${weather.feelsLikeC.toStringAsFixed(1)} C',
+              ),
+              _InfoChip(label: 'Humidity ${weather.humidity}%'),
+              _InfoChip(
+                label: 'Wind ${weather.windKph.toStringAsFixed(1)} kph',
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -520,24 +588,32 @@ class _AnalyticsCard extends StatelessWidget {
     final severity =
         analytics?['severity_distribution'] as Map<String, dynamic>?;
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Total diagnoses: $total'),
-          if (severity != null) ...[
-            const SizedBox(height: 8),
-            Text('Low: ${severity['low'] ?? 0}'),
-            Text('Medium: ${severity['medium'] ?? 0}'),
-            Text('High: ${severity['high'] ?? 0}'),
-            Text('Healthy: ${severity['healthy'] ?? 0}'),
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Total diagnoses',
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+            const SizedBox(height: 6),
+            Text(total, style: Theme.of(context).textTheme.headlineSmall),
+            const SizedBox(height: 12),
+            if (severity != null)
+              Wrap(
+                spacing: 10,
+                runSpacing: 8,
+                children: [
+                  _InfoChip(label: 'Low ${severity['low'] ?? 0}'),
+                  _InfoChip(label: 'Medium ${severity['medium'] ?? 0}'),
+                  _InfoChip(label: 'High ${severity['high'] ?? 0}'),
+                  _InfoChip(label: 'Healthy ${severity['healthy'] ?? 0}'),
+                ],
+              ),
           ],
-        ],
+        ),
       ),
     );
   }
@@ -561,39 +637,82 @@ class _HistoryCard extends StatelessWidget {
     final severity = item['severity']?.toString() ?? 'unknown';
     final createdAt = item['created_at']?.toString() ?? '';
 
-    return Container(
+    return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    diseaseName,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
+                _InfoChip(label: severity.toUpperCase()),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text('Crop: $cropType'),
+            if (createdAt.isNotEmpty) Text('Date: $createdAt'),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                OutlinedButton.icon(
+                  onPressed: onDownload,
+                  icon: const Icon(Icons.download),
+                  label: const Text('Report'),
+                ),
+                const SizedBox(width: 12),
+                TextButton.icon(
+                  onPressed: onDelete,
+                  icon: const Icon(Icons.delete),
+                  label: const Text('Delete'),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(diseaseName, style: Theme.of(context).textTheme.titleSmall),
-          const SizedBox(height: 6),
-          Text('Crop: $cropType'),
-          Text('Severity: $severity'),
-          if (createdAt.isNotEmpty) Text('Date: $createdAt'),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              OutlinedButton.icon(
-                onPressed: onDownload,
-                icon: const Icon(Icons.download),
-                label: const Text('Report'),
-              ),
-              const SizedBox(width: 12),
-              TextButton.icon(
-                onPressed: onDelete,
-                icon: const Icon(Icons.delete),
-                label: const Text('Delete'),
-              ),
-            ],
-          ),
-        ],
-      ),
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({required this.title, required this.subtitle});
+
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title, style: Theme.of(context).textTheme.titleLarge),
+        const SizedBox(height: 4),
+        Text(subtitle, style: Theme.of(context).textTheme.bodyMedium),
+      ],
+    );
+  }
+}
+
+class _InfoChip extends StatelessWidget {
+  const _InfoChip({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Chip(
+      label: Text(label),
+      backgroundColor: scheme.primary.withOpacity(0.08),
+      labelStyle: TextStyle(color: scheme.primary, fontWeight: FontWeight.w600),
+      side: BorderSide(color: scheme.primary.withOpacity(0.4)),
     );
   }
 }

@@ -231,60 +231,94 @@ class _CropCapturePageState extends State<CropCapturePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Select crop')),
-      body: Stack(
-        children: [
-          GridView.builder(
-            padding: const EdgeInsets.all(20),
-            itemCount: _crops.length,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              mainAxisSpacing: 16,
-              crossAxisSpacing: 16,
-              childAspectRatio: 0.9,
-            ),
-            itemBuilder: (context, index) {
-              final crop = _crops[index];
-              return InkWell(
-                onTap: () => _onCropSelected(crop),
-                borderRadius: BorderRadius.circular(16),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Expanded(
-                        child: Image.asset(
-                          crop.assetPath,
-                          fit: BoxFit.contain,
-                          errorBuilder: (context, error, stackTrace) {
-                            return const Icon(Icons.eco, size: 48);
-                          },
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        crop.label,
-                        style: Theme.of(context).textTheme.titleSmall,
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(title: const Text('Choose crop')),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFFF5F1EA), Color(0xFFE7F0E8)],
           ),
-          if (_isSubmitting)
-            Container(
-              color: Colors.black54,
-              child: const Center(child: CircularProgressIndicator()),
+        ),
+        child: Stack(
+          children: [
+            SafeArea(
+              child: GridView.builder(
+                padding: const EdgeInsets.all(20),
+                itemCount: _crops.length,
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  mainAxisSpacing: 16,
+                  crossAxisSpacing: 16,
+                  childAspectRatio: 0.9,
+                ),
+                itemBuilder: (context, index) {
+                  final crop = _crops[index];
+                  return InkWell(
+                    onTap: () => _onCropSelected(crop),
+                    borderRadius: BorderRadius.circular(18),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            Theme.of(
+                              context,
+                            ).colorScheme.surface.withOpacity(0.9),
+                            Theme.of(context)
+                                .colorScheme
+                                .surfaceContainerHighest
+                                .withOpacity(0.95),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.outline.withOpacity(0.2),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.06),
+                            blurRadius: 14,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Expanded(
+                            child: Image.asset(
+                              crop.assetPath,
+                              fit: BoxFit.contain,
+                              errorBuilder: (context, error, stackTrace) {
+                                return const Icon(Icons.eco, size: 48);
+                              },
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            crop.label,
+                            style: Theme.of(context).textTheme.titleSmall,
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
             ),
-        ],
+            if (_isSubmitting)
+              Container(
+                color: Colors.black54,
+                child: const Center(child: CircularProgressIndicator()),
+              ),
+          ],
+        ),
       ),
     );
   }

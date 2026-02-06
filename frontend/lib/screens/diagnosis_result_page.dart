@@ -24,29 +24,60 @@ class DiagnosisResultPage extends StatelessWidget {
     final heatmapUrl = _resolveUrl(result['heatmap_url']?.toString());
 
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(title: const Text('Diagnosis result')),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          Text(cropLabel, style: Theme.of(context).textTheme.headlineSmall),
-          const SizedBox(height: 8),
-          Text(
-            isHealthy ? 'Healthy' : diseaseName,
-            style: Theme.of(context).textTheme.titleLarge,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFFF5F1EA), Color(0xFFE7F0E8)],
           ),
-          const SizedBox(height: 8),
-          Text('Severity: $severity'),
-          Text('Confidence: $confidence'),
-          const SizedBox(height: 16),
-          if (imageUrl.isNotEmpty)
-            _ImageSection(label: 'Image', url: imageUrl, boxes: boxes),
-          if (heatmapUrl.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            _ImageSection(label: 'Heatmap', url: heatmapUrl),
-          ],
-          const SizedBox(height: 16),
-          if (boxes.isNotEmpty) Text('Bounding boxes: ${boxes.length}'),
-        ],
+        ),
+        child: SafeArea(
+          child: ListView(
+            padding: const EdgeInsets.all(20),
+            children: [
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        cropLabel,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        isHealthy ? 'Healthy' : diseaseName,
+                        style: Theme.of(context).textTheme.headlineSmall,
+                      ),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 8,
+                        children: [
+                          _StatusChip(label: severity.toUpperCase()),
+                          _StatusChip(label: 'Confidence $confidence'),
+                          if (boxes.isNotEmpty)
+                            _StatusChip(label: 'Boxes ${boxes.length}'),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              if (imageUrl.isNotEmpty)
+                _ImageSection(label: 'Image', url: imageUrl, boxes: boxes),
+              if (heatmapUrl.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                _ImageSection(label: 'Heatmap', url: heatmapUrl),
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -95,7 +126,7 @@ class _ImageSection extends StatelessWidget {
         Text(label, style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 8),
         ClipRRect(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
           child: boxes.isEmpty
               ? Image.network(
                   url,
@@ -113,6 +144,23 @@ class _ImageSection extends StatelessWidget {
               : _ImageWithBoxes(url: url, boxes: boxes),
         ),
       ],
+    );
+  }
+}
+
+class _StatusChip extends StatelessWidget {
+  const _StatusChip({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Chip(
+      label: Text(label),
+      backgroundColor: scheme.primary.withOpacity(0.1),
+      labelStyle: TextStyle(color: scheme.primary, fontWeight: FontWeight.w600),
+      side: BorderSide(color: scheme.primary.withOpacity(0.4)),
     );
   }
 }
