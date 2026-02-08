@@ -4,10 +4,13 @@ Handles blur detection, heatmap generation, and image quality checks
 """
 import cv2
 import numpy as np
+import tensorflow as tf
 from typing import Tuple, Dict, Any, List, Optional
 from app.core.config import settings
 import base64
 import logging
+from pathlib import Path
+import tempfile
 
 logger = logging.getLogger(__name__)
 
@@ -85,33 +88,148 @@ class ImageProcessor:
             raise
     
     @staticmethod
+    def generate_gradcam(
+        model,
+        image: np.ndarray,
+        layer_name: Optional[str] = None
+    ) -> Tuple[np.ndarray, Dict[str, Any]]:
+        """
+        Generate Grad-CAM heatmap overlay for the predicted class using TensorFlow GradientTape.
+        
+        Args:
+            model: TensorFlow/Keras model
+            image: Original image as numpy array (BGR format)
+            layer_name: Name of convolutional layer to use (auto-detected if None)
+        
+        Returns:
+            Tuple of (heatmap_overlay, severity_info)
+        """
+        try:
+            # Get base model (MobileNetV2)
+            base_model = model.layers[0]
+            
+            # Pick a sensible conv layer if not provided
+            if layer_name is None:
+                for layer in reversed(base_model.layers):
+                    if isinstance(layer, tf.keras.layers.Conv2D):
+                        layer_name = layer.name
+                        break
+                if layer_name is None:
+                    # Fallback: any layer with 'conv' in its name
+                    for layer in reversed(base_model.layers):
+                        if "conv" in layer.name.lower():
+                            layer_name = layer.name
+                            break
+            
+            if layer_name is None:
+                raise ValueError("No convolutional layer found in base model.")
+            
+            conv_layer = base_model.get_layer(layer_name)
+            
+            # Build a Grad-CAM graph rooted at base_model.input
+            x = base_model.output
+            for head_layer in model.layers[1:]:
+                x = head_layer(x)
+            preds = x
+            
+            grad_model = tf.keras.models.Model(
+                inputs=base_model.input,
+                outputs=[conv_layer.output, preds],
+            )
+            
+            # Preprocess image for model
+            img_resized = cv2.resize(image, (224, 224))
+            img_rgb = cv2.cvtColor(img_resized, cv2.COLOR_BGR2RGB)
+            img_array = img_rgb.astype(np.float32) / 255.0
+            img_array = tf.keras.applications.mobilenet_v2.preprocess_input(img_array * 255.0)
+            img_array = np.expand_dims(img_array, axis=0).astype(np.float32)
+            
+            # Compute gradients
+            with tf.GradientTape() as tape:
+                conv_outputs, predictions = grad_model(img_array)
+                pred_index = tf.argmax(predictions[0])
+                loss = predictions[:, pred_index]
+            
+            grads = tape.gradient(loss, conv_outputs)
+            pooled_grads = tf.reduce_mean(grads, axis=(0, 1, 2))
+            
+            conv_outputs = conv_outputs[0]
+            heatmap = tf.reduce_sum(pooled_grads * conv_outputs, axis=-1)
+            
+            # Convert to numpy and normalize
+            heatmap = heatmap.numpy()
+            heatmap = np.maximum(heatmap, 0)
+            heatmap /= (np.max(heatmap) + 1e-8)
+            
+            # Resize to original image size
+            heatmap = cv2.resize(heatmap, (image.shape[1], image.shape[0]))
+            heatmap = np.uint8(255 * heatmap)
+            
+            # Apply colormap
+            heatmap_colored = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)
+            
+            # Overlay on original image
+            overlay = cv2.addWeighted(image, 0.6, heatmap_colored, 0.4, 0)
+            
+            # Estimate severity from heatmap
+            severity_info = ImageProcessor.estimate_severity_from_heatmap(heatmap)
+            
+            return overlay, severity_info
+            
+        except Exception as e:
+            logger.error(f"Error generating Grad-CAM heatmap: {e}")
+            # Return original image with default severity on error
+            return image, {"severity": "Unknown", "infected_ratio": 0.0}
+    
+    @staticmethod
+    def estimate_severity_from_heatmap(heatmap: np.ndarray) -> Dict[str, Any]:
+        """
+        Estimate disease severity from heatmap intensity.
+        
+        Args:
+            heatmap: Grayscale heatmap (0-255)
+        
+        Returns:
+            Dictionary with severity level and infected ratio
+        """
+        try:
+            # Threshold to isolate "hot" infected zones
+            _, binary_map = cv2.threshold(heatmap, 200, 255, cv2.THRESH_BINARY)
+            
+            infected_area = np.sum(binary_map == 255)
+            total_area = binary_map.shape[0] * binary_map.shape[1]
+            
+            ratio = infected_area / total_area
+            
+            if ratio < 0.10:
+                severity = "Low"
+            elif ratio < 0.40:
+                severity = "Medium"
+            else:
+                severity = "High"
+            
+            return {
+                "severity": severity,
+                "infected_ratio": round(ratio * 100, 2)
+            }
+        except Exception as e:
+            logger.error(f"Error estimating severity: {e}")
+            return {"severity": "Unknown", "infected_ratio": 0.0}
+    
+    @staticmethod
     def generate_heatmap(
         image: np.ndarray,
         gradients: Optional[np.ndarray] = None
     ) -> np.ndarray:
         """
-        Generate Grad-CAM style heatmap overlay
-        
-        Args:
-            image: Original image
-            gradients: Gradient activations from model (if None, generates mock heatmap)
-        
-        Returns:
-            Image with heatmap overlay
+        DEPRECATED: Use generate_gradcam() instead.
+        Legacy method kept for backward compatibility.
         """
+        logger.warning("generate_heatmap() is deprecated. Use generate_gradcam() instead.")
         try:
             if gradients is None:
-                # Mock heatmap generation for demonstration
-                # In production, this should use actual model gradients
-                height, width = image.shape[:2]
-                
-                # Create a simple heatmap focusing on center (mock)
-                y, x = np.ogrid[:height, :width]
-                center_y, center_x = height // 2, width // 2
-                
-                # Gaussian-like distribution
-                heatmap = np.exp(-((x - center_x)**2 + (y - center_y)**2) / (2 * (min(height, width) / 4)**2))
-                heatmap = (heatmap * 255).astype(np.uint8)
+                # Return original image if no gradients provided
+                return image
             else:
                 # Use actual gradients
                 heatmap = cv2.resize(gradients, (image.shape[1], image.shape[0]))
