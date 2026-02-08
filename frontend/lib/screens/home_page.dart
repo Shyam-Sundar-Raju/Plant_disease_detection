@@ -8,6 +8,7 @@ import '../services/token_storage.dart';
 import '../services/user_api.dart';
 import '../services/weather_api.dart';
 import '../services/diagnosis_api.dart';
+import '../services/notification_api.dart';
 import 'auth/login_page.dart';
 import 'crop_capture_page.dart';
 import 'diagnosis_result_page.dart';
@@ -30,6 +31,7 @@ class _HomePageState extends State<HomePage> {
   final _historyApi = HistoryApi();
   final _diagnosisApi = DiagnosisApi();
   final _authApi = AuthApi();
+  final _notificationApi = NotificationApi();
   Map<String, dynamic>? _profile;
   bool _isRefreshingProfile = false;
   WeatherInfo? _weatherInfo;
@@ -418,17 +420,58 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  Future<void> _showNotifications() async {
+    final accessToken = await _tokenStorage.readAccessToken();
+    if (accessToken == null || accessToken.isEmpty) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please log in to view notifications.')),
+      );
+      return;
+    }
+
+    if (!mounted) {
+      return;
+    }
+
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (context) {
+        return _NotificationsSheet(
+          accessToken: accessToken,
+          notificationApi: _notificationApi,
+          tokenStorage: _tokenStorage,
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Field dashboard'),
+        title: Row(
+          children: [
+            Image.asset('assets/logo.png', width: 28, height: 28),
+            const SizedBox(width: 10),
+            const Text('AgroScan'),
+          ],
+        ),
         actions: [
           IconButton(
             onPressed: _initializeData,
             icon: const Icon(Icons.refresh),
             tooltip: 'Refresh',
+          ),
+          IconButton(
+            onPressed: _showNotifications,
+            icon: const Icon(Icons.notifications_outlined),
+            tooltip: 'Notifications',
           ),
           Icon(
             _isOnline ? Icons.wifi : Icons.wifi_off,
@@ -794,5 +837,154 @@ class _InfoChip extends StatelessWidget {
       labelStyle: TextStyle(color: scheme.primary, fontWeight: FontWeight.w600),
       side: BorderSide(color: scheme.primary.withOpacity(0.4)),
     );
+  }
+}
+
+class _NotificationsSheet extends StatelessWidget {
+  const _NotificationsSheet({
+    required this.accessToken,
+    required this.notificationApi,
+    required this.tokenStorage,
+  });
+
+  final String accessToken;
+  final NotificationApi notificationApi;
+  final TokenStorage tokenStorage;
+
+  Future<List<Map<String, dynamic>>> _loadNotifications() async {
+    final profile = await tokenStorage.readUserProfile();
+    final language = profile?['preferred_language']?.toString();
+    return notificationApi.getNotifications(
+      accessToken: accessToken,
+      language: language,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: 20,
+          right: 20,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+        ),
+        child: FutureBuilder<List<Map<String, dynamic>>>(
+          future: _loadNotifications(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState != ConnectionState.done) {
+              return const SizedBox(
+                height: 220,
+                child: Center(child: CircularProgressIndicator()),
+              );
+            }
+
+            if (snapshot.hasError || !snapshot.hasData) {
+              return const SizedBox(
+                height: 220,
+                child: Center(child: Text('Notifications unavailable.')),
+              );
+            }
+
+            final notifications = snapshot.data!;
+            if (notifications.isEmpty) {
+              return const SizedBox(
+                height: 220,
+                child: Center(child: Text('No notifications yet.')),
+              );
+            }
+
+            return SizedBox(
+              height: MediaQuery.of(context).size.height * 0.65,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Notifications',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 12),
+                  Expanded(
+                    child: ListView.separated(
+                      itemCount: notifications.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 8),
+                      itemBuilder: (context, index) {
+                        final item = notifications[index];
+                        return _NotificationTile(item: item);
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _NotificationTile extends StatelessWidget {
+  const _NotificationTile({required this.item});
+
+  final Map<String, dynamic> item;
+
+  @override
+  Widget build(BuildContext context) {
+    final title = item['title']?.toString() ?? 'Notification';
+    final message = item['message']?.toString() ?? '';
+    final createdAt = _formatTimestamp(item['created_at']);
+    final isRead = item['is_read'] == true;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Text(
+                    title,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
+                if (!isRead) const _InfoChip(label: 'NEW'),
+              ],
+            ),
+            if (message.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              Text(message),
+            ],
+            if (createdAt.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              Text(createdAt, style: Theme.of(context).textTheme.bodySmall),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  static String _formatTimestamp(dynamic value) {
+    if (value == null) {
+      return '';
+    }
+
+    final raw = value.toString();
+    final parsed = DateTime.tryParse(raw);
+    if (parsed == null) {
+      return raw;
+    }
+
+    final local = parsed.toLocal();
+    final year = local.year.toString().padLeft(4, '0');
+    final month = local.month.toString().padLeft(2, '0');
+    final day = local.day.toString().padLeft(2, '0');
+    final hour = local.hour.toString().padLeft(2, '0');
+    final minute = local.minute.toString().padLeft(2, '0');
+    return '$year-$month-$day $hour:$minute';
   }
 }

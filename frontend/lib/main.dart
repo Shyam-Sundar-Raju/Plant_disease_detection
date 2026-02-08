@@ -33,7 +33,7 @@ class PlantDiseaseApp extends StatelessWidget {
     );
 
     return MaterialApp(
-      title: 'Plant Disease Detection',
+      title: 'AgroScan',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: colorScheme,

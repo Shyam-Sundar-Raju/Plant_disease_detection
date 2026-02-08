@@ -112,22 +112,13 @@ class _LoginPageState extends State<LoginPage> {
                   children: [
                     Row(
                       children: [
-                        CircleAvatar(
-                          radius: 24,
-                          backgroundColor: Theme.of(
-                            context,
-                          ).colorScheme.primary.withOpacity(0.12),
-                          child: Icon(
-                            Icons.eco,
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                        ),
+                        Image.asset('assets/logo.png', width: 48, height: 48),
                         const SizedBox(width: 12),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Welcome back',
+                              'AgroScan',
                               style: Theme.of(context).textTheme.titleLarge,
                             ),
                             Text(
