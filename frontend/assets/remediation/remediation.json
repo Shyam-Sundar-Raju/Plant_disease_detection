@@ -1,0 +1,131 @@
+{
+  "diseases": [
+    {
+      "disease_id": "tomato_early_blight",
+      "name": {
+        "en": "Early Blight"
+      },
+      "description": {
+        "en": "A fungal disease affecting tomato leaves and stems."
+      },
+      "treatments": {
+        "organic": {
+          "type": "organic",
+          "steps": [
+            {
+              "step_number": 1,
+              "description": {
+                "en": "Remove and destroy infected leaves immediately."
+              },
+              "icon": "remove",
+              "safety_warning": {
+                "en": "Wear gloves while handling infected plants."
+              }
+            },
+            {
+              "step_number": 2,
+              "description": {
+                "en": "Apply neem oil spray (5ml per liter of water)."
+              },
+              "icon": "spray",
+              "duration": {
+                "en": "Every 7 days"
+              }
+            },
+            {
+              "step_number": 3,
+              "description": {
+                "en": "Improve air circulation around plants."
+              },
+              "icon": "air"
+            }
+          ],
+          "dosage": {
+            "en": "5ml neem oil per liter of water"
+          },
+          "frequency": {
+            "en": "Once every 7 days for 3 weeks"
+          },
+          "cost_estimate": "low"
+        },
+        "chemical": {
+          "type": "chemical",
+          "steps": [
+            {
+              "step_number": 1,
+              "description": {
+                "en": "Apply chlorothalonil-based fungicide (2g per liter)."
+              },
+              "icon": "spray",
+              "safety_warning": {
+                "en": "Use protective equipment: mask, gloves, and goggles."
+              }
+            },
+            {
+              "step_number": 2,
+              "description": {
+                "en": "Spray during early morning or late evening."
+              },
+              "icon": "time"
+            },
+            {
+              "step_number": 3,
+              "description": {
+                "en": "Do not harvest for 7 days after application."
+              },
+              "icon": "wait",
+              "safety_warning": {
+                "en": "Keep away from water sources."
+              }
+            }
+          ],
+          "dosage": {
+            "en": "2g per liter of water"
+          },
+          "frequency": {
+            "en": "Once every 10 days, maximum 3 applications"
+          },
+          "cost_estimate": "medium"
+        }
+      },
+      "prevention_steps": {
+        "en": [
+          "Practice crop rotation with non-solanaceous crops.",
+          "Ensure proper spacing between plants (18-24 inches).",
+          "Water at the base of plants, avoid wetting foliage.",
+          "Apply mulch to prevent soil splash.",
+          "Remove plant debris at season end."
+        ]
+      },
+      "severity_guidance": {
+        "low": {
+          "en": "Apply organic treatment only. Monitor daily."
+        },
+        "medium": {
+          "en": "Start with organic treatment. If no improvement in 7 days, switch to chemical."
+        },
+        "high": {
+          "en": "Immediate chemical intervention required. Remove heavily infected plants."
+        }
+      }
+    },
+    {
+      "disease_id": "tomato_healthy",
+      "name": {
+        "en": "Healthy Plant"
+      },
+      "description": {
+        "en": "Your plant appears healthy with no signs of disease."
+      },
+      "prevention_steps": {
+        "en": [
+          "Continue regular watering and fertilization.",
+          "Monitor plants weekly for any changes.",
+          "Maintain good air circulation.",
+          "Practice preventive spraying during monsoon."
+        ]
+      },
+      "no_treatment_needed": true
+    }
+  ]
+}

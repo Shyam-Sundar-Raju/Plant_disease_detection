@@ -7,8 +7,10 @@ import '../services/auth_api.dart';
 import '../services/token_storage.dart';
 import '../services/user_api.dart';
 import '../services/weather_api.dart';
+import '../services/diagnosis_api.dart';
 import 'auth/login_page.dart';
 import 'crop_capture_page.dart';
+import 'diagnosis_result_page.dart';
 import 'profile_page.dart';
 
 class HomePage extends StatefulWidget {
@@ -26,6 +28,7 @@ class _HomePageState extends State<HomePage> {
   final _locationService = const LocationService();
   final _weatherApi = WeatherApi();
   final _historyApi = HistoryApi();
+  final _diagnosisApi = DiagnosisApi();
   final _authApi = AuthApi();
   Map<String, dynamic>? _profile;
   bool _isRefreshingProfile = false;
@@ -234,6 +237,76 @@ class _HomePageState extends State<HomePage> {
     } catch (_) {
       // Keep cached analytics if request fails.
     }
+  }
+
+  Future<void> _openHistoryDiagnosis(Map<String, dynamic> item) async {
+    final diagnosisId = item['diagnosis_id']?.toString() ?? '';
+    if (diagnosisId.isEmpty) {
+      return;
+    }
+
+    final accessToken = await _tokenStorage.readAccessToken();
+    if (accessToken == null || accessToken.isEmpty) {
+      await _openCachedDiagnosis(diagnosisId, item);
+      return;
+    }
+
+    try {
+      final profile = await _tokenStorage.readUserProfile();
+      final language = profile?['preferred_language']?.toString();
+      final diagnosis = await _diagnosisApi.getDiagnosis(
+        accessToken: accessToken,
+        diagnosisId: diagnosisId,
+        language: language,
+      );
+
+      await _tokenStorage.saveDiagnosisResult(
+        diagnosisId: diagnosisId,
+        result: diagnosis,
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      final cropLabel = item['crop_type']?.toString() ?? 'Crop';
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) =>
+              DiagnosisResultPage(cropLabel: cropLabel, result: diagnosis),
+        ),
+      );
+    } catch (error) {
+      final opened = await _openCachedDiagnosis(diagnosisId, item);
+      if (!opened && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(error.toString().replaceFirst('Exception: ', '')),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<bool> _openCachedDiagnosis(
+    String diagnosisId,
+    Map<String, dynamic> item,
+  ) async {
+    final cached = await _tokenStorage.readDiagnosisResult(diagnosisId);
+    if (cached == null || !mounted) {
+      return false;
+    }
+
+    final cropLabel = item['crop_type']?.toString() ?? 'Crop';
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) =>
+            DiagnosisResultPage(cropLabel: cropLabel, result: cached),
+      ),
+    );
+    return true;
   }
 
   Future<void> _deleteHistoryItem(String historyId) async {
@@ -474,6 +547,7 @@ class _HomePageState extends State<HomePage> {
                 ..._historyItems.map(
                   (item) => _HistoryCard(
                     item: item,
+                    onOpen: () => _openHistoryDiagnosis(item),
                     onDelete: () =>
                         _deleteHistoryItem(item['_id']?.toString() ?? ''),
                     onDownload: () =>
@@ -622,11 +696,13 @@ class _AnalyticsCard extends StatelessWidget {
 class _HistoryCard extends StatelessWidget {
   const _HistoryCard({
     required this.item,
+    required this.onOpen,
     required this.onDelete,
     required this.onDownload,
   });
 
   final Map<String, dynamic> item;
+  final VoidCallback onOpen;
   final VoidCallback onDelete;
   final VoidCallback onDownload;
 
@@ -639,42 +715,46 @@ class _HistoryCard extends StatelessWidget {
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    diseaseName,
-                    style: Theme.of(context).textTheme.titleMedium,
+      child: InkWell(
+        onTap: onOpen,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      diseaseName,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
                   ),
-                ),
-                _InfoChip(label: severity.toUpperCase()),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Text('Crop: $cropType'),
-            if (createdAt.isNotEmpty) Text('Date: $createdAt'),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                OutlinedButton.icon(
-                  onPressed: onDownload,
-                  icon: const Icon(Icons.download),
-                  label: const Text('Report'),
-                ),
-                const SizedBox(width: 12),
-                TextButton.icon(
-                  onPressed: onDelete,
-                  icon: const Icon(Icons.delete),
-                  label: const Text('Delete'),
-                ),
-              ],
-            ),
-          ],
+                  _InfoChip(label: severity.toUpperCase()),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Text('Crop: $cropType'),
+              if (createdAt.isNotEmpty) Text('Date: $createdAt'),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: onDownload,
+                    icon: const Icon(Icons.download),
+                    label: const Text('Report'),
+                  ),
+                  const SizedBox(width: 12),
+                  TextButton.icon(
+                    onPressed: onDelete,
+                    icon: const Icon(Icons.delete),
+                    label: const Text('Delete'),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

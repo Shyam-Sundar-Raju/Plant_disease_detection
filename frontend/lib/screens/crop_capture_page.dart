@@ -197,6 +197,14 @@ class _CropCapturePageState extends State<CropCapturePage> {
         language: language,
       );
 
+      final diagnosisId = _extractDiagnosisId(result);
+      if (diagnosisId != null && diagnosisId.isNotEmpty) {
+        await _tokenStorage.saveDiagnosisResult(
+          diagnosisId: diagnosisId,
+          result: result,
+        );
+      }
+
       if (!mounted) {
         return;
       }
@@ -226,6 +234,18 @@ class _CropCapturePageState extends State<CropCapturePage> {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  String? _extractDiagnosisId(Map<String, dynamic> result) {
+    final id = result['_id']?.toString();
+    if (id != null && id.isNotEmpty) {
+      return id;
+    }
+    final alt = result['id']?.toString();
+    if (alt != null && alt.isNotEmpty) {
+      return alt;
+    }
+    return null;
   }
 
   @override

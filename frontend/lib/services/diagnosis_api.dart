@@ -51,4 +51,26 @@ class DiagnosisApi {
 
     throw Exception('Unexpected diagnosis response format.');
   }
+
+  Future<Map<String, dynamic>> getDiagnosis({
+    required String accessToken,
+    required String diagnosisId,
+    String? language,
+  }) async {
+    final headers = <String, dynamic>{'Authorization': 'Bearer $accessToken'};
+    if (language != null && language.isNotEmpty) {
+      headers['Accept-Language'] = language;
+    }
+
+    final response = await _dio.get(
+      '/diagnosis/$diagnosisId',
+      options: Options(headers: headers),
+    );
+
+    if (response.data is Map<String, dynamic>) {
+      return response.data as Map<String, dynamic>;
+    }
+
+    throw Exception('Unexpected diagnosis response format.');
+  }
 }

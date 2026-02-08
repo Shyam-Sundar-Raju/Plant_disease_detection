@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../services/api_config.dart';
+import 'remediation_page.dart';
 
 class DiagnosisResultPage extends StatelessWidget {
   const DiagnosisResultPage({
@@ -19,6 +20,7 @@ class DiagnosisResultPage extends StatelessWidget {
     final confidence = result['confidence']?.toString() ?? '-';
     final isHealthy = result['is_healthy'] == true;
     final boxes = _parseBoxes(result['bounding_boxes']);
+    final diseaseId = _resolveDiseaseId(result, isHealthy);
 
     final imageUrl = _resolveUrl(result['image_url']?.toString());
     final heatmapUrl = _resolveUrl(result['heatmap_url']?.toString());
@@ -64,6 +66,29 @@ class DiagnosisResultPage extends StatelessWidget {
                             _StatusChip(label: 'Boxes ${boxes.length}'),
                         ],
                       ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: diseaseId.isEmpty
+                              ? null
+                              : () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => RemediationPage(
+                                        diseaseId: diseaseId,
+                                        diseaseName: diseaseName,
+                                        severity: severity,
+                                        isHealthy: isHealthy,
+                                      ),
+                                    ),
+                                  );
+                                },
+                          icon: const Icon(Icons.medical_services_outlined),
+                          label: const Text('View remediation'),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -104,6 +129,24 @@ class DiagnosisResultPage extends StatelessWidget {
         .whereType<Map<String, dynamic>>()
         .map(_BoundingBox.fromJson)
         .toList();
+  }
+
+  String _resolveDiseaseId(Map<String, dynamic> data, bool isHealthy) {
+    final id = data['disease_id']?.toString();
+    if (id != null && id.isNotEmpty) {
+      return id;
+    }
+
+    if (!isHealthy) {
+      return '';
+    }
+
+    final cropType = data['crop_type']?.toString();
+    if (cropType != null && cropType.isNotEmpty) {
+      return '${cropType}_healthy';
+    }
+
+    return '';
   }
 }
 

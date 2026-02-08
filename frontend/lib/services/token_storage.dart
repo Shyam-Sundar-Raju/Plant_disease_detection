@@ -9,6 +9,7 @@ class TokenStorage {
   static const String userProfileKey = 'user_profile';
   static const String historyCacheKey = 'history_cache';
   static const String analyticsCacheKey = 'history_analytics_cache';
+  static const String diagnosisCacheKey = 'diagnosis_cache';
 
   const TokenStorage();
 
@@ -33,6 +34,7 @@ class TokenStorage {
     await _storage.delete(key: userProfileKey);
     await _storage.delete(key: historyCacheKey);
     await _storage.delete(key: analyticsCacheKey);
+    await _storage.delete(key: diagnosisCacheKey);
   }
 
   Future<String?> readAccessToken() {
@@ -99,5 +101,37 @@ class TokenStorage {
     }
 
     return null;
+  }
+
+  Future<void> saveDiagnosisResult({
+    required String diagnosisId,
+    required Map<String, dynamic> result,
+  }) async {
+    final cache = await _readDiagnosisCache();
+    cache[diagnosisId] = result;
+    await _storage.write(key: diagnosisCacheKey, value: jsonEncode(cache));
+  }
+
+  Future<Map<String, dynamic>?> readDiagnosisResult(String diagnosisId) async {
+    final cache = await _readDiagnosisCache();
+    final entry = cache[diagnosisId];
+    if (entry is Map<String, dynamic>) {
+      return entry;
+    }
+    return null;
+  }
+
+  Future<Map<String, dynamic>> _readDiagnosisCache() async {
+    final raw = await _storage.read(key: diagnosisCacheKey);
+    if (raw == null || raw.isEmpty) {
+      return <String, dynamic>{};
+    }
+
+    final decoded = jsonDecode(raw);
+    if (decoded is Map<String, dynamic>) {
+      return decoded;
+    }
+
+    return <String, dynamic>{};
   }
 }
