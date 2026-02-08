@@ -41,6 +41,7 @@ class _HomePageState extends State<HomePage> {
   List<Map<String, dynamic>> _historyItems = [];
   bool _isLoadingHistory = false;
   bool _isOnline = false;
+  String? _selectedCropFilter;
 
   Future<void> _logout() async {
     await _tokenStorage.clearTokens();
@@ -453,6 +454,20 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final cropOptions =
+        _historyItems
+            .map((item) => item['crop_type']?.toString() ?? '')
+            .where((value) => value.isNotEmpty)
+            .toSet()
+            .toList()
+          ..sort();
+    final filteredHistory = _selectedCropFilter == null
+        ? _historyItems
+        : _historyItems
+              .where(
+                (item) => item['crop_type']?.toString() == _selectedCropFilter,
+              )
+              .toList();
     return Scaffold(
       appBar: AppBar(
         title: Row(
@@ -581,13 +596,38 @@ class _HomePageState extends State<HomePage> {
                 title: 'History records',
                 subtitle: 'Download or remove past reports',
               ),
+              const SizedBox(height: 8),
+              if (cropOptions.isNotEmpty)
+                DropdownButtonFormField<String>(
+                  value: _selectedCropFilter,
+                  decoration: const InputDecoration(
+                    labelText: 'Filter by crop',
+                  ),
+                  items: [
+                    const DropdownMenuItem<String>(
+                      value: null,
+                      child: Text('All crops'),
+                    ),
+                    ...cropOptions.map(
+                      (crop) => DropdownMenuItem<String>(
+                        value: crop,
+                        child: Text(crop),
+                      ),
+                    ),
+                  ],
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedCropFilter = value;
+                    });
+                  },
+                ),
               const SizedBox(height: 12),
               if (_isLoadingHistory)
                 const Center(child: CircularProgressIndicator())
-              else if (_historyItems.isEmpty)
+              else if (filteredHistory.isEmpty)
                 const Text('No history yet.')
               else
-                ..._historyItems.map(
+                ...filteredHistory.map(
                   (item) => _HistoryCard(
                     item: item,
                     onOpen: () => _openHistoryDiagnosis(item),
@@ -854,6 +894,11 @@ class _NotificationsSheet extends StatelessWidget {
   Future<List<Map<String, dynamic>>> _loadNotifications() async {
     final profile = await tokenStorage.readUserProfile();
     final language = profile?['preferred_language']?.toString();
+    try {
+      await notificationApi.markAllRead(accessToken: accessToken);
+    } catch (_) {
+      // Keep showing notifications even if mark-all-read fails.
+    }
     return notificationApi.getNotifications(
       accessToken: accessToken,
       language: language,

@@ -17,10 +17,21 @@ class DiagnosisResultPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final diseaseName = result['disease_name']?.toString() ?? 'Unknown';
     final severity = result['severity']?.toString() ?? 'unknown';
-    final confidence = result['confidence']?.toString() ?? '-';
+    final confidencePercent = _parseConfidencePercent(result['confidence']);
     final isHealthy = result['is_healthy'] == true;
     final boxes = _parseBoxes(result['bounding_boxes']);
-    final diseaseId = _resolveDiseaseId(result, isHealthy);
+    final isLowConfidence =
+        !isHealthy && confidencePercent > 0 && confidencePercent < 40;
+    final displayDiseaseName = isLowConfidence
+        ? 'Unknown disease'
+        : (isHealthy ? 'Healthy' : diseaseName);
+    final displaySeverity = isLowConfidence ? 'unknown' : severity;
+    final diseaseId = isLowConfidence
+        ? ''
+        : _resolveDiseaseId(result, isHealthy);
+    final confidenceLabel = confidencePercent > 0
+        ? 'Confidence ${confidencePercent.toStringAsFixed(0)}%'
+        : 'Confidence -';
 
     final imageUrl = _resolveUrl(result['image_url']?.toString());
     final heatmapUrl = _resolveUrl(result['heatmap_url']?.toString());
@@ -52,7 +63,7 @@ class DiagnosisResultPage extends StatelessWidget {
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        isHealthy ? 'Healthy' : diseaseName,
+                        displayDiseaseName,
                         style: Theme.of(context).textTheme.headlineSmall,
                       ),
                       const SizedBox(height: 12),
@@ -60,8 +71,8 @@ class DiagnosisResultPage extends StatelessWidget {
                         spacing: 10,
                         runSpacing: 8,
                         children: [
-                          _StatusChip(label: severity.toUpperCase()),
-                          _StatusChip(label: 'Confidence $confidence'),
+                          _StatusChip(label: displaySeverity.toUpperCase()),
+                          _StatusChip(label: confidenceLabel),
                           if (boxes.isNotEmpty)
                             _StatusChip(label: 'Boxes ${boxes.length}'),
                         ],
@@ -78,8 +89,8 @@ class DiagnosisResultPage extends StatelessWidget {
                                     MaterialPageRoute(
                                       builder: (_) => RemediationPage(
                                         diseaseId: diseaseId,
-                                        diseaseName: diseaseName,
-                                        severity: severity,
+                                        diseaseName: displayDiseaseName,
+                                        severity: displaySeverity,
                                         isHealthy: isHealthy,
                                       ),
                                     ),
@@ -98,7 +109,22 @@ class DiagnosisResultPage extends StatelessWidget {
                 _ImageSection(label: 'Image', url: imageUrl, boxes: boxes),
               if (heatmapUrl.isNotEmpty) ...[
                 const SizedBox(height: 16),
-                _ImageSection(label: 'Heatmap', url: heatmapUrl),
+                if (imageUrl.isNotEmpty)
+                  _MatchedImageSection(
+                    label: 'Heatmap',
+                    imageUrl: heatmapUrl,
+                    matchUrl: imageUrl,
+                  )
+                else
+                  _ImageSection(label: 'Heatmap', url: heatmapUrl),
+              ],
+              if (imageUrl.isNotEmpty && diseaseId.isNotEmpty) ...[
+                const SizedBox(height: 20),
+                _SideBySideComparison(
+                  capturedUrl: imageUrl,
+                  referenceAsset:
+                      'assets/images/reference_diseases/$diseaseId.jpeg',
+                ),
               ],
             ],
           ),
@@ -129,6 +155,25 @@ class DiagnosisResultPage extends StatelessWidget {
         .whereType<Map<String, dynamic>>()
         .map(_BoundingBox.fromJson)
         .toList();
+  }
+
+  double _parseConfidencePercent(dynamic value) {
+    if (value == null) {
+      return 0;
+    }
+    double? parsed;
+    if (value is num) {
+      parsed = value.toDouble();
+    } else {
+      parsed = double.tryParse(value.toString());
+    }
+    if (parsed == null || parsed.isNaN) {
+      return 0;
+    }
+    if (parsed <= 1) {
+      return parsed * 100;
+    }
+    return parsed;
   }
 
   String _resolveDiseaseId(Map<String, dynamic> data, bool isHealthy) {
@@ -204,6 +249,210 @@ class _StatusChip extends StatelessWidget {
       backgroundColor: scheme.primary.withOpacity(0.1),
       labelStyle: TextStyle(color: scheme.primary, fontWeight: FontWeight.w600),
       side: BorderSide(color: scheme.primary.withOpacity(0.4)),
+    );
+  }
+}
+
+class _MatchedImageSection extends StatelessWidget {
+  const _MatchedImageSection({
+    required this.label,
+    required this.imageUrl,
+    required this.matchUrl,
+  });
+
+  final String label;
+  final String imageUrl;
+  final String matchUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 8),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: _ImageWithMatchedAspect(
+            imageUrl: imageUrl,
+            matchUrl: matchUrl,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ImageWithMatchedAspect extends StatefulWidget {
+  const _ImageWithMatchedAspect({
+    required this.imageUrl,
+    required this.matchUrl,
+  });
+
+  final String imageUrl;
+  final String matchUrl;
+
+  @override
+  State<_ImageWithMatchedAspect> createState() =>
+      _ImageWithMatchedAspectState();
+}
+
+class _ImageWithMatchedAspectState extends State<_ImageWithMatchedAspect> {
+  Size? _matchSize;
+
+  @override
+  void initState() {
+    super.initState();
+    _resolveMatchImage();
+  }
+
+  @override
+  void didUpdateWidget(covariant _ImageWithMatchedAspect oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.matchUrl != widget.matchUrl) {
+      _matchSize = null;
+      _resolveMatchImage();
+    }
+  }
+
+  void _resolveMatchImage() {
+    final image = Image.network(widget.matchUrl);
+    final stream = image.image.resolve(const ImageConfiguration());
+    stream.addListener(
+      ImageStreamListener(
+        (info, _) {
+          if (!mounted) {
+            return;
+          }
+          setState(() {
+            _matchSize = Size(
+              info.image.width.toDouble(),
+              info.image.height.toDouble(),
+            );
+          });
+        },
+        onError: (_, __) {
+          if (!mounted) {
+            return;
+          }
+          setState(() {
+            _matchSize = null;
+          });
+        },
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final matchSize = _matchSize;
+        final width = constraints.maxWidth;
+        final height = matchSize == null
+            ? 220.0
+            : (width * (matchSize.height / matchSize.width));
+
+        return SizedBox(
+          width: width,
+          height: height,
+          child: Image.network(
+            widget.imageUrl,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) {
+              return Container(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                padding: const EdgeInsets.all(20),
+                child: const Center(child: Icon(Icons.broken_image)),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _SideBySideComparison extends StatelessWidget {
+  const _SideBySideComparison({
+    required this.capturedUrl,
+    required this.referenceAsset,
+  });
+
+  final String capturedUrl;
+  final String referenceAsset;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Comparison', style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: _ComparisonTile(
+                label: 'Captured',
+                child: Image.network(
+                  capturedUrl,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return const _ImageFallback();
+                  },
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _ComparisonTile(
+                label: 'Reference',
+                child: Image.asset(
+                  referenceAsset,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return const _ImageFallback();
+                  },
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _ComparisonTile extends StatelessWidget {
+  const _ComparisonTile({required this.label, required this.child});
+
+  final String label;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: Theme.of(context).textTheme.bodySmall),
+        const SizedBox(height: 6),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(14),
+          child: AspectRatio(aspectRatio: 1, child: child),
+        ),
+      ],
+    );
+  }
+}
+
+class _ImageFallback extends StatelessWidget {
+  const _ImageFallback();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      child: const Center(child: Icon(Icons.broken_image)),
     );
   }
 }

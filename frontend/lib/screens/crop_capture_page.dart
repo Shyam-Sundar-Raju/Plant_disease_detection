@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:video_player/video_player.dart';
@@ -116,8 +117,35 @@ class _CropCapturePageState extends State<CropCapturePage> {
     if (image == null) {
       return;
     }
+    final cropped = await _cropImage(File(image.path));
+    if (cropped == null) {
+      return;
+    }
 
-    await _processImage(crop, File(image.path));
+    await _processImage(crop, cropped);
+  }
+
+  Future<File?> _cropImage(File imageFile) async {
+    final cropped = await ImageCropper().cropImage(
+      sourcePath: imageFile.path,
+      compressQuality: 95,
+      uiSettings: [
+        AndroidUiSettings(
+          toolbarTitle: 'Crop image',
+          toolbarColor: const Color(0xFF1B5E20),
+          toolbarWidgetColor: Colors.white,
+          activeControlsWidgetColor: const Color(0xFF1B5E20),
+          lockAspectRatio: false,
+        ),
+        IOSUiSettings(title: 'Crop image'),
+      ],
+    );
+
+    if (cropped == null) {
+      return null;
+    }
+
+    return File(cropped.path);
   }
 
   Future<File?> _extractFrame(File videoFile) async {

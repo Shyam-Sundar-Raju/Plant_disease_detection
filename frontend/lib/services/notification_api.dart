@@ -40,4 +40,11 @@ class NotificationApi {
 
     throw Exception('Unexpected notifications response format.');
   }
+
+  Future<void> markAllRead({required String accessToken}) async {
+    await _dio.post(
+      '/notifications/mark-all-read',
+      options: Options(headers: {'Authorization': 'Bearer $accessToken'}),
+    );
+  }
 }
