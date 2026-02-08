@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../services/token_storage.dart';
+import '../services/app_localizations.dart';
 
 class RemediationPage extends StatelessWidget {
   const RemediationPage({
@@ -39,7 +40,7 @@ class RemediationPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       extendBodyBehindAppBar: true,
-      appBar: AppBar(title: const Text('Remediation guide')),
+      appBar: AppBar(title: Text(context.t('Remediation guide'))),
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -57,8 +58,8 @@ class RemediationPage extends StatelessWidget {
               }
 
               if (snapshot.hasError || !snapshot.hasData) {
-                return const Center(
-                  child: Text('Remediation data unavailable.'),
+                return Center(
+                  child: Text(context.t('Remediation data unavailable.')),
                 );
               }
 
@@ -70,7 +71,10 @@ class RemediationPage extends StatelessWidget {
               if (disease == null) {
                 return Center(
                   child: Text(
-                    'No remediation found for $diseaseName.',
+                    context.t(
+                      'No remediation found for {name}.',
+                      args: {'name': diseaseName},
+                    ),
                     textAlign: TextAlign.center,
                   ),
                 );
@@ -112,7 +116,9 @@ class RemediationPage extends StatelessWidget {
                             children: [
                               _InfoChip(label: severity.toUpperCase()),
                               if (noTreatmentNeeded)
-                                const _InfoChip(label: 'No treatment needed'),
+                                _InfoChip(
+                                  label: context.t('No treatment needed'),
+                                ),
                             ],
                           ),
                         ],
@@ -122,20 +128,20 @@ class RemediationPage extends StatelessWidget {
                   if (severityGuidance.isNotEmpty) ...[
                     const SizedBox(height: 16),
                     _SectionHeader(
-                      title: 'Severity guidance',
+                      title: context.t('Severity guidance'),
                       subtitle: severityGuidance,
                     ),
                   ],
                   if (!noTreatmentNeeded && treatments != null) ...[
                     const SizedBox(height: 20),
                     _TreatmentSection(
-                      title: 'Organic treatment',
+                      title: context.t('Organic treatment'),
                       treatment: treatments['organic'] as Map<String, dynamic>?,
                       language: data.language,
                     ),
                     const SizedBox(height: 16),
                     _TreatmentSection(
-                      title: 'Chemical treatment',
+                      title: context.t('Chemical treatment'),
                       treatment:
                           treatments['chemical'] as Map<String, dynamic>?,
                       language: data.language,
@@ -144,8 +150,10 @@ class RemediationPage extends StatelessWidget {
                   if (prevention.isNotEmpty) ...[
                     const SizedBox(height: 20),
                     _SectionHeader(
-                      title: 'Prevention tips',
-                      subtitle: 'Keep plants resilient with these steps.',
+                      title: context.t('Prevention tips'),
+                      subtitle: context.t(
+                        'Keep plants resilient with these steps.',
+                      ),
                     ),
                     const SizedBox(height: 8),
                     ...prevention.map((tip) => _BulletRow(text: tip)),
@@ -277,17 +285,31 @@ class _TreatmentSection extends StatelessWidget {
                 spacing: 10,
                 runSpacing: 8,
                 children: [
-                  if (dosage.isNotEmpty) _InfoChip(label: 'Dosage $dosage'),
+                  if (dosage.isNotEmpty)
+                    _InfoChip(
+                      label: context.t(
+                        'Dosage {value}',
+                        args: {'value': dosage},
+                      ),
+                    ),
                   if (frequency.isNotEmpty)
-                    _InfoChip(label: 'Frequency $frequency'),
-                  if (cost.isNotEmpty) _InfoChip(label: 'Cost $cost'),
+                    _InfoChip(
+                      label: context.t(
+                        'Frequency {value}',
+                        args: {'value': frequency},
+                      ),
+                    ),
+                  if (cost.isNotEmpty)
+                    _InfoChip(
+                      label: context.t('Cost {value}', args: {'value': cost}),
+                    ),
                 ],
               ),
             ],
             if (safetyWarnings.isNotEmpty) ...[
               const SizedBox(height: 12),
               Text(
-                'Safety warnings',
+                context.t('Safety warnings'),
                 style: Theme.of(context).textTheme.titleSmall,
               ),
               const SizedBox(height: 6),

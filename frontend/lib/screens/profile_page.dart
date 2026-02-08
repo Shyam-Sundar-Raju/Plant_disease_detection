@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../services/location_service.dart';
 import '../services/token_storage.dart';
 import '../services/user_api.dart';
+import '../services/app_localizations.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -101,7 +103,7 @@ class _ProfilePageState extends State<ProfilePage> {
     final accessToken = await _tokenStorage.readAccessToken();
     if (accessToken == null || accessToken.isEmpty) {
       setState(() {
-        _errorMessage = 'Missing access token.';
+        _errorMessage = context.tRead('Missing access token.');
       });
       return;
     }
@@ -132,10 +134,11 @@ class _ProfilePageState extends State<ProfilePage> {
       }
 
       _applyProfile(profile);
+      context.read<AppLanguage>().setLanguage(_selectedLanguage);
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Profile updated.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.tRead('Profile updated.'))),
+      );
     } catch (error) {
       setState(() {
         _errorMessage = error.toString().replaceFirst('Exception: ', '');
@@ -154,7 +157,7 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       extendBodyBehindAppBar: true,
-      appBar: AppBar(title: const Text('Profile')),
+      appBar: AppBar(title: Text(context.t('Profile'))),
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -191,7 +194,7 @@ class _ProfilePageState extends State<ProfilePage> {
                               ),
                               const SizedBox(width: 12),
                               Text(
-                                'Personal details',
+                                context.t('Personal details'),
                                 style: Theme.of(context).textTheme.titleMedium,
                               ),
                             ],
@@ -199,13 +202,13 @@ class _ProfilePageState extends State<ProfilePage> {
                           const SizedBox(height: 16),
                           TextFormField(
                             controller: _nameController,
-                            decoration: const InputDecoration(
-                              labelText: 'Name',
+                            decoration: InputDecoration(
+                              labelText: context.t('Name'),
                             ),
                             textInputAction: TextInputAction.next,
                             validator: (value) {
                               if (value == null || value.trim().isEmpty) {
-                                return 'Name is required.';
+                                return context.t('Name is required.');
                               }
                               return null;
                             },
@@ -213,24 +216,24 @@ class _ProfilePageState extends State<ProfilePage> {
                           const SizedBox(height: 16),
                           TextFormField(
                             controller: _emailController,
-                            decoration: const InputDecoration(
-                              labelText: 'Email',
+                            decoration: InputDecoration(
+                              labelText: context.t('Email'),
                             ),
                             readOnly: true,
                           ),
                           const SizedBox(height: 16),
                           TextFormField(
                             controller: _phoneController,
-                            decoration: const InputDecoration(
-                              labelText: 'Phone',
+                            decoration: InputDecoration(
+                              labelText: context.t('Phone'),
                             ),
                             readOnly: true,
                           ),
                           const SizedBox(height: 16),
                           DropdownButtonFormField<String>(
                             value: _selectedLanguage,
-                            decoration: const InputDecoration(
-                              labelText: 'Preferred language',
+                            decoration: InputDecoration(
+                              labelText: context.t('Preferred language'),
                             ),
                             items: _languages
                                 .map(
@@ -254,7 +257,9 @@ class _ProfilePageState extends State<ProfilePage> {
                             children: [
                               Expanded(
                                 child: Text(
-                                  'Location will be updated using GPS when you save.',
+                                  context.t(
+                                    'Location will be updated using GPS when you save.',
+                                  ),
                                   style: Theme.of(context).textTheme.bodySmall,
                                 ),
                               ),
@@ -287,7 +292,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                       strokeWidth: 2,
                                     ),
                                   )
-                                : const Text('Update profile'),
+                                : Text(context.t('Update profile')),
                           ),
                         ],
                       ),

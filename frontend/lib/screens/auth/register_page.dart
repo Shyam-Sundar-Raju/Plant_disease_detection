@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../services/auth_api.dart';
 import '../../services/location_service.dart';
+import '../../services/app_localizations.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -83,9 +84,9 @@ class _RegisterPageState extends State<RegisterPage> {
         return;
       }
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Registration complete.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.tRead('Registration complete.'))),
+      );
       Navigator.pop(context);
     } catch (error) {
       setState(() {
@@ -108,13 +109,18 @@ class _RegisterPageState extends State<RegisterPage> {
   @override
   Widget build(BuildContext context) {
     final locationText = _location == null
-        ? 'Location will be captured automatically.'
-        : 'Location: ${_location!.latitude.toStringAsFixed(5)}, '
-              '${_location!.longitude.toStringAsFixed(5)}';
+        ? context.t('Location will be captured automatically.')
+        : context.t(
+            'Location: {lat}, {lng}',
+            args: {
+              'lat': _location!.latitude.toStringAsFixed(5),
+              'lng': _location!.longitude.toStringAsFixed(5),
+            },
+          );
 
     return Scaffold(
       extendBodyBehindAppBar: true,
-      appBar: AppBar(title: const Text('Create account')),
+      appBar: AppBar(title: Text(context.t('Create account title'))),
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -149,11 +155,11 @@ class _RegisterPageState extends State<RegisterPage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Join the community',
+                              context.t('Join the community'),
                               style: Theme.of(context).textTheme.titleLarge,
                             ),
                             Text(
-                              'GPS helps personalize your reports',
+                              context.t('GPS helps personalize your reports'),
                               style: Theme.of(context).textTheme.bodyMedium,
                             ),
                           ],
@@ -171,13 +177,13 @@ class _RegisterPageState extends State<RegisterPage> {
                             children: [
                               TextFormField(
                                 controller: _nameController,
-                                decoration: const InputDecoration(
-                                  labelText: 'Full name',
+                                decoration: InputDecoration(
+                                  labelText: context.t('Full name'),
                                 ),
                                 textInputAction: TextInputAction.next,
                                 validator: (value) {
                                   if (value == null || value.trim().isEmpty) {
-                                    return 'Name is required.';
+                                    return context.t('Name is required.');
                                   }
                                   return null;
                                 },
@@ -185,14 +191,14 @@ class _RegisterPageState extends State<RegisterPage> {
                               const SizedBox(height: 16),
                               TextFormField(
                                 controller: _emailController,
-                                decoration: const InputDecoration(
-                                  labelText: 'Email',
+                                decoration: InputDecoration(
+                                  labelText: context.t('Email'),
                                 ),
                                 keyboardType: TextInputType.emailAddress,
                                 textInputAction: TextInputAction.next,
                                 validator: (value) {
                                   if (value == null || value.trim().isEmpty) {
-                                    return 'Email is required.';
+                                    return context.t('Email is required.');
                                   }
                                   return null;
                                 },
@@ -204,8 +210,8 @@ class _RegisterPageState extends State<RegisterPage> {
                                     flex: 3,
                                     child: DropdownButtonFormField<String>(
                                       value: _selectedCountryCode,
-                                      decoration: const InputDecoration(
-                                        labelText: 'Code',
+                                      decoration: InputDecoration(
+                                        labelText: context.t('Code'),
                                         isDense: true,
                                         contentPadding: EdgeInsets.symmetric(
                                           horizontal: 12,
@@ -241,15 +247,17 @@ class _RegisterPageState extends State<RegisterPage> {
                                     flex: 5,
                                     child: TextFormField(
                                       controller: _phoneController,
-                                      decoration: const InputDecoration(
-                                        labelText: 'Phone',
+                                      decoration: InputDecoration(
+                                        labelText: context.t('Phone'),
                                       ),
                                       keyboardType: TextInputType.phone,
                                       textInputAction: TextInputAction.next,
                                       validator: (value) {
                                         if (value == null ||
                                             value.trim().isEmpty) {
-                                          return 'Phone is required.';
+                                          return context.t(
+                                            'Phone is required.',
+                                          );
                                         }
                                         return null;
                                       },
@@ -260,17 +268,19 @@ class _RegisterPageState extends State<RegisterPage> {
                               const SizedBox(height: 16),
                               TextFormField(
                                 controller: _passwordController,
-                                decoration: const InputDecoration(
-                                  labelText: 'Password',
+                                decoration: InputDecoration(
+                                  labelText: context.t('Password'),
                                 ),
                                 obscureText: true,
                                 textInputAction: TextInputAction.next,
                                 validator: (value) {
                                   if (value == null || value.isEmpty) {
-                                    return 'Password is required.';
+                                    return context.t('Password is required.');
                                   }
                                   if (value.length < 6) {
-                                    return 'Password must be at least 6 characters.';
+                                    return context.t(
+                                      'Password must be at least 6 characters.',
+                                    );
                                   }
                                   return null;
                                 },
@@ -278,13 +288,13 @@ class _RegisterPageState extends State<RegisterPage> {
                               const SizedBox(height: 16),
                               TextFormField(
                                 controller: _addressController,
-                                decoration: const InputDecoration(
-                                  labelText: 'Address',
+                                decoration: InputDecoration(
+                                  labelText: context.t('Address'),
                                 ),
                                 textInputAction: TextInputAction.next,
                                 validator: (value) {
                                   if (value == null || value.trim().isEmpty) {
-                                    return 'Address is required.';
+                                    return context.t('Address is required.');
                                   }
                                   return null;
                                 },
@@ -292,8 +302,8 @@ class _RegisterPageState extends State<RegisterPage> {
                               const SizedBox(height: 16),
                               DropdownButtonFormField<String>(
                                 value: _selectedLanguage,
-                                decoration: const InputDecoration(
-                                  labelText: 'Preferred language',
+                                decoration: InputDecoration(
+                                  labelText: context.t('Preferred language'),
                                 ),
                                 items: _languages
                                     .map(
@@ -336,7 +346,7 @@ class _RegisterPageState extends State<RegisterPage> {
                                           strokeWidth: 2,
                                         ),
                                       )
-                                    : const Text('Create account'),
+                                    : Text(context.t('Create account')),
                               ),
                             ],
                           ),

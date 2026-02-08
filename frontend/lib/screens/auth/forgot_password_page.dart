@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../services/auth_api.dart';
+import '../../services/app_localizations.dart';
 
 class ForgotPasswordPage extends StatefulWidget {
   const ForgotPasswordPage({super.key});
@@ -51,7 +52,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
 
       final message =
           result['message']?.toString() ??
-          'If the account exists, a reset code will be sent.';
+          context.tRead('If the account exists, a reset code will be sent.');
 
       if (!mounted) {
         return;
@@ -98,7 +99,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
 
       final message =
           result['message']?.toString() ??
-          'Password reset successful. You can log in now.';
+          context.tRead('Password reset successful. You can log in now.');
 
       if (!mounted) {
         return;
@@ -129,7 +130,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       extendBodyBehindAppBar: true,
-      appBar: AppBar(title: const Text('Reset password')),
+      appBar: AppBar(title: Text(context.t('Reset password'))),
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -164,11 +165,11 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Forgot your password?',
+                              context.t('Forgot your password?'),
                               style: Theme.of(context).textTheme.titleLarge,
                             ),
                             Text(
-                              'We will send a reset code',
+                              context.t('We will send a reset code'),
                               style: Theme.of(context).textTheme.bodyMedium,
                             ),
                           ],
@@ -186,13 +187,15 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                             children: [
                               TextFormField(
                                 controller: _usernameController,
-                                decoration: const InputDecoration(
-                                  labelText: 'Email or phone',
+                                decoration: InputDecoration(
+                                  labelText: context.t('Email or phone'),
                                 ),
                                 textInputAction: TextInputAction.done,
                                 validator: (value) {
                                   if (value == null || value.trim().isEmpty) {
-                                    return 'Email or phone is required.';
+                                    return context.t(
+                                      'Email or phone is required.',
+                                    );
                                   }
                                   return null;
                                 },
@@ -225,7 +228,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                                           strokeWidth: 2,
                                         ),
                                       )
-                                    : const Text('Send reset code'),
+                                    : Text(context.t('Send reset code')),
                               ),
                             ],
                           ),
@@ -243,20 +246,22 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
                                 Text(
-                                  'Enter the OTP sent to your email.',
+                                  context.t(
+                                    'Enter the OTP sent to your email.',
+                                  ),
                                   style: Theme.of(context).textTheme.bodySmall,
                                 ),
                                 const SizedBox(height: 12),
                                 TextFormField(
                                   controller: _otpController,
-                                  decoration: const InputDecoration(
-                                    labelText: 'OTP',
+                                  decoration: InputDecoration(
+                                    labelText: context.t('OTP'),
                                   ),
                                   keyboardType: TextInputType.number,
                                   textInputAction: TextInputAction.next,
                                   validator: (value) {
                                     if (value == null || value.trim().isEmpty) {
-                                      return 'OTP is required.';
+                                      return context.t('OTP is required.');
                                     }
                                     return null;
                                   },
@@ -264,17 +269,21 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                                 const SizedBox(height: 12),
                                 TextFormField(
                                   controller: _newPasswordController,
-                                  decoration: const InputDecoration(
-                                    labelText: 'New password',
+                                  decoration: InputDecoration(
+                                    labelText: context.t('New password'),
                                   ),
                                   obscureText: true,
                                   textInputAction: TextInputAction.done,
                                   validator: (value) {
                                     if (value == null || value.isEmpty) {
-                                      return 'New password is required.';
+                                      return context.t(
+                                        'New password is required.',
+                                      );
                                     }
                                     if (value.length < 8) {
-                                      return 'Password must be at least 8 characters.';
+                                      return context.t(
+                                        'Password must be at least 6 characters.',
+                                      );
                                     }
                                     return null;
                                   },
@@ -290,7 +299,9 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                                             strokeWidth: 2,
                                           ),
                                         )
-                                      : const Text('Reset password'),
+                                      : Text(
+                                          context.t('Reset password button'),
+                                        ),
                                 ),
                               ],
                             ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../services/auth_api.dart';
 import '../../services/token_storage.dart';
+import '../../services/app_localizations.dart';
 import 'forgot_password_page.dart';
 import 'register_page.dart';
 import '../home_page.dart';
@@ -66,9 +67,9 @@ class _LoginPageState extends State<LoginPage> {
         return;
       }
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Login successful.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.tRead('Login successful.'))),
+      );
       Navigator.pushReplacementNamed(context, HomePage.routeName);
     } catch (error) {
       setState(() {
@@ -92,7 +93,7 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       extendBodyBehindAppBar: true,
-      appBar: AppBar(title: const Text('Sign in')),
+      appBar: AppBar(title: Text(context.t('Sign in'))),
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -118,11 +119,11 @@ class _LoginPageState extends State<LoginPage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'AgroScan',
+                              context.t('AgroScan'),
                               style: Theme.of(context).textTheme.titleLarge,
                             ),
                             Text(
-                              'Sign in to continue',
+                              context.t('Sign in to continue'),
                               style: Theme.of(context).textTheme.bodyMedium,
                             ),
                           ],
@@ -140,14 +141,14 @@ class _LoginPageState extends State<LoginPage> {
                             children: [
                               TextFormField(
                                 controller: _emailController,
-                                decoration: const InputDecoration(
-                                  labelText: 'Email',
+                                decoration: InputDecoration(
+                                  labelText: context.t('Email'),
                                 ),
                                 keyboardType: TextInputType.emailAddress,
                                 textInputAction: TextInputAction.next,
                                 validator: (value) {
                                   if (value == null || value.trim().isEmpty) {
-                                    return 'Email is required.';
+                                    return context.t('Email is required.');
                                   }
                                   return null;
                                 },
@@ -155,17 +156,19 @@ class _LoginPageState extends State<LoginPage> {
                               const SizedBox(height: 16),
                               TextFormField(
                                 controller: _passwordController,
-                                decoration: const InputDecoration(
-                                  labelText: 'Password',
+                                decoration: InputDecoration(
+                                  labelText: context.t('Password'),
                                 ),
                                 obscureText: true,
                                 textInputAction: TextInputAction.done,
                                 validator: (value) {
                                   if (value == null || value.isEmpty) {
-                                    return 'Password is required.';
+                                    return context.t('Password is required.');
                                   }
                                   if (value.length < 6) {
-                                    return 'Password must be at least 6 characters.';
+                                    return context.t(
+                                      'Password must be at least 6 characters.',
+                                    );
                                   }
                                   return null;
                                 },
@@ -189,7 +192,7 @@ class _LoginPageState extends State<LoginPage> {
                                           strokeWidth: 2,
                                         ),
                                       )
-                                    : const Text('Login'),
+                                    : Text(context.t('Login')),
                               ),
                               const SizedBox(height: 8),
                               TextButton(
@@ -199,7 +202,7 @@ class _LoginPageState extends State<LoginPage> {
                                     ForgotPasswordPage.routeName,
                                   );
                                 },
-                                child: const Text('Forgot password?'),
+                                child: Text(context.t('Forgot password?')),
                               ),
                             ],
                           ),
@@ -210,7 +213,7 @@ class _LoginPageState extends State<LoginPage> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Text('New here?'),
+                        Text(context.t('New here?')),
                         TextButton(
                           onPressed: () {
                             Navigator.pushNamed(
@@ -218,7 +221,7 @@ class _LoginPageState extends State<LoginPage> {
                               RegisterPage.routeName,
                             );
                           },
-                          child: const Text('Create account'),
+                          child: Text(context.t('Create account')),
                         ),
                       ],
                     ),

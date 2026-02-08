@@ -10,6 +10,7 @@ import 'package:video_thumbnail/video_thumbnail.dart';
 import '../services/blur_detector.dart';
 import '../services/diagnosis_api.dart';
 import '../services/token_storage.dart';
+import '../services/app_localizations.dart';
 import 'diagnosis_result_page.dart';
 
 class CropCapturePage extends StatefulWidget {
@@ -48,7 +49,7 @@ class _CropCapturePageState extends State<CropCapturePage> {
             children: [
               ListTile(
                 leading: const Icon(Icons.photo_library),
-                title: const Text('Gallery image'),
+                title: Text(context.t('Gallery image')),
                 onTap: () => Navigator.pop(
                   context,
                   const _MediaOption(
@@ -59,7 +60,7 @@ class _CropCapturePageState extends State<CropCapturePage> {
               ),
               ListTile(
                 leading: const Icon(Icons.video_library),
-                title: const Text('Gallery video'),
+                title: Text(context.t('Gallery video')),
                 onTap: () => Navigator.pop(
                   context,
                   const _MediaOption(
@@ -70,7 +71,7 @@ class _CropCapturePageState extends State<CropCapturePage> {
               ),
               ListTile(
                 leading: const Icon(Icons.photo_camera),
-                title: const Text('Camera image'),
+                title: Text(context.t('Camera image')),
                 onTap: () => Navigator.pop(
                   context,
                   const _MediaOption(
@@ -81,7 +82,7 @@ class _CropCapturePageState extends State<CropCapturePage> {
               ),
               ListTile(
                 leading: const Icon(Icons.videocam),
-                title: const Text('Camera video'),
+                title: Text(context.t('Camera video')),
                 onTap: () => Navigator.pop(
                   context,
                   const _MediaOption(source: ImageSource.camera, isVideo: true),
@@ -105,7 +106,7 @@ class _CropCapturePageState extends State<CropCapturePage> {
 
       final frameFile = await _extractFrame(File(video.path));
       if (frameFile == null) {
-        _showError('Unable to extract a frame from video.');
+        _showError(context.tRead('Unable to extract a frame from video.'));
         return;
       }
 
@@ -131,13 +132,13 @@ class _CropCapturePageState extends State<CropCapturePage> {
       compressQuality: 95,
       uiSettings: [
         AndroidUiSettings(
-          toolbarTitle: 'Crop image',
+          toolbarTitle: context.tRead('Crop image'),
           toolbarColor: const Color(0xFF1B5E20),
           toolbarWidgetColor: Colors.white,
           activeControlsWidgetColor: const Color(0xFF1B5E20),
           lockAspectRatio: false,
         ),
-        IOSUiSettings(title: 'Crop image'),
+        IOSUiSettings(title: context.tRead('Crop image')),
       ],
     );
 
@@ -189,14 +190,14 @@ class _CropCapturePageState extends State<CropCapturePage> {
           context: context,
           builder: (context) {
             return AlertDialog(
-              title: const Text('Image is blurry'),
-              content: const Text(
-                'Please retake the image for a clearer result.',
+              title: Text(context.t('Image is blurry')),
+              content: Text(
+                context.t('Please retake the image for a clearer result.'),
               ),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text('OK'),
+                  child: Text(context.t('OK')),
                 ),
               ],
             );
@@ -207,7 +208,7 @@ class _CropCapturePageState extends State<CropCapturePage> {
 
       final accessToken = await _tokenStorage.readAccessToken();
       if (accessToken == null || accessToken.isEmpty) {
-        _showError('Missing access token. Please log in again.');
+        _showError(context.tRead('Missing access token. Please log in again.'));
         return;
       }
 
@@ -280,7 +281,7 @@ class _CropCapturePageState extends State<CropCapturePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       extendBodyBehindAppBar: true,
-      appBar: AppBar(title: const Text('Choose crop')),
+      appBar: AppBar(title: Text(context.t('Choose crop'))),
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(

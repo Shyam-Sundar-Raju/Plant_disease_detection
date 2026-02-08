@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:provider/provider.dart';
 
 import '../services/location_service.dart';
 import '../services/history_api.dart';
@@ -9,6 +10,7 @@ import '../services/user_api.dart';
 import '../services/weather_api.dart';
 import '../services/diagnosis_api.dart';
 import '../services/notification_api.dart';
+import '../services/app_localizations.dart';
 import 'auth/login_page.dart';
 import 'crop_capture_page.dart';
 import 'diagnosis_result_page.dart';
@@ -77,6 +79,9 @@ class _HomePageState extends State<HomePage> {
       if (!mounted) {
         return;
       }
+      context.read<AppLanguage>().setLanguage(
+        profile['preferred_language']?.toString(),
+      );
       setState(() {
         _profile = profile;
       });
@@ -94,6 +99,9 @@ class _HomePageState extends State<HomePage> {
   Future<void> _loadCachedProfile() async {
     final cached = await _tokenStorage.readUserProfile();
     if (cached != null && mounted) {
+      context.read<AppLanguage>().setLanguage(
+        cached['preferred_language']?.toString(),
+      );
       setState(() {
         _profile = cached;
       });
@@ -366,9 +374,13 @@ class _HomePageState extends State<HomePage> {
         return;
       }
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Report saved: $path')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            context.tRead('Report saved: {path}', args: {'path': path}),
+          ),
+        ),
+      );
     } catch (error) {
       if (!mounted) {
         return;
@@ -428,7 +440,9 @@ class _HomePageState extends State<HomePage> {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please log in to view notifications.')),
+        SnackBar(
+          content: Text(context.tRead('Please log in to view notifications.')),
+        ),
       );
       return;
     }
@@ -454,6 +468,8 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final profileMenuLabel = context.t('Profile menu');
+    final logoutLabel = context.t('Logout');
     final cropOptions =
         _historyItems
             .map((item) => item['crop_type']?.toString() ?? '')
@@ -474,19 +490,19 @@ class _HomePageState extends State<HomePage> {
           children: [
             Image.asset('assets/logo.png', width: 28, height: 28),
             const SizedBox(width: 10),
-            const Text('AgroScan'),
+            Text(context.t('AgroScan')),
           ],
         ),
         actions: [
           IconButton(
             onPressed: _initializeData,
             icon: const Icon(Icons.refresh),
-            tooltip: 'Refresh',
+            tooltip: context.t('Refresh'),
           ),
           IconButton(
             onPressed: _showNotifications,
             icon: const Icon(Icons.notifications_outlined),
-            tooltip: 'Notifications',
+            tooltip: context.t('Notifications'),
           ),
           Icon(
             _isOnline ? Icons.wifi : Icons.wifi_off,
@@ -503,8 +519,8 @@ class _HomePageState extends State<HomePage> {
               }
             },
             itemBuilder: (context) => [
-              const PopupMenuItem(value: 'profile', child: Text('Profile')),
-              const PopupMenuItem(value: 'logout', child: Text('Logout')),
+              PopupMenuItem(value: 'profile', child: Text(profileMenuLabel)),
+              PopupMenuItem(value: 'logout', child: Text(logoutLabel)),
             ],
           ),
         ],
@@ -537,7 +553,13 @@ class _HomePageState extends State<HomePage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Welcome, ${_profile?['name']?.toString() ?? 'Farmer'}',
+                              context.t(
+                                'Welcome, {name}',
+                                args: {
+                                  'name':
+                                      _profile?['name']?.toString() ?? 'Farmer',
+                                },
+                              ),
                               style: Theme.of(context).textTheme.titleLarge,
                             ),
                             const SizedBox(height: 4),
@@ -549,7 +571,11 @@ class _HomePageState extends State<HomePage> {
                         ),
                       ),
                       Chip(
-                        label: Text(_isOnline ? 'Online' : 'Offline'),
+                        label: Text(
+                          _isOnline
+                              ? context.t('Online')
+                              : context.t('Offline'),
+                        ),
                         backgroundColor: _isOnline
                             ? scheme.primary.withOpacity(0.12)
                             : null,
@@ -572,8 +598,8 @@ class _HomePageState extends State<HomePage> {
                 ),
               const SizedBox(height: 20),
               _SectionHeader(
-                title: 'Current weather',
-                subtitle: 'Live conditions near your farm',
+                title: context.t('Current weather'),
+                subtitle: context.t('Live conditions near your farm'),
               ),
               const SizedBox(height: 12),
               if (_isLoadingWeather)
@@ -583,30 +609,30 @@ class _HomePageState extends State<HomePage> {
               else if (_weatherInfo != null)
                 _WeatherCard(weather: _weatherInfo!)
               else
-                const Text('Weather data unavailable.'),
+                Text(context.t('Weather data unavailable.')),
               const SizedBox(height: 24),
               _SectionHeader(
-                title: 'History analytics',
-                subtitle: 'Trends from your recent scans',
+                title: context.t('History analytics'),
+                subtitle: context.t('Trends from your recent scans'),
               ),
               const SizedBox(height: 12),
               _AnalyticsCard(analytics: _historyAnalytics),
               const SizedBox(height: 24),
               _SectionHeader(
-                title: 'History records',
-                subtitle: 'Download or remove past reports',
+                title: context.t('History records'),
+                subtitle: context.t('Download or remove past reports'),
               ),
               const SizedBox(height: 8),
               if (cropOptions.isNotEmpty)
                 DropdownButtonFormField<String>(
                   value: _selectedCropFilter,
-                  decoration: const InputDecoration(
-                    labelText: 'Filter by crop',
+                  decoration: InputDecoration(
+                    labelText: context.t('Filter by crop'),
                   ),
                   items: [
-                    const DropdownMenuItem<String>(
+                    DropdownMenuItem<String>(
                       value: null,
-                      child: Text('All crops'),
+                      child: Text(context.t('All crops')),
                     ),
                     ...cropOptions.map(
                       (crop) => DropdownMenuItem<String>(
@@ -625,7 +651,7 @@ class _HomePageState extends State<HomePage> {
               if (_isLoadingHistory)
                 const Center(child: CircularProgressIndicator())
               else if (filteredHistory.isEmpty)
-                const Text('No history yet.')
+                Text(context.t('No history yet.'))
               else
                 ...filteredHistory.map(
                   (item) => _HistoryCard(
@@ -646,7 +672,7 @@ class _HomePageState extends State<HomePage> {
           Navigator.pushNamed(context, CropCapturePage.routeName);
         },
         icon: const Icon(Icons.camera_alt),
-        label: const Text('Scan crop'),
+        label: Text(context.t('Scan crop')),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: const BottomAppBar(
@@ -716,11 +742,22 @@ class _WeatherCard extends StatelessWidget {
             runSpacing: 8,
             children: [
               _InfoChip(
-                label: 'Feels ${weather.feelsLikeC.toStringAsFixed(1)} C',
+                label: context.t(
+                  'Feels {value} C',
+                  args: {'value': weather.feelsLikeC.toStringAsFixed(1)},
+                ),
               ),
-              _InfoChip(label: 'Humidity ${weather.humidity}%'),
               _InfoChip(
-                label: 'Wind ${weather.windKph.toStringAsFixed(1)} kph',
+                label: context.t(
+                  'Humidity {value}%',
+                  args: {'value': weather.humidity.toString()},
+                ),
+              ),
+              _InfoChip(
+                label: context.t(
+                  'Wind {value} kph',
+                  args: {'value': weather.windKph.toStringAsFixed(1)},
+                ),
               ),
             ],
           ),
@@ -738,7 +775,7 @@ class _AnalyticsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (analytics == null) {
-      return const Text('Analytics data unavailable.');
+      return Text(context.t('Analytics data unavailable.'));
     }
 
     final total = analytics?['total_diagnoses']?.toString() ?? '0';
@@ -752,7 +789,7 @@ class _AnalyticsCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Total diagnoses',
+              context.t('Total diagnoses'),
               style: Theme.of(context).textTheme.titleSmall,
             ),
             const SizedBox(height: 6),
@@ -763,10 +800,19 @@ class _AnalyticsCard extends StatelessWidget {
                 spacing: 10,
                 runSpacing: 8,
                 children: [
-                  _InfoChip(label: 'Low ${severity['low'] ?? 0}'),
-                  _InfoChip(label: 'Medium ${severity['medium'] ?? 0}'),
-                  _InfoChip(label: 'High ${severity['high'] ?? 0}'),
-                  _InfoChip(label: 'Healthy ${severity['healthy'] ?? 0}'),
+                  _InfoChip(
+                    label: '${context.t('Low')} ${severity['low'] ?? 0}',
+                  ),
+                  _InfoChip(
+                    label: '${context.t('Medium')} ${severity['medium'] ?? 0}',
+                  ),
+                  _InfoChip(
+                    label: '${context.t('High')} ${severity['high'] ?? 0}',
+                  ),
+                  _InfoChip(
+                    label:
+                        '${context.t('Healthy')} ${severity['healthy'] ?? 0}',
+                  ),
                 ],
               ),
           ],
@@ -791,8 +837,8 @@ class _HistoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cropType = item['crop_type']?.toString() ?? 'Unknown crop';
-    final diseaseName = item['disease_name']?.toString() ?? 'Unknown disease';
+    final cropType = item['crop_type']?.toString() ?? '';
+    final diseaseName = item['disease_name']?.toString() ?? '';
     final severity = item['severity']?.toString() ?? 'unknown';
     final createdAt = item['created_at']?.toString() ?? '';
 
@@ -810,7 +856,9 @@ class _HistoryCard extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      diseaseName,
+                      diseaseName.isEmpty
+                          ? context.t('Unknown disease')
+                          : diseaseName,
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                   ),
@@ -818,21 +866,31 @@ class _HistoryCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 6),
-              Text('Crop: $cropType'),
-              if (createdAt.isNotEmpty) Text('Date: $createdAt'),
+              Text(
+                context.t(
+                  'Crop: {crop}',
+                  args: {
+                    'crop': cropType.isEmpty
+                        ? context.t('Unknown crop')
+                        : cropType,
+                  },
+                ),
+              ),
+              if (createdAt.isNotEmpty)
+                Text(context.t('Date: {date}', args: {'date': createdAt})),
               const SizedBox(height: 12),
               Row(
                 children: [
                   OutlinedButton.icon(
                     onPressed: onDownload,
                     icon: const Icon(Icons.download),
-                    label: const Text('Report'),
+                    label: Text(context.t('Report')),
                   ),
                   const SizedBox(width: 12),
                   TextButton.icon(
                     onPressed: onDelete,
                     icon: const Icon(Icons.delete),
-                    label: const Text('Delete'),
+                    label: Text(context.t('Delete')),
                   ),
                 ],
               ),
@@ -925,17 +983,19 @@ class _NotificationsSheet extends StatelessWidget {
             }
 
             if (snapshot.hasError || !snapshot.hasData) {
-              return const SizedBox(
+              return SizedBox(
                 height: 220,
-                child: Center(child: Text('Notifications unavailable.')),
+                child: Center(
+                  child: Text(context.t('Notifications unavailable.')),
+                ),
               );
             }
 
             final notifications = snapshot.data!;
             if (notifications.isEmpty) {
-              return const SizedBox(
+              return SizedBox(
                 height: 220,
-                child: Center(child: Text('No notifications yet.')),
+                child: Center(child: Text(context.t('No notifications yet.'))),
               );
             }
 
@@ -945,7 +1005,7 @@ class _NotificationsSheet extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Notifications',
+                    context.t('Notifications'),
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   const SizedBox(height: 12),
@@ -977,6 +1037,7 @@ class _NotificationTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final title = item['title']?.toString() ?? 'Notification';
+    final fallbackTitle = context.t('Notification');
     final message = item['message']?.toString() ?? '';
     final createdAt = _formatTimestamp(item['created_at']);
     final isRead = item['is_read'] == true;
@@ -992,11 +1053,11 @@ class _NotificationTile extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    title,
+                    title.isEmpty ? fallbackTitle : title,
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                 ),
-                if (!isRead) const _InfoChip(label: 'NEW'),
+                if (!isRead) _InfoChip(label: context.t('NEW')),
               ],
             ),
             if (message.isNotEmpty) ...[

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../services/api_config.dart';
+import '../services/app_localizations.dart';
 import 'remediation_page.dart';
 
 class DiagnosisResultPage extends StatelessWidget {
@@ -23,22 +24,25 @@ class DiagnosisResultPage extends StatelessWidget {
     final isLowConfidence =
         !isHealthy && confidencePercent > 0 && confidencePercent < 40;
     final displayDiseaseName = isLowConfidence
-        ? 'Unknown disease'
-        : (isHealthy ? 'Healthy' : diseaseName);
+        ? context.t('Unknown disease')
+        : (isHealthy ? context.t('Healthy') : diseaseName);
     final displaySeverity = isLowConfidence ? 'unknown' : severity;
     final diseaseId = isLowConfidence
         ? ''
         : _resolveDiseaseId(result, isHealthy);
     final confidenceLabel = confidencePercent > 0
-        ? 'Confidence ${confidencePercent.toStringAsFixed(0)}%'
-        : 'Confidence -';
+        ? context.t(
+            'Confidence {value}%',
+            args: {'value': confidencePercent.toStringAsFixed(0)},
+          )
+        : context.t('Confidence -');
 
     final imageUrl = _resolveUrl(result['image_url']?.toString());
     final heatmapUrl = _resolveUrl(result['heatmap_url']?.toString());
 
     return Scaffold(
       extendBodyBehindAppBar: true,
-      appBar: AppBar(title: const Text('Diagnosis result')),
+      appBar: AppBar(title: Text(context.t('Diagnosis result'))),
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -74,7 +78,12 @@ class DiagnosisResultPage extends StatelessWidget {
                           _StatusChip(label: displaySeverity.toUpperCase()),
                           _StatusChip(label: confidenceLabel),
                           if (boxes.isNotEmpty)
-                            _StatusChip(label: 'Boxes ${boxes.length}'),
+                            _StatusChip(
+                              label: context.t(
+                                'Boxes {count}',
+                                args: {'count': boxes.length.toString()},
+                              ),
+                            ),
                         ],
                       ),
                       const SizedBox(height: 12),
@@ -97,7 +106,7 @@ class DiagnosisResultPage extends StatelessWidget {
                                   );
                                 },
                           icon: const Icon(Icons.medical_services_outlined),
-                          label: const Text('View remediation'),
+                          label: Text(context.t('View remediation')),
                         ),
                       ),
                     ],
@@ -106,17 +115,21 @@ class DiagnosisResultPage extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               if (imageUrl.isNotEmpty)
-                _ImageSection(label: 'Image', url: imageUrl, boxes: boxes),
+                _ImageSection(
+                  label: context.t('Image'),
+                  url: imageUrl,
+                  boxes: boxes,
+                ),
               if (heatmapUrl.isNotEmpty) ...[
                 const SizedBox(height: 16),
                 if (imageUrl.isNotEmpty)
                   _MatchedImageSection(
-                    label: 'Heatmap',
+                    label: context.t('Heatmap'),
                     imageUrl: heatmapUrl,
                     matchUrl: imageUrl,
                   )
                 else
-                  _ImageSection(label: 'Heatmap', url: heatmapUrl),
+                  _ImageSection(label: context.t('Heatmap'), url: heatmapUrl),
               ],
               if (imageUrl.isNotEmpty && diseaseId.isNotEmpty) ...[
                 const SizedBox(height: 20),
@@ -387,13 +400,16 @@ class _SideBySideComparison extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Comparison', style: Theme.of(context).textTheme.titleMedium),
+        Text(
+          context.t('Comparison'),
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
         const SizedBox(height: 8),
         Row(
           children: [
             Expanded(
               child: _ComparisonTile(
-                label: 'Captured',
+                label: context.t('Captured'),
                 child: Image.network(
                   capturedUrl,
                   fit: BoxFit.cover,
@@ -406,7 +422,7 @@ class _SideBySideComparison extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: _ComparisonTile(
-                label: 'Reference',
+                label: context.t('Reference'),
                 child: Image.asset(
                   referenceAsset,
                   fit: BoxFit.cover,
