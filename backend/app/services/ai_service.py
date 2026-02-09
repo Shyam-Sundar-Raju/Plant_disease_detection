@@ -182,39 +182,40 @@ class AIModelService:
             # Determine if healthy
             is_healthy = 'healthy' in disease_id.lower()
             
-            # Generate heatmap and bounding boxes
-            bounding_boxes = []
-            annotated_image = image
-            heatmap_image = image
-            
-            if not is_healthy:
-                cam = None
-                if self.model_loaded and self.model is not None:
-                    cam = self._compute_grad_cam(processed_image)
-                
-                if cam is not None:
-                    heatmap_image = ImageProcessor.generate_heatmap_from_cam(image, cam)
-                    bounding_boxes = ImageProcessor.boxes_from_heatmap(cam, image.shape)
-                    annotated_image, bounding_boxes = ImageProcessor.detect_bounding_boxes(
-                        image,
-                        bounding_boxes
+            # Generate real Grad-CAM heatmap and severity estimation
+            if not is_healthy and self.model_loaded and self.model is not None:
+                try:
+                    # Generate real Grad-CAM heatmap
+                    heatmap_image, severity_info = ImageProcessor.generate_gradcam(
+                        self.model, 
+                        image
                     )
-                else:
-                    heatmap_image = ImageProcessor.generate_heatmap(image)
+                    severity = severity_info['severity']
+                    infected_ratio = severity_info['infected_ratio']
+                    
+                    # Also generate bounding boxes for additional visualization
                     annotated_image, bounding_boxes = ImageProcessor.detect_bounding_boxes(image)
-                
-                severity = ImageProcessor.calculate_severity(image, bounding_boxes)
+                except Exception as e:
+                    logger.warning(f"Grad-CAM generation failed: {e}, using fallback")
+                    # Fallback to bounding box severity if Grad-CAM fails
+                    annotated_image, bounding_boxes = ImageProcessor.detect_bounding_boxes(image)
+                    severity = ImageProcessor.calculate_severity(image, bounding_boxes)
+                    heatmap_image = image
+                    infected_ratio = 0.0
             else:
+                # Healthy plant - no heatmap needed
                 bounding_boxes = []
                 severity = "healthy"
                 annotated_image = image
-                heatmap_image = ImageProcessor.generate_heatmap(image)
+                heatmap_image = image
+                infected_ratio = 0.0
             
             return {
                 "disease_id": disease_id,
                 "disease_name": disease_name,
                 "confidence": float(confidence),
                 "severity": severity,
+                "infected_ratio": infected_ratio,
                 "is_healthy": is_healthy,
                 "bounding_boxes": bounding_boxes,
                 "secondary_diagnoses": secondary_diseases,
