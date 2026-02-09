@@ -90,9 +90,10 @@ class RemediationPage extends StatelessWidget {
                 disease['severity_guidance'],
                 severity,
               );
+              final treatments = data.resolveTreatments(disease);
               final noTreatmentNeeded =
-                  disease['no_treatment_needed'] == true || isHealthy;
-              final treatments = disease['treatments'] as Map<String, dynamic>?;
+                  disease['no_treatment_needed'] == true ||
+                  (treatments == null && isHealthy);
 
               return ListView(
                 padding: const EdgeInsets.all(20),
@@ -177,22 +178,39 @@ class _RemediationData {
   final String language;
 
   Map<String, dynamic>? findDisease(String id) {
-    final diseases = raw is Map<String, dynamic>
-        ? raw['diseases'] as List<dynamic>?
-        : null;
-    if (diseases == null) {
-      return null;
-    }
-    for (final item in diseases) {
-      if (item is Map<String, dynamic> && item['disease_id'] == id) {
-        return item;
+    if (raw is Map<String, dynamic>) {
+      final map = raw as Map<String, dynamic>;
+      if (map.containsKey('diseases')) {
+        final diseases = map['diseases'] as List<dynamic>?;
+        if (diseases != null) {
+          for (final item in diseases) {
+            if (item is Map<String, dynamic> && item['disease_id'] == id) {
+              return item;
+            }
+          }
+        }
+      } else if (map[id] is Map<String, dynamic>) {
+        return map[id] as Map<String, dynamic>;
       }
     }
     return null;
   }
 
   Map<String, dynamic>? findHealthyFallback() {
-    return findDisease('tomato_healthy');
+    return findDisease('Tomato___healthy') ?? findDisease('tomato_healthy');
+  }
+
+  Map<String, dynamic>? resolveTreatments(Map<String, dynamic> disease) {
+    final treatments = disease['treatments'];
+    if (treatments is Map<String, dynamic>) {
+      return treatments;
+    }
+    final organic = disease['organic_treatment'] as Map<String, dynamic>?;
+    final chemical = disease['chemical_treatment'] as Map<String, dynamic>?;
+    if (organic == null && chemical == null) {
+      return null;
+    }
+    return {'organic': organic, 'chemical': chemical};
   }
 
   String? localize(dynamic value) {

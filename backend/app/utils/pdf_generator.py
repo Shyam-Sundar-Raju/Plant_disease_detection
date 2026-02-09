@@ -24,7 +24,7 @@ class PDFReportGenerator:
     @staticmethod
     def generate_diagnosis_report(
         diagnosis_data: Dict[str, Any],
-        treatment_data: Optional[Dict[str, Any]] = None,
+        remediation_data: Optional[Dict[str, Any]] = None,
         user_data: Optional[Dict[str, Any]] = None,
         language: str = "en"
     ) -> BytesIO:
@@ -134,40 +134,67 @@ class PDFReportGenerator:
                 diagnosis_data.get("heatmap_url")
             )
 
-            # Treatment Plan
-            if treatment_data:
-                story.append(Paragraph("Recommended Treatment Plan", heading_style))
-                
-                treatment_type = treatment_data.get('type', 'organic')
-                story.append(Paragraph(f"<b>Treatment Type:</b> {treatment_type.upper()}", normal_style))
-                story.append(Spacer(1, 0.1 * inch))
-                
-                # Treatment steps
-                steps = treatment_data.get('steps', [])
-                if steps:
-                    story.append(Paragraph("<b>Treatment Steps:</b>", normal_style))
-                    for i, step in enumerate(steps, 1):
-                        step_text = f"{i}. {step.get('description', 'N/A')}"
-                        if step.get('safety_warning'):
-                            step_text += f" <font color='red'><b>⚠ {step['safety_warning']}</b></font>"
-                        story.append(Paragraph(step_text, normal_style))
-                        story.append(Spacer(1, 0.05 * inch))
-                
-                # Dosage and frequency
-                if treatment_data.get('dosage'):
+            # Remediation Content
+            if remediation_data:
+                description = remediation_data.get("description")
+                if description:
+                    story.append(Paragraph("Disease Overview", heading_style))
+                    story.append(Paragraph(description, normal_style))
+                    story.append(Spacer(1, 0.2 * inch))
+
+                severity_guidance = remediation_data.get("severity_guidance")
+                if severity_guidance:
+                    story.append(Paragraph("Severity Guidance", heading_style))
+                    story.append(Paragraph(severity_guidance, normal_style))
+                    story.append(Spacer(1, 0.2 * inch))
+
+                for label, treatment_key in [
+                    ("Organic Treatment", "organic_treatment"),
+                    ("Chemical Treatment", "chemical_treatment"),
+                ]:
+                    treatment_data = remediation_data.get(treatment_key)
+                    if not treatment_data or not treatment_data.get("steps"):
+                        continue
+
+                    story.append(Paragraph(label, heading_style))
+                    treatment_type = treatment_data.get("type", "")
+                    if treatment_type:
+                        story.append(Paragraph(f"<b>Treatment Type:</b> {treatment_type.upper()}", normal_style))
                     story.append(Spacer(1, 0.1 * inch))
-                    story.append(Paragraph(f"<b>Dosage:</b> {treatment_data['dosage']}", normal_style))
-                
-                if treatment_data.get('frequency'):
-                    story.append(Paragraph(f"<b>Frequency:</b> {treatment_data['frequency']}", normal_style))
-                
-                story.append(Spacer(1, 0.3 * inch))
-                
-                # Prevention tips
-                prevention_tips = treatment_data.get('prevention_tips', [])
+
+                    steps = treatment_data.get("steps", [])
+                    if steps:
+                        story.append(Paragraph("<b>Treatment Steps:</b>", normal_style))
+                        for i, step in enumerate(steps, 1):
+                            step_text = f"{i}. {step.get('description', 'N/A')}"
+                            if step.get("safety_warning"):
+                                step_text += f" <font color='red'><b>⚠ {step['safety_warning']}</b></font>"
+                            story.append(Paragraph(step_text, normal_style))
+                            story.append(Spacer(1, 0.05 * inch))
+
+                    if treatment_data.get("dosage"):
+                        story.append(Spacer(1, 0.1 * inch))
+                        story.append(Paragraph(f"<b>Dosage:</b> {treatment_data['dosage']}", normal_style))
+
+                    if treatment_data.get("frequency"):
+                        story.append(Paragraph(f"<b>Frequency:</b> {treatment_data['frequency']}", normal_style))
+
+                    if treatment_data.get("cost_estimate"):
+                        story.append(Paragraph(f"<b>Cost Estimate:</b> {treatment_data['cost_estimate']}", normal_style))
+
+                    story.append(Spacer(1, 0.3 * inch))
+
+                prevention_tips = remediation_data.get("prevention_tips", [])
                 if prevention_tips:
                     story.append(Paragraph("Prevention Tips", heading_style))
                     for i, tip in enumerate(prevention_tips, 1):
+                        story.append(Paragraph(f"{i}. {tip}", normal_style))
+                        story.append(Spacer(1, 0.05 * inch))
+
+                community_tips = remediation_data.get("community_tips", [])
+                if community_tips:
+                    story.append(Paragraph("Community Tips", heading_style))
+                    for i, tip in enumerate(community_tips, 1):
                         story.append(Paragraph(f"{i}. {tip}", normal_style))
                         story.append(Spacer(1, 0.05 * inch))
             

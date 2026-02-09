@@ -23,43 +23,111 @@ class AIModelService:
     
     # Mock disease database (fallback)
     DISEASE_DATABASE = {
-        "tomato": {
-            "tomato_early_blight": {
-                "name": "Early Blight",
-                "disease_id": "tomato_early_blight",
-                "confidence_range": (0.75, 0.95)
+        "apple": {
+            "Apple___Apple_scab": {
+                "name": "Apple Scab",
+                "disease_id": "Apple___Apple_scab",
+                "confidence_range": (0.72, 0.94)
             },
-            "tomato_late_blight": {
-                "name": "Late Blight",
-                "disease_id": "tomato_late_blight",
+            "Apple___Black_rot": {
+                "name": "Black Rot",
+                "disease_id": "Apple___Black_rot",
                 "confidence_range": (0.70, 0.92)
             },
-            "tomato_leaf_mold": {
-                "name": "Leaf Mold",
-                "disease_id": "tomato_leaf_mold",
-                "confidence_range": (0.65, 0.88)
+            "Apple___Cedar_apple_rust": {
+                "name": "Cedar Apple Rust",
+                "disease_id": "Apple___Cedar_apple_rust",
+                "confidence_range": (0.68, 0.90)
             },
-            "tomato_healthy": {
+            "Apple___healthy": {
                 "name": "Healthy",
-                "disease_id": "tomato_healthy",
+                "disease_id": "Apple___healthy",
                 "confidence_range": (0.80, 0.98)
             }
         },
-        "rice": {
-            "rice_blast": {
-                "name": "Rice Blast",
-                "disease_id": "rice_blast",
-                "confidence_range": (0.72, 0.94)
+        "corn": {
+            "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot": {
+                "name": "Gray Leaf Spot",
+                "disease_id": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot",
+                "confidence_range": (0.70, 0.92)
             },
-            "rice_brown_spot": {
-                "name": "Brown Spot",
-                "disease_id": "rice_brown_spot",
+            "Corn_(maize)___Common_rust_": {
+                "name": "Common Rust",
+                "disease_id": "Corn_(maize)___Common_rust_",
                 "confidence_range": (0.68, 0.90)
             },
-            "rice_healthy": {
+            "Corn_(maize)___Northern_Leaf_Blight": {
+                "name": "Northern Leaf Blight",
+                "disease_id": "Corn_(maize)___Northern_Leaf_Blight",
+                "confidence_range": (0.69, 0.91)
+            },
+            "Corn_(maize)___healthy": {
                 "name": "Healthy",
-                "disease_id": "rice_healthy",
-                "confidence_range": (0.82, 0.96)
+                "disease_id": "Corn_(maize)___healthy",
+                "confidence_range": (0.80, 0.98)
+            }
+        },
+        "pepper": {
+            "Pepper,_bell___Bacterial_spot": {
+                "name": "Bacterial Spot",
+                "disease_id": "Pepper,_bell___Bacterial_spot",
+                "confidence_range": (0.70, 0.90)
+            },
+            "Pepper,_bell___healthy": {
+                "name": "Healthy",
+                "disease_id": "Pepper,_bell___healthy",
+                "confidence_range": (0.80, 0.98)
+            }
+        },
+        "potato": {
+            "Potato___Early_blight": {
+                "name": "Early Blight (Potato)",
+                "disease_id": "Potato___Early_blight",
+                "confidence_range": (0.72, 0.93)
+            },
+            "Potato___Late_blight": {
+                "name": "Late Blight (Potato)",
+                "disease_id": "Potato___Late_blight",
+                "confidence_range": (0.70, 0.92)
+            },
+            "Potato___healthy": {
+                "name": "Healthy",
+                "disease_id": "Potato___healthy",
+                "confidence_range": (0.80, 0.98)
+            }
+        },
+        "strawberry": {
+            "Strawberry___Leaf_scorch": {
+                "name": "Leaf Scorch",
+                "disease_id": "Strawberry___Leaf_scorch",
+                "confidence_range": (0.70, 0.90)
+            },
+            "Strawberry___healthy": {
+                "name": "Healthy",
+                "disease_id": "Strawberry___healthy",
+                "confidence_range": (0.80, 0.98)
+            }
+        },
+        "tomato": {
+            "Tomato___Early_blight": {
+                "name": "Early Blight",
+                "disease_id": "Tomato___Early_blight",
+                "confidence_range": (0.75, 0.95)
+            },
+            "Tomato___Late_blight": {
+                "name": "Late Blight",
+                "disease_id": "Tomato___Late_blight",
+                "confidence_range": (0.70, 0.92)
+            },
+            "Tomato___Tomato_Yellow_Leaf_Curl_Virus": {
+                "name": "Yellow Leaf Curl Virus",
+                "disease_id": "Tomato___Tomato_Yellow_Leaf_Curl_Virus",
+                "confidence_range": (0.68, 0.90)
+            },
+            "Tomato___healthy": {
+                "name": "Healthy",
+                "disease_id": "Tomato___healthy",
+                "confidence_range": (0.80, 0.98)
             }
         }
     }
@@ -182,22 +250,22 @@ class AIModelService:
             # Determine if healthy
             is_healthy = 'healthy' in disease_id.lower()
             
-            # Generate real Grad-CAM heatmap and severity estimation
-            if not is_healthy and self.model_loaded and self.model is not None:
+            # Generate Grad-CAM heatmap and severity estimation
+            if not is_healthy:
                 try:
-                    # Generate real Grad-CAM heatmap
+                    if self.model is None:
+                        raise ValueError("Model is not loaded")
+
                     heatmap_image, severity_info = ImageProcessor.generate_gradcam(
-                        self.model, 
+                        self.model,
                         image
                     )
-                    severity = severity_info['severity']
-                    infected_ratio = severity_info['infected_ratio']
-                    
-                    # Also generate bounding boxes for additional visualization
+                    severity = severity_info.get('severity', 'Unknown')
+                    infected_ratio = severity_info.get('infected_ratio', 0.0)
+
                     annotated_image, bounding_boxes = ImageProcessor.detect_bounding_boxes(image)
                 except Exception as e:
                     logger.warning(f"Grad-CAM generation failed: {e}, using fallback")
-                    # Fallback to bounding box severity if Grad-CAM fails
                     annotated_image, bounding_boxes = ImageProcessor.detect_bounding_boxes(image)
                     severity = ImageProcessor.calculate_severity(image, bounding_boxes)
                     heatmap_image = image
@@ -209,6 +277,8 @@ class AIModelService:
                 annotated_image = image
                 heatmap_image = image
                 infected_ratio = 0.0
+
+            severity = self._normalize_severity(severity)
             
             return {
                 "disease_id": disease_id,
@@ -231,22 +301,24 @@ class AIModelService:
     def _preprocess_for_prediction(self, image: np.ndarray) -> np.ndarray:
         """
         Preprocess image for model prediction
-        Model expects 224x224 RGB images normalized to [0, 1]
+        Model expects MobileNetV2 preprocessing
         """
         try:
             import cv2
             
             # Convert BGR to RGB
             rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-            
+
             # Resize to model input size (224x224 for MobileNetV2)
             resized = cv2.resize(rgb_image, (224, 224))
-            
-            # Normalize to [0, 1]
-            normalized = resized.astype(np.float32) / 255.0
-            
+
+            # Apply MobileNetV2 preprocessing
+            preprocessed = tf.keras.applications.mobilenet_v2.preprocess_input(
+                resized.astype(np.float32)
+            )
+
             # Add batch dimension
-            batched = np.expand_dims(normalized, axis=0)
+            batched = np.expand_dims(preprocessed, axis=0)
             
             return batched
             
@@ -360,6 +432,20 @@ class AIModelService:
         name = name.replace('  ', ' ')
         
         return name
+
+    def _normalize_severity(self, severity: str) -> str:
+        """Normalize severity labels for consistent downstream use."""
+        if severity is None:
+            return "unknown"
+
+        normalized = str(severity).strip().lower()
+        if normalized in {"low", "medium", "high", "healthy", "unknown"}:
+            return normalized
+
+        if normalized in {"moderate", "mid"}:
+            return "medium"
+
+        return "unknown"
     
     async def _mock_predict(self, crop_type: str) -> Dict[str, Any]:
         """
