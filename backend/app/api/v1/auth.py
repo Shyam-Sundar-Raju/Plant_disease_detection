@@ -34,6 +34,7 @@ from app.models.schemas import (
     SessionInfo
 )
 from app.core.config import settings
+from app.utils.email_sender import send_password_reset_email
 import logging
 
 logger = logging.getLogger(__name__)
@@ -206,7 +207,7 @@ async def refresh_token(
         user_id = payload.get("sub")
         
         # Verify user exists
-        user = await db.users.find_one({"_id": user_id})
+        user = await db.users.find_one({"_id": ObjectId(user_id)})
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -327,14 +328,20 @@ async def forgot_password(
             "is_used": False
         })
         
-        # In production: Send OTP via SMS/Email
-        # For development, log it
-        logger.info(f"Password reset OTP for {user.get('email', user.get('phone'))}: {otp}")
-        logger.info(f"Reset token: {reset_token}")
+        user_email = user.get("email")
+        if user_email:
+            try:
+                send_password_reset_email(user_email, otp)
+            except Exception as e:
+                logger.error(f"Failed to send reset email: {e}")
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Unable to send reset email"
+                )
         
         return {
             "message": "If the account exists, a reset code will be sent",
-            "reset_token": reset_token  # In production, don't send this in response
+            "reset_token": reset_token
         }
         
     except Exception as e:
@@ -374,7 +381,7 @@ async def reset_password(
         new_password_hash = get_password_hash(reset_data.new_password)
         
         await db.users.update_one(
-            {"_id": reset_request["user_id"]},
+            {"_id": ObjectId(reset_request["user_id"])},
             {
                 "$set": {
                     "hashed_password": new_password_hash,

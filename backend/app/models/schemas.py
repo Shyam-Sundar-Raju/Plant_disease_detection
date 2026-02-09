@@ -263,10 +263,26 @@ class HistoryFilter(BaseModel):
     offset: int = Field(default=0, ge=0)
 
 
+class HistoryItem(BaseModel):
+    """History entry"""
+    id: Optional[str] = Field(None, alias="_id")
+    user_id: str
+    diagnosis_id: str
+    crop_type: str
+    disease_name: str
+    confidence: float
+    severity: str
+    image_url: Optional[str] = None
+    created_at: datetime
+
+    class Config:
+        populate_by_name = True
+
+
 class HistoryResponse(BaseModel):
     """History list response"""
     total: int
-    items: List[DiagnosisResponse]
+    items: List[HistoryItem]
     limit: int
     offset: int
 

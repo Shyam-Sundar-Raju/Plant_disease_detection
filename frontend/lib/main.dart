@@ -1,34 +1,149 @@
 import 'package:flutter/material.dart';
-import 'package:hive_flutter/hive_flutter.dart';
-// We will create this screen in the next step
-import 'screens/auth/login.dart';
+import 'package:provider/provider.dart';
 
-void main() async {
-  // 1. Initialize Hive (Database)
-  await Hive.initFlutter();
+import 'screens/auth/forgot_password_page.dart';
+import 'screens/auth/login_page.dart';
+import 'screens/auth/register_page.dart';
+import 'screens/crop_capture_page.dart';
+import 'screens/home_page.dart';
+import 'screens/profile_page.dart';
+import 'services/app_localizations.dart';
+import 'services/token_storage.dart';
 
-  // 2. Open the Box (Table) where we store history
-  // Note: We haven't registered the Adapter yet (fixing this next),
-  // so we won't open the complex box yet to avoid crashes.
-  await Hive.openBox('settings');
-
-  runApp(const MyApp());
+void main() {
+  runApp(const PlantDiseaseApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class PlantDiseaseApp extends StatelessWidget {
+  const PlantDiseaseApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Crop Doctor',
-      debugShowCheckedModeBanner: false, // Removes the ugly "Debug" banner
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
-        useMaterial3: true,
+    final baseScheme = ColorScheme.fromSeed(
+      seedColor: const Color(0xFF1B5E20),
+      brightness: Brightness.light,
+    );
+    final colorScheme = baseScheme.copyWith(
+      primary: const Color(0xFF1B5E20),
+      secondary: const Color(0xFFFFB300),
+      surface: const Color(0xFFF7F4EE),
+      surfaceContainerHighest: const Color(0xFFEDE6DC),
+      background: const Color(0xFFF5F1EA),
+      error: const Color(0xFFD32F2F),
+      onSurface: const Color(0xFF1F2A1F),
+      onBackground: const Color(0xFF1F2A1F),
+    );
+
+    return ChangeNotifierProvider(
+      create: (_) => AppLanguage()..loadFromStorage(),
+      child: MaterialApp(
+        title: 'AgroScan',
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          colorScheme: colorScheme,
+          useMaterial3: true,
+          fontFamily: 'serif',
+          scaffoldBackgroundColor: colorScheme.background,
+          appBarTheme: const AppBarTheme(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            surfaceTintColor: Colors.transparent,
+            centerTitle: false,
+            titleTextStyle: TextStyle(
+              color: Color(0xFF1F2A1F),
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+            ),
+            iconTheme: IconThemeData(color: Color(0xFF1F2A1F)),
+          ),
+          cardTheme: CardThemeData(
+            color: const Color(0xFFFDFBF7),
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+          ),
+          inputDecorationTheme: InputDecorationTheme(
+            filled: true,
+            fillColor: const Color(0xFFFDFBF7),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(color: Color(0xFFE0D8CC)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(color: Color(0xFF1B5E20), width: 1.6),
+            ),
+          ),
+          elevatedButtonTheme: ElevatedButtonThemeData(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF1B5E20),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+              textStyle: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ),
+          outlinedButtonTheme: OutlinedButtonThemeData(
+            style: OutlinedButton.styleFrom(
+              foregroundColor: const Color(0xFF1B5E20),
+              side: const BorderSide(color: Color(0xFF1B5E20)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+            ),
+          ),
+          textButtonTheme: TextButtonThemeData(
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFF1B5E20),
+              textStyle: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ),
+          snackBarTheme: const SnackBarThemeData(
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Color(0xFF1F2A1F),
+            contentTextStyle: TextStyle(color: Colors.white),
+          ),
+        ),
+        home: const AuthGate(),
+        routes: {
+          LoginPage.routeName: (_) => const LoginPage(),
+          RegisterPage.routeName: (_) => const RegisterPage(),
+          ForgotPasswordPage.routeName: (_) => const ForgotPasswordPage(),
+          HomePage.routeName: (_) => const HomePage(),
+          ProfilePage.routeName: (_) => const ProfilePage(),
+          CropCapturePage.routeName: (_) => const CropCapturePage(),
+        },
       ),
-      // We start at Login for now
-      home: const LoginScreen(),
+    );
+  }
+}
+
+class AuthGate extends StatelessWidget {
+  const AuthGate({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final storage = const TokenStorage();
+
+    return FutureBuilder<String?>(
+      future: storage.readAccessToken(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        final accessToken = snapshot.data;
+        if (accessToken != null && accessToken.isNotEmpty) {
+          return const HomePage();
+        }
+
+        return const LoginPage();
+      },
     );
   }
 }

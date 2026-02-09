@@ -23,7 +23,8 @@ class NotificationService:
         notification_type: NotificationType,
         title: Dict[str, str],
         message: Dict[str, str],
-        data: Dict[str, Any] = None
+        data: Dict[str, Any] = None,
+        priority: str = "normal"
     ) -> str:
         """
         Create a new notification
@@ -43,9 +44,11 @@ class NotificationService:
             notification = {
                 "user_id": user_id,
                 "type": notification_type,
+                "notification_type": notification_type,
                 "title": title,
                 "message": message,
                 "data": data or {},
+                "priority": priority,
                 "is_read": False,
                 "created_at": datetime.utcnow()
             }
@@ -93,7 +96,10 @@ class NotificationService:
                 localized_notifications.append({
                     "_id": str(notif["_id"]),
                     "user_id": notif["user_id"],
-                    "type": notif["type"],
+                    "notification_type": notif.get("notification_type")
+                    or notif.get("type"),
+                    "priority": notif.get("priority", "normal"),
+                    "type": notif.get("type"),
                     "title": Localizer.get_localized_dict(notif.get("title", {}), language),
                     "message": Localizer.get_localized_dict(notif.get("message", {}), language),
                     "data": notif.get("data", {}),

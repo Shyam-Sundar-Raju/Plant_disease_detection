@@ -34,7 +34,7 @@ Production-ready FastAPI backend for AI-Enabled Crop Disease Diagnosis & Remedia
 - ✅ Severity calculation
 
 ### Epic 4: Multi-Language Support
-- ✅ Support for 7+ languages (EN, HI, KN, TA, TE, MR, BN)
+- ✅ Support for 6 languages (EN, HI, KN, TA, TE, MA)
 - ✅ Auto-detection from headers
 - ✅ Localized notifications
 - ✅ Simplified vocabulary mode
@@ -264,8 +264,7 @@ Supported languages:
 - Kannada (kn)
 - Tamil (ta)
 - Telugu (te)
-- Marathi (mr)
-- Bengali (bn)
+- Malayalam (ma)
 
 Set language via:
 1. User preference (in profile)

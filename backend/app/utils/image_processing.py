@@ -75,7 +75,7 @@ class ImageProcessor:
             laplacian = cv2.Laplacian(gray, cv2.CV_64F)
             variance = laplacian.var()
             
-            is_acceptable = variance >= threshold
+            is_acceptable = bool(variance >= threshold)
             
             return {
                 "is_acceptable": is_acceptable,
@@ -245,6 +245,85 @@ class ImageProcessor:
         except Exception as e:
             logger.error(f"Error generating heatmap: {e}")
             return image
+
+    @staticmethod
+    def generate_heatmap_from_cam(image: np.ndarray, cam: np.ndarray) -> np.ndarray:
+        """
+        Overlay a Grad-CAM heatmap on the original image.
+
+        Args:
+            image: Original BGR image
+            cam: 2D heatmap array normalized to [0, 1]
+
+        Returns:
+            Image with heatmap overlay
+        """
+        try:
+            heatmap = cv2.resize(cam, (image.shape[1], image.shape[0]))
+            heatmap = np.clip(heatmap, 0.0, 1.0)
+            heatmap_uint8 = (heatmap * 255).astype(np.uint8)
+            heatmap_colored = cv2.applyColorMap(heatmap_uint8, cv2.COLORMAP_JET)
+            overlay = cv2.addWeighted(image, 0.6, heatmap_colored, 0.4, 0)
+            return overlay
+        except Exception as e:
+            logger.error(f"Error generating heatmap from CAM: {e}")
+            return image
+
+    @staticmethod
+    def boxes_from_heatmap(
+        cam: np.ndarray,
+        image_shape: Tuple[int, int, int],
+        threshold: float = 0.4,
+        min_area_ratio: float = 0.01
+    ) -> List[Dict[str, Any]]:
+        """
+        Derive bounding boxes from a Grad-CAM heatmap.
+
+        Args:
+            cam: 2D heatmap array normalized to [0, 1]
+            image_shape: Original image shape (H, W, C)
+            threshold: Heatmap threshold for binarization
+            min_area_ratio: Minimum box area ratio to keep
+
+        Returns:
+            List of bounding boxes with confidence
+        """
+        try:
+            height, width = image_shape[:2]
+            heatmap = cv2.resize(cam, (width, height))
+            heatmap = np.clip(heatmap, 0.0, 1.0)
+            _, binary = cv2.threshold(
+                (heatmap * 255).astype(np.uint8),
+                int(threshold * 255),
+                255,
+                cv2.THRESH_BINARY
+            )
+
+            contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            min_area = (height * width) * min_area_ratio
+            boxes = []
+
+            for contour in contours:
+                x, y, w, h = cv2.boundingRect(contour)
+                area = w * h
+                if area < min_area:
+                    continue
+
+                roi = heatmap[y:y + h, x:x + w]
+                confidence = float(np.mean(roi)) if roi.size else 0.0
+
+                boxes.append({
+                    "x": int(x),
+                    "y": int(y),
+                    "width": int(w),
+                    "height": int(h),
+                    "confidence": confidence
+                })
+
+            return boxes
+        except Exception as e:
+            logger.error(f"Error deriving boxes from heatmap: {e}")
+            return []
     
     @staticmethod
     def detect_bounding_boxes(

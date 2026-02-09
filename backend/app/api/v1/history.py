@@ -44,7 +44,7 @@ async def get_history(
         user_id = str(current_user["_id"])
         
         # Build query
-        query = {"user_id": user_id}
+        query = {"user_id": user_id, "is_deleted": {"$ne": True}}
         
         if crop_type:
             query["crop_type"] = crop_type.value
@@ -60,16 +60,22 @@ async def get_history(
                 query["created_at"]["$lte"] = end_date
         
         # Get history
+        total = await db.history.count_documents(query)
         cursor = db.history.find(query).sort("created_at", -1).skip(skip).limit(limit)
         history = await cursor.to_list(length=limit)
-        
+
         # Format results
         for entry in history:
             entry["_id"] = str(entry["_id"])
-        
+
         logger.info(f"History fetched for user: {user_id}, filters: {query}")
-        
-        return history
+
+        return {
+            "total": total,
+            "items": history,
+            "limit": limit,
+            "offset": skip
+        }
         
     except Exception as e:
         logger.error(f"Error getting history: {e}")
@@ -141,7 +147,7 @@ async def get_analytics(
         user_id = str(current_user["_id"])
         
         # Get all history for the user
-        cursor = db.history.find({"user_id": user_id})
+        cursor = db.history.find({"user_id": user_id, "is_deleted": {"$ne": True}})
         history = await cursor.to_list(length=None)
         
         # Calculate statistics
