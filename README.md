@@ -761,13 +761,6 @@ Authorization: Bearer <access_token>
 - `PATCH /notifications/{id}/read` - Mark as read
 - `POST /notifications/mark-all-read` - Mark all as read
 
-### Complete API Documentation
-
-For detailed API documentation with request/response examples, visit:
-- Swagger UI: http://localhost:8000/docs
-- ReDoc: http://localhost:8000/redoc
-- Or see: [backend/API_DOCUMENTATION.md](backend/API_DOCUMENTATION.md)
-
 ---
 
 ## 🤖 Disease Detection Model
@@ -967,7 +960,7 @@ We welcome contributions from the community! Here's how you can help:
 1. **Fork** the repository
 2. **Clone** your fork:
    ```bash
-   git clone https://github.com/yourusername/Plant_disease_detection.git
+   git clone https://github.com/Shyam-Sundar-Raju/Plant_disease_detection.git
    ```
 3. **Create a branch**:
    ```bash
@@ -1077,8 +1070,7 @@ See [LICENSE](LICENSE) file for full details.
 
 - 📖 **Documentation**: Check this README and linked docs
 - 💬 **Issues**: Open a [GitHub Issue](https://github.com/yourusername/Plant_disease_detection/issues)
-- 📧 **Email**: contact@example.com
-- 💡 **Discussions**: Join our [GitHub Discussions](https://github.com/yourusername/Plant_disease_detection/discussions)
+
 
 ### Reporting Issues
 
@@ -1089,37 +1081,6 @@ When reporting bugs, please include:
 - Expected vs actual behavior
 - Error messages/logs
 - Screenshots (if applicable)
-
----
-
-## 🗺️ Roadmap
-
-### Version 2.0 (Planned)
-
-- [ ] **Mobile App**
-  - Push notifications
-  - Offline mode enhancements
-  - Social sharing features
-  - Multi-user accounts (family farming)
-
-- [ ] **Backend**
-  - GraphQL API
-  - Real-time WebSocket updates
-  - Advanced analytics dashboard
-  - Crop yield predictions
-
-- [ ] **AI Model**
-  - 50+ crop support
-  - Pest detection
-  - Nutrient deficiency detection
-  - Growth stage monitoring
-
-- [ ] **Features**
-  - Community forum
-  - Marketplace integration
-  - Expert consultation booking
-  - Weather-based alerts
-  - Crop calendar & reminders
 
 ---
 
@@ -1140,30 +1101,6 @@ When reporting bugs, please include:
 If you find this project useful, please consider giving it a ⭐ on GitHub!
 
 [![Star History Chart](https://api.star-history.com/svg?repos=yourusername/Plant_disease_detection&type=Date)](https://star-history.com/#yourusername/Plant_disease_detection&Date)
-
----
-
-## 📸 Screenshots
-
-<div align="center">
-
-### Mobile App
-
-| Login Screen | Home Dashboard | Disease Scan |
-|:---:|:---:|:---:|
-| *User authentication* | *Main dashboard* | *Camera/Gallery upload* |
-
-| Diagnosis Result | Treatment Plan | History View |
-|:---:|:---:|:---:|
-| *AI predictions* | *Step-by-step guide* | *Past diagnoses* |
-
-### Backend API
-
-| Swagger UI | API Response | Analytics |
-|:---:|:---:|:---:|
-| *Interactive docs* | *JSON responses* | *User insights* |
-
-</div>
 
 ---
 

@@ -171,12 +171,33 @@ class AIModelService:
     def _load_label_map(self, label_map_path: Path):
         """Load label map from file"""
         try:
-            with open(label_map_path, 'r', encoding='utf-8') as f:
-                labels = [line.strip() for line in f if line.strip()]
-            
-            self.label_map = {idx: label for idx, label in enumerate(labels)}
-            self.DISEASE_LABELS = labels
-            logger.info(f"Loaded {len(labels)} disease labels from label map")
+            with open(label_map_path, "r", encoding="utf-8") as f:
+                raw_lines = [line.strip() for line in f if line.strip()]
+
+            parsed_map: Dict[int, str] = {}
+            parsed_list: List[str] = []
+
+            for line in raw_lines:
+                if ":" in line:
+                    idx_str, label = line.split(":", 1)
+                    if idx_str.strip().isdigit():
+                        parsed_map[int(idx_str.strip())] = label.strip()
+                        continue
+                parsed_list.append(line)
+
+            if parsed_map:
+                self.label_map = parsed_map
+                self.DISEASE_LABELS = [
+                    label for _, label in sorted(parsed_map.items())
+                ]
+            else:
+                self.label_map = {idx: label for idx, label in enumerate(parsed_list)}
+                self.DISEASE_LABELS = parsed_list
+
+            logger.info(
+                "Loaded %s disease labels from label map",
+                len(self.DISEASE_LABELS)
+            )
             
         except Exception as e:
             logger.error(f"Error loading label map: {e}")
