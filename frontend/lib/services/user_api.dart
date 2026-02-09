@@ -32,6 +32,7 @@ class UserApi {
     double? latitude,
     double? longitude,
   }) async {
+    // Send only the fields that are provided.
     final data = <String, dynamic>{};
 
     if (name != null && name.trim().isNotEmpty) {

@@ -4,6 +4,7 @@ import '../../services/auth_api.dart';
 import '../../services/location_service.dart';
 import '../../services/app_localizations.dart';
 
+// Screen for new user registration.
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
 
@@ -56,6 +57,7 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 
   Future<void> _submit() async {
+    // Capture GPS once to enrich the new profile.
     if (!_formKey.currentState!.validate()) {
       return;
     }

@@ -22,6 +22,7 @@ class NotificationApi {
     int limit = 50,
     bool unreadOnly = false,
   }) async {
+    // Optionally filter to unread notifications only.
     final headers = <String, dynamic>{'Authorization': 'Bearer $accessToken'};
     if (language != null && language.isNotEmpty) {
       headers['Accept-Language'] = language;

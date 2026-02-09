@@ -25,6 +25,7 @@ class DiagnosisApi {
     required File imageFile,
     String? language,
   }) async {
+    // Upload image as multipart/form-data.
     final formData = FormData.fromMap({
       'crop_type': cropType,
       'image': await MultipartFile.fromFile(

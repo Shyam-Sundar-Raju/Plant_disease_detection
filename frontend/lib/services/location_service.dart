@@ -11,6 +11,7 @@ class LocationService {
   const LocationService();
 
   Future<LocationData> getCurrentLocation() async {
+    // Ensure service + permissions before fetching GPS.
     final serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
       throw Exception('Location services are disabled.');

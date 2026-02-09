@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../services/auth_api.dart';
 import '../../services/app_localizations.dart';
 
+// Screen for requesting and completing password reset.
 class ForgotPasswordPage extends StatefulWidget {
   const ForgotPasswordPage({super.key});
 
@@ -35,6 +36,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   }
 
   Future<void> _submit() async {
+    // Step 1: request reset token/OTP.
     if (!_formKey.currentState!.validate()) {
       return;
     }
@@ -77,6 +79,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   }
 
   Future<void> _submitReset() async {
+    // Step 2: verify OTP and set new password.
     if (!_resetFormKey.currentState!.validate()) {
       return;
     }

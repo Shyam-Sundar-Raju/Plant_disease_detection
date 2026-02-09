@@ -6,6 +6,7 @@ import '../services/token_storage.dart';
 import '../services/user_api.dart';
 import '../services/app_localizations.dart';
 
+// Screen for viewing and updating user profile settings.
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
 
@@ -53,6 +54,7 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _loadProfile() async {
+    // Load cached profile first, then refresh from server.
     final cached = await _tokenStorage.readUserProfile();
     if (cached != null) {
       _applyProfile(cached);
@@ -96,6 +98,7 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _updateProfile() async {
+    // Update profile with latest GPS location.
     if (!_formKey.currentState!.validate()) {
       return;
     }

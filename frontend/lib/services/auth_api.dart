@@ -8,6 +8,7 @@ class AuthApi {
   final Dio _dio;
 
   static BaseOptions _defaultOptions() {
+    // Shared timeouts and headers for auth endpoints.
     return BaseOptions(
       baseUrl: ApiConfig.baseUrl,
       connectTimeout: const Duration(seconds: 10),
@@ -94,6 +95,7 @@ class AuthApi {
   }
 
   Map<String, dynamic> _toJsonMap(dynamic data) {
+    // Enforce a predictable map response shape.
     if (data is Map<String, dynamic>) {
       return data;
     }

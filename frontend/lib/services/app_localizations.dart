@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'token_storage.dart';
 
 class AppLanguage extends ChangeNotifier {
+  // Holds current language code and notifies listeners on change.
   AppLanguage({String initialCode = 'en'}) : _code = initialCode;
 
   String _code;
@@ -42,6 +43,7 @@ class AppLocalizations {
     'ml',
   };
 
+  // Localized strings keyed by language code.
   static const Map<String, Map<String, String>> _strings = {
     'en': {
       'AgroScan': 'AgroScan',

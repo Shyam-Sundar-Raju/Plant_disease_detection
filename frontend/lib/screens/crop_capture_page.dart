@@ -13,6 +13,7 @@ import '../services/token_storage.dart';
 import '../services/app_localizations.dart';
 import 'diagnosis_result_page.dart';
 
+// Screen for selecting crop and capturing media for diagnosis.
 class CropCapturePage extends StatefulWidget {
   const CropCapturePage({super.key});
 
@@ -39,6 +40,7 @@ class _CropCapturePageState extends State<CropCapturePage> {
     _CropItem(code: 'tomato', label: 'Tomato'),
   ];
 
+  // Prompt for media source and handle image/video selection.
   Future<void> _onCropSelected(_CropItem crop) async {
     final option = await showModalBottomSheet<_MediaOption>(
       context: context,
@@ -150,6 +152,7 @@ class _CropCapturePageState extends State<CropCapturePage> {
   }
 
   Future<File?> _extractFrame(File videoFile) async {
+    // Pull a mid-frame thumbnail from a video capture.
     try {
       final controller = VideoPlayerController.file(videoFile);
       await controller.initialize();
@@ -180,6 +183,7 @@ class _CropCapturePageState extends State<CropCapturePage> {
   }
 
   Future<void> _processImage(_CropItem crop, File imageFile) async {
+    // Run blur check, then submit and cache the diagnosis.
     try {
       final isBlurry = await _blurDetector.isBlurry(
         imageFile,
@@ -266,6 +270,7 @@ class _CropCapturePageState extends State<CropCapturePage> {
   }
 
   String? _extractDiagnosisId(Map<String, dynamic> result) {
+    // Accept id from multiple response keys.
     final id = result['_id']?.toString();
     if (id != null && id.isNotEmpty) {
       return id;

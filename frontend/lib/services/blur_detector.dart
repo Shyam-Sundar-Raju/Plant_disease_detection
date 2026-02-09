@@ -12,6 +12,7 @@ class BlurDetector {
   }
 
   bool isBlurryBytes(Uint8List bytes, {double threshold = 200.0}) {
+    // Variance of Laplacian; lower variance implies blur.
     final image = img.decodeImage(bytes);
     if (image == null) {
       throw Exception('Unable to decode image.');

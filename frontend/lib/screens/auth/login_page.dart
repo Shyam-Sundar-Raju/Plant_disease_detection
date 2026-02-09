@@ -7,6 +7,7 @@ import 'forgot_password_page.dart';
 import 'register_page.dart';
 import '../home_page.dart';
 
+// Screen for user sign-in.
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -34,6 +35,7 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _submit() async {
+    // Validate credentials and exchange for tokens.
     if (!_formKey.currentState!.validate()) {
       return;
     }

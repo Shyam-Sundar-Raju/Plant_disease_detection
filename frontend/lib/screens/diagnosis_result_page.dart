@@ -4,6 +4,7 @@ import '../services/api_config.dart';
 import '../services/app_localizations.dart';
 import 'remediation_page.dart';
 
+// Screen that displays diagnosis results and imagery.
 class DiagnosisResultPage extends StatelessWidget {
   const DiagnosisResultPage({
     super.key,
@@ -16,6 +17,7 @@ class DiagnosisResultPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Normalize raw result values for display.
     final diseaseName = result['disease_name']?.toString() ?? 'Unknown';
     final severity = result['severity']?.toString() ?? 'unknown';
     final confidencePercent = _parseConfidencePercent(result['confidence']);
@@ -147,6 +149,7 @@ class DiagnosisResultPage extends StatelessWidget {
   }
 
   String _resolveUrl(String? path) {
+    // Resolve relative API paths to full URLs.
     if (path == null || path.isEmpty) {
       return '';
     }
@@ -171,6 +174,7 @@ class DiagnosisResultPage extends StatelessWidget {
   }
 
   double _parseConfidencePercent(dynamic value) {
+    // Accept 0-1 or 0-100 confidence values.
     if (value == null) {
       return 0;
     }
@@ -329,6 +333,7 @@ class _ImageWithMatchedAspectState extends State<_ImageWithMatchedAspect> {
   }
 
   void _resolveMatchImage() {
+    // Match aspect ratio to the reference image.
     final image = Image.network(widget.matchUrl);
     final stream = image.image.resolve(const ImageConfiguration());
     stream.addListener(
@@ -581,6 +586,7 @@ class _BoundingBoxPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    // Scale model coordinates to the rendered image size.
     final scaleX = size.width / imageSize.width;
     final scaleY = size.height / imageSize.height;
 

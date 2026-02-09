@@ -16,6 +16,7 @@ import 'crop_capture_page.dart';
 import 'diagnosis_result_page.dart';
 import 'profile_page.dart';
 
+// Dashboard screen for weather, history, and actions.
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -111,11 +112,13 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
+    // Load cached content, then refresh from network.
     _initializeData();
     _updateConnectivity();
   }
 
   Future<void> _initializeData() async {
+    // Prime tokens before hitting authenticated endpoints.
     await _refreshTokenIfWifi();
     _loadCachedProfile();
     _refreshProfile();
@@ -139,6 +142,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _refreshTokenIfWifi() async {
+    // Avoid refresh on mobile data to reduce usage.
     final connectivity = await Connectivity().checkConnectivity();
     if (!connectivity.contains(ConnectivityResult.wifi)) {
       return;
@@ -171,6 +175,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _loadCachedHistory() async {
+    // Render cache first for faster UI.
     final cached = await _tokenStorage.readHistory();
     if (cached != null && mounted) {
       setState(() {
@@ -251,6 +256,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _openHistoryDiagnosis(Map<String, dynamic> item) async {
+    // Try live fetch, fall back to cached diagnosis.
     final diagnosisId = item['diagnosis_id']?.toString() ?? '';
     if (diagnosisId.isEmpty) {
       return;
@@ -434,6 +440,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _showNotifications() async {
+    // Show notifications in a bottom sheet.
     final accessToken = await _tokenStorage.readAccessToken();
     if (accessToken == null || accessToken.isEmpty) {
       if (!mounted) {
@@ -950,6 +957,7 @@ class _NotificationsSheet extends StatelessWidget {
   final TokenStorage tokenStorage;
 
   Future<List<Map<String, dynamic>>> _loadNotifications() async {
+    // Mark all as read, but keep showing even if it fails.
     final profile = await tokenStorage.readUserProfile();
     final language = profile?['preferred_language']?.toString();
     try {
@@ -1075,6 +1083,7 @@ class _NotificationTile extends StatelessWidget {
   }
 
   static String _formatTimestamp(dynamic value) {
+    // Normalize server timestamps to local time.
     if (value == null) {
       return '';
     }

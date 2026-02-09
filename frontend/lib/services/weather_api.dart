@@ -73,6 +73,7 @@ class WeatherApi {
     required double latitude,
     required double longitude,
   }) async {
+    // Fetch current conditions for a lat/lng pair.
     final response = await _dio.get(
       '/current.json',
       queryParameters: {

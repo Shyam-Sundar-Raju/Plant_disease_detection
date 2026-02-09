@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import '../services/token_storage.dart';
 import '../services/app_localizations.dart';
 
+// Screen for remediation guidance per diagnosis.
 class RemediationPage extends StatelessWidget {
   const RemediationPage({
     super.key,
@@ -21,6 +22,7 @@ class RemediationPage extends StatelessWidget {
   final bool isHealthy;
 
   Future<_RemediationData> _loadData() async {
+    // Load remediation JSON and apply preferred language.
     final raw = await rootBundle.loadString(
       'assets/remediation/remediation.json',
     );
@@ -194,6 +196,7 @@ class _RemediationData {
   }
 
   String? localize(dynamic value) {
+    // Fall back to English when the language entry is missing.
     if (value is Map<String, dynamic>) {
       final localized = value[language] ?? value['en'];
       return localized?.toString();

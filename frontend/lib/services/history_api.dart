@@ -70,6 +70,7 @@ class HistoryApi {
     required String accessToken,
     required String diagnosisId,
   }) async {
+    // Save report to Downloads when available.
     final response = await _dio.get<List<int>>(
       '/history/report/$diagnosisId',
       options: Options(
