@@ -54,10 +54,30 @@ def test_gradcam():
         print(f"   - Infected Ratio: {severity_info['infected_ratio']}%")
         print(f"   - Heatmap shape: {heatmap_overlay.shape}")
         
-        # Save the heatmap for visual inspection
+        # Save the heatmap overlay
         output_path = "test_gradcam_output.jpg"
         cv2.imwrite(output_path, heatmap_overlay)
-        print(f"\n✓ Heatmap saved to: {output_path}")
+        print(f"\n✓ Heatmap overlay saved to: {output_path}")
+
+        # Save the raw heatmap as a standalone colour image
+        if raw_heatmap is not None:
+            raw_uint8 = np.uint8(255 * np.clip(raw_heatmap, 0, 1))
+            raw_colored = cv2.applyColorMap(raw_uint8, cv2.COLORMAP_JET)
+            cv2.imwrite("test_raw_heatmap.jpg", raw_colored)
+            print("✓ Raw heatmap (standalone) saved to: test_raw_heatmap.jpg")
+            
+            # Compute how much the overlay differs from the original
+            diff = np.mean(np.abs(heatmap_overlay.astype(float) - image.astype(float)))
+            print(f"   - Mean pixel diff (overlay vs original): {diff:.2f}")
+            
+            # Show stats about activation distribution
+            flat = raw_heatmap.flatten()
+            pct_above_30 = np.mean(flat > 0.30) * 100
+            pct_above_50 = np.mean(flat > 0.50) * 100
+            pct_above_70 = np.mean(flat > 0.70) * 100
+            print(f"   - Activation > 0.3: {pct_above_30:.1f}% of pixels")
+            print(f"   - Activation > 0.5: {pct_above_50:.1f}% of pixels")
+            print(f"   - Activation > 0.7: {pct_above_70:.1f}% of pixels")
         
         # Test bounding box derivation from Grad-CAM
         print("\n4. Deriving bounding boxes from Grad-CAM heatmap...")

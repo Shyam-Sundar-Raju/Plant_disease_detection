@@ -94,13 +94,18 @@ class ImageProcessor:
         layer_name: Optional[str] = None
     ) -> Tuple[np.ndarray, Dict[str, Any]]:
         """
-        Generate Grad-CAM heatmap overlay for the predicted class using TensorFlow GradientTape.
-        
+        Generate Grad-CAM++ heatmap overlay for the predicted class.
+
+        Uses Grad-CAM++ (weighted combination of positive partial
+        derivatives) for better multi-spot localization, and per-pixel
+        alpha blending so only significantly activated regions are
+        coloured — the rest of the image stays untouched.
+
         Args:
             model: TensorFlow/Keras model
             image: Original image as numpy array (BGR format)
             layer_name: Name of convolutional layer to use (auto-detected if None)
-        
+
         Returns:
             Tuple of (heatmap_overlay, severity_info, raw_heatmap_normalized)
             raw_heatmap_normalized is a 2D float array in [0, 1] at the
@@ -113,11 +118,9 @@ class ImageProcessor:
             target_layer = None
 
             if layer_name is not None:
-                # User specified a layer name — try to find it
                 try:
                     target_layer = model.get_layer(layer_name)
                 except ValueError:
-                    # Maybe it's inside a nested sub-model
                     for layer in model.layers:
                         if isinstance(layer, tf.keras.Model):
                             try:
@@ -127,14 +130,12 @@ class ImageProcessor:
                                 continue
 
             if target_layer is None:
-                # Auto-detect: search the entire model graph for last Conv2D
-                # First try top-level layers
+                # Auto-detect: last Conv2D in the model graph
                 for layer in reversed(model.layers):
                     if isinstance(layer, tf.keras.layers.Conv2D):
                         target_layer = layer
                         break
 
-                # If not found at top level, search inside nested sub-models
                 if target_layer is None:
                     for layer in reversed(model.layers):
                         if isinstance(layer, tf.keras.Model):
@@ -145,7 +146,6 @@ class ImageProcessor:
                             if target_layer is not None:
                                 break
 
-                # Last resort: any layer with 'conv' in the name
                 if target_layer is None:
                     for layer in reversed(model.layers):
                         if 'conv' in layer.name.lower():
@@ -162,15 +162,11 @@ class ImageProcessor:
             if target_layer is None:
                 raise ValueError("No convolutional layer found anywhere in the model.")
 
-            logger.info(f"Grad-CAM target layer: {target_layer.name} ({type(target_layer).__name__})")
+            logger.info(f"Grad-CAM++ target layer: {target_layer.name} ({type(target_layer).__name__})")
 
             # -----------------------------------------------------------
             # 2. Build the Grad-CAM model
             # -----------------------------------------------------------
-            # Keras 3 Sequential models don't expose .input/.output until
-            # called, and even predict() doesn't always fix it.  If
-            # model.input fails, fall back to reconstructing the forward
-            # pass from the base Functional sub-model.
             try:
                 model_input = model.input
                 model_output = model.output
@@ -181,10 +177,9 @@ class ImageProcessor:
             except (AttributeError, ValueError) as seq_err:
                 logger.info(
                     "model.input unavailable (%s); "
-                    "rebuilding graph from base sub-model for Grad-CAM",
+                    "rebuilding graph from base sub-model for Grad-CAM++",
                     seq_err,
                 )
-                # Find the Functional sub-model (e.g. MobileNetV2)
                 base_model = None
                 for layer in model.layers:
                     if isinstance(layer, tf.keras.Model):
@@ -192,15 +187,12 @@ class ImageProcessor:
                         break
                 if base_model is None:
                     raise ValueError(
-                        "Cannot build Grad-CAM: no Functional sub-model found "
-                        "in Sequential model."
+                        "Cannot build Grad-CAM++: no Functional sub-model "
+                        "found in Sequential model."
                     )
-
-                # Manually chain head layers on top of the base output
                 x = base_model.output
                 for head_layer in model.layers[model.layers.index(base_model) + 1:]:
                     x = head_layer(x)
-
                 grad_model = tf.keras.models.Model(
                     inputs=base_model.input,
                     outputs=[target_layer.output, x],
@@ -217,28 +209,42 @@ class ImageProcessor:
             img_tensor = tf.constant(np.expand_dims(img_array, axis=0))
 
             # -----------------------------------------------------------
-            # 4. Compute gradients
+            # 4. Compute gradients (Grad-CAM++)
             # -----------------------------------------------------------
             with tf.GradientTape() as tape:
-                tape.watch(img_tensor)
                 conv_outputs, predictions = grad_model(img_tensor)
                 pred_index = tf.argmax(predictions[0])
                 loss = predictions[:, pred_index]
 
+            # First-order gradients w.r.t. conv feature maps
             grads = tape.gradient(loss, conv_outputs)
 
             if grads is None:
                 raise ValueError(
-                    f"Gradients are None — the graph from layer '{target_layer.name}' "
-                    "to the output may be disconnected."
+                    f"Gradients are None — the graph from layer "
+                    f"'{target_layer.name}' to the output may be disconnected."
                 )
 
             # -----------------------------------------------------------
-            # 5. Pool gradients and compute heatmap
+            # 5. Compute Grad-CAM++ heatmap
             # -----------------------------------------------------------
-            pooled_grads = tf.reduce_mean(grads, axis=(0, 1, 2))
-            conv_outputs = conv_outputs[0]
-            heatmap = tf.reduce_sum(pooled_grads * conv_outputs, axis=-1)
+            conv_out = conv_outputs[0]  # (H, W, C)
+            grads_val = grads[0]        # (H, W, C)
+
+            # Grad-CAM++ alpha weights (closed-form using first-order
+            # gradients only — Chattopadhay et al. 2018, Eq. 9-10).
+            grads_sq = grads_val ** 2
+            grads_cb = grads_val ** 3
+            sum_act = tf.reduce_sum(conv_out, axis=(0, 1), keepdims=True)
+            denom = 2.0 * grads_sq + sum_act * grads_cb + 1e-8
+            alpha_c = grads_sq / denom
+            # Only positive partial derivatives contribute
+            weights = tf.reduce_sum(
+                alpha_c * tf.nn.relu(grads_val), axis=(0, 1)
+            )
+
+            # Weighted combination of feature maps
+            heatmap = tf.reduce_sum(weights * conv_out, axis=-1)
 
             # ReLU and normalize
             heatmap = heatmap.numpy()
@@ -246,8 +252,7 @@ class ImageProcessor:
             max_val = np.max(heatmap)
 
             if max_val < 1e-8:
-                logger.warning("Grad-CAM heatmap is all zeros, applying fallback enhancement")
-                # Try using absolute value of gradients as fallback
+                logger.warning("Heatmap is all zeros, applying abs-gradient fallback")
                 abs_grads = tf.reduce_mean(tf.abs(grads), axis=-1)[0]
                 heatmap = abs_grads.numpy()
                 heatmap = np.maximum(heatmap, 0)
@@ -256,11 +261,21 @@ class ImageProcessor:
             if max_val > 1e-8:
                 heatmap = heatmap / max_val
             else:
-                logger.warning("Grad-CAM heatmap still zero after fallback")
+                logger.warning("Heatmap still zero after fallback")
                 heatmap = np.zeros_like(heatmap)
 
             # -----------------------------------------------------------
-            # 6. Create colored overlay
+            # 6. Enhance contrast — make hot spots stand out more
+            # -----------------------------------------------------------
+            # Power transform suppresses low activations and
+            # sharpens the peaks around actual disease spots.
+            heatmap = np.power(heatmap, 2.0)
+            hm_max = np.max(heatmap)
+            if hm_max > 1e-8:
+                heatmap = heatmap / hm_max
+
+            # -----------------------------------------------------------
+            # 7. Create overlay with per-pixel alpha blending
             # -----------------------------------------------------------
             heatmap_resized = cv2.resize(heatmap, (image.shape[1], image.shape[0]))
             heatmap_uint8 = np.uint8(255 * heatmap_resized)
@@ -268,14 +283,25 @@ class ImageProcessor:
             # Apply colormap (JET: blue=cold, red=hot)
             heatmap_colored = cv2.applyColorMap(heatmap_uint8, cv2.COLORMAP_JET)
 
-            # Overlay on original image (0.5/0.5 for more visible heatmap)
-            overlay = cv2.addWeighted(image, 0.5, heatmap_colored, 0.5, 0)
+            # Per-pixel alpha: areas with low activation keep original
+            # image, high activation areas show the heatmap colour.
+            # Suppress activation below 35 % so only disease-relevant
+            # regions get coloured; the rest stays as the clear original.
+            alpha = heatmap_resized.copy()
+            alpha[alpha < 0.35] = 0.0           # hard cut-off
+            alpha = np.clip(alpha * 1.3, 0, 0.85)  # scale up, cap at 0.85
+            alpha_3ch = np.stack([alpha] * 3, axis=-1)
+
+            overlay = (
+                image.astype(np.float32) * (1 - alpha_3ch)
+                + heatmap_colored.astype(np.float32) * alpha_3ch
+            ).astype(np.uint8)
 
             # Estimate severity from heatmap
             severity_info = ImageProcessor.estimate_severity_from_heatmap(heatmap_uint8)
 
             logger.info(
-                f"Grad-CAM generated: heatmap_max={max_val:.4f}, "
+                f"Grad-CAM++ generated: heatmap_max={max_val:.4f}, "
                 f"severity={severity_info.get('severity')}, "
                 f"infected_ratio={severity_info.get('infected_ratio')}%"
             )
@@ -284,8 +310,7 @@ class ImageProcessor:
 
         except Exception as e:
             import traceback
-            logger.error(f"Grad-CAM heatmap generation FAILED: {e}\n{traceback.format_exc()}")
-            # Return original image with default severity on error
+            logger.error(f"Grad-CAM++ heatmap generation FAILED: {e}\n{traceback.format_exc()}")
             return image, {"severity": "Unknown", "infected_ratio": 0.0}, None
     
     @staticmethod

@@ -171,6 +171,16 @@ class DiseaseDetection(BaseModel):
     affected_area_percentage: Optional[float] = None
 
 
+class SecondaryDiagnosis(BaseModel):
+    """A secondary (co-occurring) infection detected on the same plant."""
+    disease_id: str
+    disease_name: str
+    confidence: float
+    severity: Optional[str] = "unknown"
+    infected_ratio: Optional[float] = 0.0
+    bounding_boxes: Optional[List[BoundingBox]] = []
+
+
 class DiagnosisCreate(BaseModel):
     """Schema for creating diagnosis"""
     crop_type: CropType
@@ -192,6 +202,7 @@ class DiagnosisResponse(BaseModel):
     heatmap_url: Optional[str] = None
     bounding_boxes: Optional[List[BoundingBox]] = []
     secondary_diagnoses: List[Dict[str, Any]] = []
+    multi_infection: bool = False
     created_at: datetime
     metadata: Optional[Dict[str, Any]] = None
 
