@@ -2,8 +2,8 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 
-import '../services/token_storage.dart';
 import '../services/app_localizations.dart';
 
 // Screen for remediation guidance per diagnosis.
@@ -21,25 +21,25 @@ class RemediationPage extends StatelessWidget {
   final String severity;
   final bool isHealthy;
 
-  Future<_RemediationData> _loadData() async {
+  /// Loads remediation data with the specified language
+  /// The language parameter is from global AppLanguage state
+  /// When language changes, the UI rebuilds automatically via context.watch()
+  Future<_RemediationData> _loadData(String language) async {
     // Load remediation JSON and apply preferred language.
     final raw = await rootBundle.loadString(
       'assets/remediation/remediation.json',
     );
     final decoded = jsonDecode(raw);
 
-    String language = 'en';
-    final profile = await const TokenStorage().readUserProfile();
-    final preferred = profile?['preferred_language']?.toString();
-    if (preferred != null && preferred.isNotEmpty) {
-      language = preferred;
-    }
-
     return _RemediationData(decoded, language);
   }
 
   @override
   Widget build(BuildContext context) {
+    // Watch for language changes and rebuild automatically
+    // This ensures UI updates instantly when user changes language
+    final currentLanguage = context.watch<AppLanguage>().code;
+    
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(title: Text(context.t('Remediation guide'))),
@@ -53,7 +53,9 @@ class RemediationPage extends StatelessWidget {
         ),
         child: SafeArea(
           child: FutureBuilder<_RemediationData>(
-            future: _loadData(),
+            // Key ensures FutureBuilder rebuilds when language changes
+            key: ValueKey('remediation_$currentLanguage'),
+            future: _loadData(currentLanguage),
             builder: (context, snapshot) {
               if (snapshot.connectionState != ConnectionState.done) {
                 return const Center(child: CircularProgressIndicator());
@@ -349,6 +351,9 @@ class RemediationPage extends StatelessWidget {
   }
 }
 
+/// Handles remediation data localization
+/// Provides methods to extract disease info and localize content
+/// All localize methods automatically fallback to English if translation missing
 class _RemediationData {
   _RemediationData(this.raw, this.language);
 
@@ -392,7 +397,8 @@ class _RemediationData {
   }
 
   String? localize(dynamic value) {
-    // Fall back to English when the language entry is missing.
+    // Localize value with automatic fallback to English if translation missing
+    // Returns: localized string in current language, or English if unavailable
     if (value is Map<String, dynamic>) {
       final localized = value[language] ?? value['en'];
       return localized?.toString();
@@ -401,6 +407,8 @@ class _RemediationData {
   }
 
   List<String> localizeList(dynamic value) {
+    // Localize list with automatic fallback to English if translation missing
+    // Returns: localized string list in current language, or English if unavailable
     if (value is Map<String, dynamic>) {
       final localized = value[language] ?? value['en'];
       if (localized is List) {
@@ -414,6 +422,7 @@ class _RemediationData {
   }
 
   String localizeSeverity(dynamic value, String severity) {
+    // Localize severity guidance with automatic fallback to English
     if (value is Map<String, dynamic>) {
       final entry = value[severity];
       return localize(entry) ?? '';
@@ -434,6 +443,7 @@ class _TreatmentSection extends StatelessWidget {
   final String language;
 
   String _localize(dynamic value) {
+    // Localize value with automatic fallback to English if translation missing
     if (value is Map<String, dynamic>) {
       final localized = value[language] ?? value['en'];
       return localized?.toString() ?? '';
@@ -566,6 +576,7 @@ class _StepRow extends StatelessWidget {
   final String language;
 
   String _localize(dynamic value) {
+    // Localize value with automatic fallback to English if translation missing
     if (value is Map<String, dynamic>) {
       final localized = value[language] ?? value['en'];
       return localized?.toString() ?? '';
