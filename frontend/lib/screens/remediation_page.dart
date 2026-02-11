@@ -94,6 +94,11 @@ class RemediationPage extends StatelessWidget {
               final noTreatmentNeeded =
                   disease['no_treatment_needed'] == true ||
                   (treatments == null && isHealthy);
+              final riskFactors = data.localizeList(disease['environmental_risk_factors']);
+              final affectedParts = data.localize(disease['affected_parts']) ?? '';
+              final communityTips = data.localizeList(disease['community_tips']);
+              final whenToSeekExpert = data.localize(disease['when_to_seek_expert']) ?? '';
+              final companionPlants = data.localizeList(disease['companion_plants']);
 
               return ListView(
                 padding: const EdgeInsets.all(20),
@@ -135,6 +140,58 @@ class RemediationPage extends StatelessWidget {
                       subtitle: severityGuidance,
                     ),
                   ],
+                  if (affectedParts.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(Icons.local_hospital, 
+                                  color: Theme.of(context).colorScheme.primary),
+                                const SizedBox(width: 8),
+                                Text(
+                                  context.t('Affected parts'),
+                                  style: Theme.of(context).textTheme.titleMedium,
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(affectedParts),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                  if (riskFactors.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(Icons.warning_amber, 
+                                  color: Colors.orange),
+                                const SizedBox(width: 8),
+                                Text(
+                                  context.t('Environmental risk factors'),
+                                  style: Theme.of(context).textTheme.titleMedium,
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            ...riskFactors.map((factor) => _BulletRow(text: factor)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                   if (!noTreatmentNeeded && treatments != null) ...[
                     const SizedBox(height: 20),
                     _TreatmentSection(
@@ -161,6 +218,127 @@ class RemediationPage extends StatelessWidget {
                     const SizedBox(height: 8),
                     ...prevention.map((tip) => _BulletRow(text: tip)),
                   ],
+                  if (communityTips.isNotEmpty) ...[
+                    const SizedBox(height: 20),
+                    Card(
+                      color: Colors.green.shade50,
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(Icons.people, color: Colors.green.shade700),
+                                const SizedBox(width: 8),
+                                Text(
+                                  context.t('Community tips'),
+                                  style: Theme.of(context).textTheme.titleMedium,
+                                ),
+                                const Spacer(),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.green.shade700,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.verified, 
+                                        color: Colors.white, size: 16),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        context.t('Verified'),
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              context.t('Tips from experienced farmers'),
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                            const SizedBox(height: 12),
+                            ...communityTips.map((tip) => _BulletRow(text: tip)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                  if (companionPlants.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(Icons.eco, 
+                                  color: Colors.green.shade600),
+                                const SizedBox(width: 8),
+                                Text(
+                                  context.t('Companion plants'),
+                                  style: Theme.of(context).textTheme.titleMedium,
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              context.t('Plant these nearby for natural protection'),
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: companionPlants.map(
+                                (plant) => _PlantChip(label: plant),
+                              ).toList(),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                  if (whenToSeekExpert.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    Card(
+                      color: Colors.orange.shade50,
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(Icons.support_agent, 
+                                  color: Colors.orange.shade700),
+                                const SizedBox(width: 8),
+                                Text(
+                                  context.t('When to seek expert'),
+                                  style: Theme.of(context).textTheme.titleMedium,
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(whenToSeekExpert),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 20),
                 ],
               );
             },
@@ -273,6 +451,7 @@ class _TreatmentSection extends StatelessWidget {
     final dosage = _localize(treatment!['dosage']);
     final frequency = _localize(treatment!['frequency']);
     final cost = treatment!['cost_estimate']?.toString() ?? '';
+    final expectedResults = _localize(treatment!['expected_results']);
 
     final safetyWarnings = <String>[];
     for (final step in steps) {
@@ -325,6 +504,43 @@ class _TreatmentSection extends StatelessWidget {
                       label: context.t('Cost {value}', args: {'value': cost}),
                     ),
                 ],
+              ),
+            ],
+            if (expectedResults.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue.shade200),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.trending_up, color: Colors.blue.shade700, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            context.t('Expected results'),
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              color: Colors.blue.shade900,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            expectedResults,
+                            style: TextStyle(color: Colors.blue.shade900),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
             if (safetyWarnings.isNotEmpty) ...[
@@ -457,6 +673,25 @@ class _BulletRow extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(child: Text(text)),
         ],
+      ),
+    );
+  }
+}
+
+class _PlantChip extends StatelessWidget {
+  const _PlantChip({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Chip(
+      avatar: const Icon(Icons.local_florist, size: 16),
+      label: Text(label),
+      backgroundColor: Colors.green.shade100,
+      labelStyle: TextStyle(
+        color: Colors.green.shade800,
+        fontWeight: FontWeight.w500,
       ),
     );
   }
