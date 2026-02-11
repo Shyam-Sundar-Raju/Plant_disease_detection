@@ -44,7 +44,7 @@ def test_gradcam():
     # Test Grad-CAM generation
     print("\n3. Generating Grad-CAM heatmap...")
     try:
-        heatmap_overlay, severity_info = ImageProcessor.generate_gradcam(
+        heatmap_overlay, severity_info, raw_heatmap = ImageProcessor.generate_gradcam(
             ai_service.model,
             image
         )
@@ -58,6 +58,32 @@ def test_gradcam():
         output_path = "test_gradcam_output.jpg"
         cv2.imwrite(output_path, heatmap_overlay)
         print(f"\n✓ Heatmap saved to: {output_path}")
+        
+        # Test bounding box derivation from Grad-CAM
+        print("\n4. Deriving bounding boxes from Grad-CAM heatmap...")
+        if raw_heatmap is not None:
+            boxes = ImageProcessor.boxes_from_heatmap(
+                raw_heatmap, image.shape,
+                threshold=0.6,
+                min_area_ratio=0.003,
+                max_area_ratio=0.35,
+            )
+            print(f"   - Number of boxes: {len(boxes)}")
+            for i, box in enumerate(boxes):
+                print(f"   - Box {i+1}: x={box['x']}, y={box['y']}, "
+                      f"w={box['width']}, h={box['height']}, "
+                      f"conf={box['confidence']:.3f}")
+            
+            # Draw boxes on a copy and save
+            annotated = image.copy()
+            for box in boxes:
+                x, y = box['x'], box['y']
+                w, h = box['width'], box['height']
+                cv2.rectangle(annotated, (x, y), (x + w, y + h), (0, 0, 255), 2)
+            cv2.imwrite("test_boxes_output.jpg", annotated)
+            print(f"   ✓ Annotated image saved to: test_boxes_output.jpg")
+        else:
+            print("   ⚠ No raw heatmap available for box derivation")
         
         return True
         

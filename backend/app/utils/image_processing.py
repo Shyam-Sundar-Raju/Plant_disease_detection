@@ -102,7 +102,9 @@ class ImageProcessor:
             layer_name: Name of convolutional layer to use (auto-detected if None)
         
         Returns:
-            Tuple of (heatmap_overlay, severity_info)
+            Tuple of (heatmap_overlay, severity_info, raw_heatmap_normalized)
+            raw_heatmap_normalized is a 2D float array in [0, 1] at the
+            original image resolution, or None on error.
         """
         try:
             # -----------------------------------------------------------
@@ -278,13 +280,13 @@ class ImageProcessor:
                 f"infected_ratio={severity_info.get('infected_ratio')}%"
             )
 
-            return overlay, severity_info
+            return overlay, severity_info, heatmap_resized
 
         except Exception as e:
             import traceback
             logger.error(f"Grad-CAM heatmap generation FAILED: {e}\n{traceback.format_exc()}")
             # Return original image with default severity on error
-            return image, {"severity": "Unknown", "infected_ratio": 0.0}
+            return image, {"severity": "Unknown", "infected_ratio": 0.0}, None
     
     @staticmethod
     def estimate_severity_from_heatmap(heatmap: np.ndarray) -> Dict[str, Any]:
@@ -378,57 +380,162 @@ class ImageProcessor:
     def boxes_from_heatmap(
         cam: np.ndarray,
         image_shape: Tuple[int, int, int],
-        threshold: float = 0.4,
-        min_area_ratio: float = 0.01
+        threshold: float = 0.6,
+        min_area_ratio: float = 0.003,
+        max_area_ratio: float = 0.35
     ) -> List[Dict[str, Any]]:
         """
-        Derive bounding boxes from a Grad-CAM heatmap.
+        Derive tight bounding boxes from a Grad-CAM heatmap.
+
+        Uses a high threshold + morphological operations to isolate
+        individual hot-spots rather than one large blob.
 
         Args:
             cam: 2D heatmap array normalized to [0, 1]
             image_shape: Original image shape (H, W, C)
-            threshold: Heatmap threshold for binarization
-            min_area_ratio: Minimum box area ratio to keep
+            threshold: Heatmap threshold for binarization (higher = tighter)
+            min_area_ratio: Minimum box area as fraction of image area
+            max_area_ratio: Maximum box area as fraction of image area
 
         Returns:
             List of bounding boxes with confidence
         """
         try:
             height, width = image_shape[:2]
+            total_area = height * width
             heatmap = cv2.resize(cam, (width, height))
             heatmap = np.clip(heatmap, 0.0, 1.0)
+
+            # Binarize at the chosen threshold
+            heatmap_uint8 = (heatmap * 255).astype(np.uint8)
             _, binary = cv2.threshold(
-                (heatmap * 255).astype(np.uint8),
+                heatmap_uint8,
                 int(threshold * 255),
                 255,
                 cv2.THRESH_BINARY
             )
 
-            contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-            min_area = (height * width) * min_area_ratio
-            boxes = []
+            # Morphological opening (erode then dilate) to break apart
+            # large connected regions into smaller disease-spot clusters.
+            kernel_size = max(3, int(min(height, width) * 0.03))
+            if kernel_size % 2 == 0:
+                kernel_size += 1
+            kernel = cv2.getStructuringElement(
+                cv2.MORPH_ELLIPSE, (kernel_size, kernel_size)
+            )
+            binary = cv2.morphologyEx(binary, cv2.MORPH_OPEN, kernel, iterations=1)
+
+            contours, _ = cv2.findContours(
+                binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+            )
+
+            min_area = total_area * min_area_ratio
+            max_area = total_area * max_area_ratio
+            boxes: List[Dict[str, Any]] = []
 
             for contour in contours:
                 x, y, w, h = cv2.boundingRect(contour)
                 area = w * h
+
+                # Skip tiny noise
                 if area < min_area:
                     continue
 
+                # If a single contour is still too large, try to
+                # subdivide it by re-thresholding the ROI at a
+                # higher level.
+                if area > max_area:
+                    sub_boxes = ImageProcessor._subdivide_box(
+                        heatmap, x, y, w, h, min_area, max_area,
+                        depth=0
+                    )
+                    boxes.extend(sub_boxes)
+                    continue
+
                 roi = heatmap[y:y + h, x:x + w]
-                confidence = float(np.mean(roi)) if roi.size else 0.0
+                confidence = float(np.max(roi)) if roi.size else 0.0
 
                 boxes.append({
                     "x": int(x),
                     "y": int(y),
                     "width": int(w),
                     "height": int(h),
-                    "confidence": confidence
+                    "confidence": round(confidence, 3)
                 })
 
-            return boxes
+            # Sort by confidence descending
+            boxes.sort(key=lambda b: b["confidence"], reverse=True)
+
+            # Keep at most 8 boxes to avoid cluttering the UI
+            return boxes[:8]
         except Exception as e:
             logger.error(f"Error deriving boxes from heatmap: {e}")
             return []
+
+    @staticmethod
+    def _subdivide_box(
+        heatmap: np.ndarray,
+        x: int, y: int, w: int, h: int,
+        min_area: float, max_area: float,
+        depth: int = 0
+    ) -> List[Dict[str, Any]]:
+        """Recursively split an oversized box by raising the threshold."""
+        if depth > 3:
+            # Stop recursion — return the box as-is
+            roi = heatmap[y:y + h, x:x + w]
+            return [{
+                "x": int(x), "y": int(y),
+                "width": int(w), "height": int(h),
+                "confidence": round(float(np.max(roi)), 3)
+            }]
+
+        roi = heatmap[y:y + h, x:x + w]
+        # Raise threshold: use the 75th percentile of this ROI
+        new_thresh = float(np.percentile(roi, 75))
+        roi_uint8 = (roi * 255).astype(np.uint8)
+        _, sub_binary = cv2.threshold(
+            roi_uint8, int(new_thresh * 255), 255, cv2.THRESH_BINARY
+        )
+
+        k = max(3, int(min(w, h) * 0.05))
+        if k % 2 == 0:
+            k += 1
+        kern = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (k, k))
+        sub_binary = cv2.morphologyEx(sub_binary, cv2.MORPH_OPEN, kern)
+
+        contours, _ = cv2.findContours(
+            sub_binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+        )
+
+        results: List[Dict[str, Any]] = []
+        for cnt in contours:
+            bx, by, bw, bh = cv2.boundingRect(cnt)
+            area = bw * bh
+            if area < min_area:
+                continue
+            # Translate back to image coordinates
+            abs_x, abs_y = x + bx, y + by
+            if area > max_area:
+                results.extend(ImageProcessor._subdivide_box(
+                    heatmap, abs_x, abs_y, bw, bh,
+                    min_area, max_area, depth + 1
+                ))
+            else:
+                sub_roi = heatmap[abs_y:abs_y + bh, abs_x:abs_x + bw]
+                results.append({
+                    "x": int(abs_x), "y": int(abs_y),
+                    "width": int(bw), "height": int(bh),
+                    "confidence": round(float(np.max(sub_roi)), 3)
+                })
+
+        # If subdivision produced nothing, return the original box
+        if not results:
+            return [{
+                "x": int(x), "y": int(y),
+                "width": int(w), "height": int(h),
+                "confidence": round(float(np.max(roi)), 3)
+            }]
+        return results
     
     @staticmethod
     def detect_bounding_boxes(

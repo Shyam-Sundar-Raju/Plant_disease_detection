@@ -316,19 +316,34 @@ class AIModelService:
                     if self.model is None:
                         raise ValueError("Model is not loaded")
 
-                    heatmap_image, severity_info = ImageProcessor.generate_gradcam(
+                    heatmap_image, severity_info, raw_heatmap = ImageProcessor.generate_gradcam(
                         self.model,
                         image
                     )
                     severity = severity_info.get('severity', 'Unknown')
                     infected_ratio = severity_info.get('infected_ratio', 0.0)
 
-                    annotated_image, bounding_boxes = ImageProcessor.detect_bounding_boxes(image)
+                    # Derive bounding boxes from the Grad-CAM heatmap
+                    # so they highlight the actual infected regions.
+                    if raw_heatmap is not None:
+                        bounding_boxes = ImageProcessor.boxes_from_heatmap(
+                            raw_heatmap, image.shape,
+                            threshold=0.6,
+                            min_area_ratio=0.003,
+                            max_area_ratio=0.35,
+                        )
+                        annotated_image, _ = ImageProcessor.detect_bounding_boxes(
+                            image, detection_results=bounding_boxes
+                        )
+                    else:
+                        bounding_boxes = []
+                        annotated_image = image
                 except Exception as e:
                     import traceback
                     logger.error(f"Grad-CAM generation failed: {e}\n{traceback.format_exc()}")
-                    annotated_image, bounding_boxes = ImageProcessor.detect_bounding_boxes(image)
-                    severity = ImageProcessor.calculate_severity(image, bounding_boxes)
+                    bounding_boxes = []
+                    annotated_image = image
+                    severity = "unknown"
                     heatmap_image = image
                     infected_ratio = 0.0
             else:
