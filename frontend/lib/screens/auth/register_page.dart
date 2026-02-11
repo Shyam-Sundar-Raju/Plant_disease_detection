@@ -279,7 +279,7 @@ class _RegisterPageState extends State<RegisterPage> {
                                   if (value == null || value.isEmpty) {
                                     return context.t('Password is required.');
                                   }
-                                  if (value.length < 6) {
+                                  if (value.length < 8) {
                                     return context.t(
                                       'Password must be at least 6 characters.',
                                     );

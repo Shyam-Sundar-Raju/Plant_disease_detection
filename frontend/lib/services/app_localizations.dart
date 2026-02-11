@@ -180,6 +180,11 @@ class AppLocalizations {
       'Frequency {value}': 'Frequency {value}',
       'Cost {value}': 'Cost {value}',
       'Crop image': 'Crop image',
+      'Simple Mode': 'Simple Mode',
+      'Convert technical terms to farmer-friendly words':
+          'Convert technical terms to farmer-friendly words',
+      'Example: "fungicide" → "fungus medicine"':
+          'Example: "fungicide" → "fungus medicine"',
     },
     'hi': {
       'AgroScan': 'AgroScan',

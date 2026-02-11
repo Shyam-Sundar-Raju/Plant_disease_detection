@@ -35,11 +35,8 @@ class AuthApi {
         'phone': phone,
         'password': password,
         'preferred_language': preferredLanguage,
-        'location': {
-          'latitude': latitude,
-          'longitude': longitude,
-          'address': address,
-        },
+        // Backend expects location as a string (address text)
+        'location': address.isNotEmpty ? address : null,
       },
     );
 
