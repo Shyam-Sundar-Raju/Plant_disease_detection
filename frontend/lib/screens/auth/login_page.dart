@@ -150,7 +150,7 @@ class _LoginPageState extends State<LoginPage> {
                                 textInputAction: TextInputAction.next,
                                 validator: (value) {
                                   if (value == null || value.trim().isEmpty) {
-                                    return context.t('Email is required.');
+                                    return context.tRead('Email is required.');
                                   }
                                   return null;
                                 },
@@ -165,10 +165,10 @@ class _LoginPageState extends State<LoginPage> {
                                 textInputAction: TextInputAction.done,
                                 validator: (value) {
                                   if (value == null || value.isEmpty) {
-                                    return context.t('Password is required.');
+                                    return context.tRead('Password is required.');
                                   }
                                   if (value.length < 6) {
-                                    return context.t(
+                                    return context.tRead(
                                       'Password must be at least 6 characters.',
                                     );
                                   }

@@ -105,79 +105,184 @@ class ImageProcessor:
             Tuple of (heatmap_overlay, severity_info)
         """
         try:
-            # Get base model (MobileNetV2)
-            base_model = model.layers[0]
-            
-            # Pick a sensible conv layer if not provided
-            if layer_name is None:
-                for layer in reversed(base_model.layers):
+            # -----------------------------------------------------------
+            # 1. Find the target convolutional layer (model-agnostic)
+            # -----------------------------------------------------------
+            target_layer = None
+
+            if layer_name is not None:
+                # User specified a layer name — try to find it
+                try:
+                    target_layer = model.get_layer(layer_name)
+                except ValueError:
+                    # Maybe it's inside a nested sub-model
+                    for layer in model.layers:
+                        if isinstance(layer, tf.keras.Model):
+                            try:
+                                target_layer = layer.get_layer(layer_name)
+                                break
+                            except ValueError:
+                                continue
+
+            if target_layer is None:
+                # Auto-detect: search the entire model graph for last Conv2D
+                # First try top-level layers
+                for layer in reversed(model.layers):
                     if isinstance(layer, tf.keras.layers.Conv2D):
-                        layer_name = layer.name
+                        target_layer = layer
                         break
-                if layer_name is None:
-                    # Fallback: any layer with 'conv' in its name
-                    for layer in reversed(base_model.layers):
-                        if "conv" in layer.name.lower():
-                            layer_name = layer.name
+
+                # If not found at top level, search inside nested sub-models
+                if target_layer is None:
+                    for layer in reversed(model.layers):
+                        if isinstance(layer, tf.keras.Model):
+                            for sub_layer in reversed(layer.layers):
+                                if isinstance(sub_layer, tf.keras.layers.Conv2D):
+                                    target_layer = sub_layer
+                                    break
+                            if target_layer is not None:
+                                break
+
+                # Last resort: any layer with 'conv' in the name
+                if target_layer is None:
+                    for layer in reversed(model.layers):
+                        if 'conv' in layer.name.lower():
+                            target_layer = layer
                             break
-            
-            if layer_name is None:
-                raise ValueError("No convolutional layer found in base model.")
-            
-            conv_layer = base_model.get_layer(layer_name)
-            
-            # Build a Grad-CAM graph rooted at base_model.input
-            x = base_model.output
-            for head_layer in model.layers[1:]:
-                x = head_layer(x)
-            preds = x
-            
-            grad_model = tf.keras.models.Model(
-                inputs=base_model.input,
-                outputs=[conv_layer.output, preds],
-            )
-            
-            # Preprocess image for model
+                        if isinstance(layer, tf.keras.Model):
+                            for sub_layer in reversed(layer.layers):
+                                if 'conv' in sub_layer.name.lower():
+                                    target_layer = sub_layer
+                                    break
+                            if target_layer is not None:
+                                break
+
+            if target_layer is None:
+                raise ValueError("No convolutional layer found anywhere in the model.")
+
+            logger.info(f"Grad-CAM target layer: {target_layer.name} ({type(target_layer).__name__})")
+
+            # -----------------------------------------------------------
+            # 2. Build the Grad-CAM model
+            # -----------------------------------------------------------
+            # Keras 3 Sequential models don't expose .input/.output until
+            # called, and even predict() doesn't always fix it.  If
+            # model.input fails, fall back to reconstructing the forward
+            # pass from the base Functional sub-model.
+            try:
+                model_input = model.input
+                model_output = model.output
+                grad_model = tf.keras.models.Model(
+                    inputs=model_input,
+                    outputs=[target_layer.output, model_output],
+                )
+            except (AttributeError, ValueError) as seq_err:
+                logger.info(
+                    "model.input unavailable (%s); "
+                    "rebuilding graph from base sub-model for Grad-CAM",
+                    seq_err,
+                )
+                # Find the Functional sub-model (e.g. MobileNetV2)
+                base_model = None
+                for layer in model.layers:
+                    if isinstance(layer, tf.keras.Model):
+                        base_model = layer
+                        break
+                if base_model is None:
+                    raise ValueError(
+                        "Cannot build Grad-CAM: no Functional sub-model found "
+                        "in Sequential model."
+                    )
+
+                # Manually chain head layers on top of the base output
+                x = base_model.output
+                for head_layer in model.layers[model.layers.index(base_model) + 1:]:
+                    x = head_layer(x)
+
+                grad_model = tf.keras.models.Model(
+                    inputs=base_model.input,
+                    outputs=[target_layer.output, x],
+                )
+
+            # -----------------------------------------------------------
+            # 3. Preprocess the input image
+            # -----------------------------------------------------------
             img_resized = cv2.resize(image, (224, 224))
             img_rgb = cv2.cvtColor(img_resized, cv2.COLOR_BGR2RGB)
-            img_array = img_rgb.astype(np.float32) / 255.0
-            img_array = tf.keras.applications.mobilenet_v2.preprocess_input(img_array * 255.0)
-            img_array = np.expand_dims(img_array, axis=0).astype(np.float32)
-            
-            # Compute gradients
+            img_array = tf.keras.applications.mobilenet_v2.preprocess_input(
+                img_rgb.astype(np.float32)
+            )
+            img_tensor = tf.constant(np.expand_dims(img_array, axis=0))
+
+            # -----------------------------------------------------------
+            # 4. Compute gradients
+            # -----------------------------------------------------------
             with tf.GradientTape() as tape:
-                conv_outputs, predictions = grad_model(img_array)
+                tape.watch(img_tensor)
+                conv_outputs, predictions = grad_model(img_tensor)
                 pred_index = tf.argmax(predictions[0])
                 loss = predictions[:, pred_index]
-            
+
             grads = tape.gradient(loss, conv_outputs)
+
+            if grads is None:
+                raise ValueError(
+                    f"Gradients are None — the graph from layer '{target_layer.name}' "
+                    "to the output may be disconnected."
+                )
+
+            # -----------------------------------------------------------
+            # 5. Pool gradients and compute heatmap
+            # -----------------------------------------------------------
             pooled_grads = tf.reduce_mean(grads, axis=(0, 1, 2))
-            
             conv_outputs = conv_outputs[0]
             heatmap = tf.reduce_sum(pooled_grads * conv_outputs, axis=-1)
-            
-            # Convert to numpy and normalize
+
+            # ReLU and normalize
             heatmap = heatmap.numpy()
             heatmap = np.maximum(heatmap, 0)
-            heatmap /= (np.max(heatmap) + 1e-8)
-            
-            # Resize to original image size
-            heatmap = cv2.resize(heatmap, (image.shape[1], image.shape[0]))
-            heatmap = np.uint8(255 * heatmap)
-            
-            # Apply colormap
-            heatmap_colored = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)
-            
-            # Overlay on original image
-            overlay = cv2.addWeighted(image, 0.6, heatmap_colored, 0.4, 0)
-            
+            max_val = np.max(heatmap)
+
+            if max_val < 1e-8:
+                logger.warning("Grad-CAM heatmap is all zeros, applying fallback enhancement")
+                # Try using absolute value of gradients as fallback
+                abs_grads = tf.reduce_mean(tf.abs(grads), axis=-1)[0]
+                heatmap = abs_grads.numpy()
+                heatmap = np.maximum(heatmap, 0)
+                max_val = np.max(heatmap)
+
+            if max_val > 1e-8:
+                heatmap = heatmap / max_val
+            else:
+                logger.warning("Grad-CAM heatmap still zero after fallback")
+                heatmap = np.zeros_like(heatmap)
+
+            # -----------------------------------------------------------
+            # 6. Create colored overlay
+            # -----------------------------------------------------------
+            heatmap_resized = cv2.resize(heatmap, (image.shape[1], image.shape[0]))
+            heatmap_uint8 = np.uint8(255 * heatmap_resized)
+
+            # Apply colormap (JET: blue=cold, red=hot)
+            heatmap_colored = cv2.applyColorMap(heatmap_uint8, cv2.COLORMAP_JET)
+
+            # Overlay on original image (0.5/0.5 for more visible heatmap)
+            overlay = cv2.addWeighted(image, 0.5, heatmap_colored, 0.5, 0)
+
             # Estimate severity from heatmap
-            severity_info = ImageProcessor.estimate_severity_from_heatmap(heatmap)
-            
+            severity_info = ImageProcessor.estimate_severity_from_heatmap(heatmap_uint8)
+
+            logger.info(
+                f"Grad-CAM generated: heatmap_max={max_val:.4f}, "
+                f"severity={severity_info.get('severity')}, "
+                f"infected_ratio={severity_info.get('infected_ratio')}%"
+            )
+
             return overlay, severity_info
-            
+
         except Exception as e:
-            logger.error(f"Error generating Grad-CAM heatmap: {e}")
+            import traceback
+            logger.error(f"Grad-CAM heatmap generation FAILED: {e}\n{traceback.format_exc()}")
             # Return original image with default severity on error
             return image, {"severity": "Unknown", "infected_ratio": 0.0}
     

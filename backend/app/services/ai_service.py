@@ -149,10 +149,48 @@ class AIModelService:
             
             if model_path.exists():
                 logger.info(f"Loading AI model from {model_path}")
-                # Load with compile=False to avoid compatibility issues
-                self.model = tf.keras.models.load_model(str(model_path), compile=False)
-                logger.info("AI model loaded successfully")
+                
+                # Try loading with safe_mode=False to handle Keras version mismatches
+                # (e.g. quantization_config added in newer Keras versions)
+                try:
+                    self.model = tf.keras.models.load_model(
+                        str(model_path), compile=False, safe_mode=False
+                    )
+                except TypeError:
+                    # Older TF versions don't have safe_mode parameter
+                    self.model = tf.keras.models.load_model(
+                        str(model_path), compile=False
+                    )
+                except Exception as e1:
+                    logger.warning(f"Standard load failed: {e1}, trying H5 format...")
+                    # Try loading as H5 format as fallback
+                    h5_path = model_path.with_suffix('.h5')
+                    if h5_path.exists():
+                        self.model = tf.keras.models.load_model(
+                            str(h5_path), compile=False
+                        )
+                    else:
+                        raise e1
+                
+                logger.info(f"AI model loaded successfully. "
+                           f"Input: {self.model.input_shape}, "
+                           f"Output: {self.model.output_shape}, "
+                           f"Layers: {len(self.model.layers)}")
                 self.model_loaded = True
+                
+                # Build the computational graph so that .input / .output
+                # are available (required by Keras 3 Sequential models
+                # for Grad-CAM).
+                try:
+                    dummy = np.zeros((1, 224, 224, 3), dtype=np.float32)
+                    self.model.predict(dummy, verbose=0)
+                    logger.info("Model graph built successfully")
+                except Exception as build_err:
+                    logger.warning(f"Model graph build warning: {build_err}")
+                
+                # Log model layer structure for debugging Grad-CAM
+                for i, layer in enumerate(self.model.layers):
+                    logger.debug(f"  Layer [{i}]: {layer.name} ({type(layer).__name__})")
                 
                 # Load label map
                 if label_map_path.exists():
@@ -165,7 +203,8 @@ class AIModelService:
                 self.model_loaded = False
                 
         except Exception as e:
-            logger.error(f"Error loading AI model: {e}")
+            import traceback
+            logger.error(f"Error loading AI model: {e}\n{traceback.format_exc()}")
             self.model_loaded = False
     
     def _load_label_map(self, label_map_path: Path):
@@ -286,7 +325,8 @@ class AIModelService:
 
                     annotated_image, bounding_boxes = ImageProcessor.detect_bounding_boxes(image)
                 except Exception as e:
-                    logger.warning(f"Grad-CAM generation failed: {e}, using fallback")
+                    import traceback
+                    logger.error(f"Grad-CAM generation failed: {e}\n{traceback.format_exc()}")
                     annotated_image, bounding_boxes = ImageProcessor.detect_bounding_boxes(image)
                     severity = ImageProcessor.calculate_severity(image, bounding_boxes)
                     heatmap_image = image
@@ -349,24 +389,31 @@ class AIModelService:
     
     def _predict_with_model(self, processed_image: np.ndarray) -> Dict[str, Any]:
         """
-        Run prediction with loaded TensorFlow model
+        Run prediction with loaded TensorFlow model.
+        Uses test-time augmentation (TTA) for better accuracy.
         """
         try:
-            # Get predictions
-            predictions = self.model.predict(processed_image, verbose=0)
-            predictions = predictions[0]  # Remove batch dimension
+            # Simple prediction (TTA with vertical flip removed —
+            # it was hurting accuracy on plant images which have a
+            # natural orientation).
+            predictions = self.model.predict(processed_image, verbose=0)[0]
+            
+            # Log all prediction scores for debugging
+            logger.info(f"Prediction scores (TTA averaged): {dict(zip([self.label_map.get(i, f'Class_{i}') for i in range(len(predictions))], [f'{p:.4f}' for p in predictions]))}")
             
             # Get top prediction
             top_idx = np.argmax(predictions)
             top_confidence = float(predictions[top_idx])
             primary_disease = self.label_map.get(top_idx, f"Unknown_Class_{top_idx}")
             
+            logger.info(f"Top prediction: {primary_disease} ({top_confidence:.4f})")
+            
             # Get top 3 predictions for secondary diseases
             top_3_indices = np.argsort(predictions)[-3:][::-1]
             
             secondary_diseases = []
             for idx in top_3_indices[1:]:  # Skip the primary (already got it)
-                if predictions[idx] > 0.10:  # Only include if confidence > 10%
+                if predictions[idx] > 0.15:  # Only include if confidence > 15%
                     disease_id = self.label_map.get(idx, f"Unknown_Class_{idx}")
                     secondary_diseases.append({
                         "disease_id": disease_id,

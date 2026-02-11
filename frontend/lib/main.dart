@@ -8,6 +8,7 @@ import 'screens/crop_capture_page.dart';
 import 'screens/home_page.dart';
 import 'screens/profile_page.dart';
 import 'services/app_localizations.dart';
+import 'services/dio_client.dart';
 import 'services/token_storage.dart';
 
 void main() {
@@ -16,6 +17,8 @@ void main() {
 
 class PlantDiseaseApp extends StatelessWidget {
   const PlantDiseaseApp({super.key});
+
+  static final navigatorKey = GlobalKey<NavigatorState>();
 
   @override
   Widget build(BuildContext context) {
@@ -34,9 +37,13 @@ class PlantDiseaseApp extends StatelessWidget {
       onBackground: const Color(0xFF1F2A1F),
     );
 
+    // Initialise the shared Dio client with the navigator key for auto-logout.
+    DioClient.init(navigatorKey);
+
     return ChangeNotifierProvider(
       create: (_) => AppLanguage()..loadFromStorage(),
       child: MaterialApp(
+        navigatorKey: navigatorKey,
         title: 'AgroScan',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
