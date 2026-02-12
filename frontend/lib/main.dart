@@ -9,6 +9,7 @@ import 'screens/home_page.dart';
 import 'screens/profile_page.dart';
 import 'services/app_localizations.dart';
 import 'services/font_service.dart';
+import 'services/dio_client.dart';
 import 'services/token_storage.dart';
 
 void main() {
@@ -17,6 +18,8 @@ void main() {
 
 class PlantDiseaseApp extends StatelessWidget {
   const PlantDiseaseApp({super.key});
+
+  static final navigatorKey = GlobalKey<NavigatorState>();
 
   @override
   Widget build(BuildContext context) {

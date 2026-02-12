@@ -44,7 +44,7 @@ def test_gradcam():
     # Test Grad-CAM generation
     print("\n3. Generating Grad-CAM heatmap...")
     try:
-        heatmap_overlay, severity_info = ImageProcessor.generate_gradcam(
+        heatmap_overlay, severity_info, raw_heatmap = ImageProcessor.generate_gradcam(
             ai_service.model,
             image
         )
@@ -54,10 +54,56 @@ def test_gradcam():
         print(f"   - Infected Ratio: {severity_info['infected_ratio']}%")
         print(f"   - Heatmap shape: {heatmap_overlay.shape}")
         
-        # Save the heatmap for visual inspection
+        # Save the heatmap overlay
         output_path = "test_gradcam_output.jpg"
         cv2.imwrite(output_path, heatmap_overlay)
-        print(f"\n✓ Heatmap saved to: {output_path}")
+        print(f"\n✓ Heatmap overlay saved to: {output_path}")
+
+        # Save the raw heatmap as a standalone colour image
+        if raw_heatmap is not None:
+            raw_uint8 = np.uint8(255 * np.clip(raw_heatmap, 0, 1))
+            raw_colored = cv2.applyColorMap(raw_uint8, cv2.COLORMAP_JET)
+            cv2.imwrite("test_raw_heatmap.jpg", raw_colored)
+            print("✓ Raw heatmap (standalone) saved to: test_raw_heatmap.jpg")
+            
+            # Compute how much the overlay differs from the original
+            diff = np.mean(np.abs(heatmap_overlay.astype(float) - image.astype(float)))
+            print(f"   - Mean pixel diff (overlay vs original): {diff:.2f}")
+            
+            # Show stats about activation distribution
+            flat = raw_heatmap.flatten()
+            pct_above_30 = np.mean(flat > 0.30) * 100
+            pct_above_50 = np.mean(flat > 0.50) * 100
+            pct_above_70 = np.mean(flat > 0.70) * 100
+            print(f"   - Activation > 0.3: {pct_above_30:.1f}% of pixels")
+            print(f"   - Activation > 0.5: {pct_above_50:.1f}% of pixels")
+            print(f"   - Activation > 0.7: {pct_above_70:.1f}% of pixels")
+        
+        # Test bounding box derivation from Grad-CAM
+        print("\n4. Deriving bounding boxes from Grad-CAM heatmap...")
+        if raw_heatmap is not None:
+            boxes = ImageProcessor.boxes_from_heatmap(
+                raw_heatmap, image.shape,
+                threshold=0.6,
+                min_area_ratio=0.003,
+                max_area_ratio=0.35,
+            )
+            print(f"   - Number of boxes: {len(boxes)}")
+            for i, box in enumerate(boxes):
+                print(f"   - Box {i+1}: x={box['x']}, y={box['y']}, "
+                      f"w={box['width']}, h={box['height']}, "
+                      f"conf={box['confidence']:.3f}")
+            
+            # Draw boxes on a copy and save
+            annotated = image.copy()
+            for box in boxes:
+                x, y = box['x'], box['y']
+                w, h = box['width'], box['height']
+                cv2.rectangle(annotated, (x, y), (x + w, y + h), (0, 0, 255), 2)
+            cv2.imwrite("test_boxes_output.jpg", annotated)
+            print(f"   ✓ Annotated image saved to: test_boxes_output.jpg")
+        else:
+            print("   ⚠ No raw heatmap available for box derivation")
         
         return True
         

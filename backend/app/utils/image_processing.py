@@ -94,92 +94,224 @@ class ImageProcessor:
         layer_name: Optional[str] = None
     ) -> Tuple[np.ndarray, Dict[str, Any]]:
         """
-        Generate Grad-CAM heatmap overlay for the predicted class using TensorFlow GradientTape.
-        
+        Generate Grad-CAM++ heatmap overlay for the predicted class.
+
+        Uses Grad-CAM++ (weighted combination of positive partial
+        derivatives) for better multi-spot localization, and per-pixel
+        alpha blending so only significantly activated regions are
+        coloured — the rest of the image stays untouched.
+
         Args:
             model: TensorFlow/Keras model
             image: Original image as numpy array (BGR format)
             layer_name: Name of convolutional layer to use (auto-detected if None)
-        
+
         Returns:
-            Tuple of (heatmap_overlay, severity_info)
+            Tuple of (heatmap_overlay, severity_info, raw_heatmap_normalized)
+            raw_heatmap_normalized is a 2D float array in [0, 1] at the
+            original image resolution, or None on error.
         """
         try:
-            # Get base model (MobileNetV2)
-            base_model = model.layers[0]
-            
-            # Pick a sensible conv layer if not provided
-            if layer_name is None:
-                for layer in reversed(base_model.layers):
+            # -----------------------------------------------------------
+            # 1. Find the target convolutional layer (model-agnostic)
+            # -----------------------------------------------------------
+            target_layer = None
+
+            if layer_name is not None:
+                try:
+                    target_layer = model.get_layer(layer_name)
+                except ValueError:
+                    for layer in model.layers:
+                        if isinstance(layer, tf.keras.Model):
+                            try:
+                                target_layer = layer.get_layer(layer_name)
+                                break
+                            except ValueError:
+                                continue
+
+            if target_layer is None:
+                # Auto-detect: last Conv2D in the model graph
+                for layer in reversed(model.layers):
                     if isinstance(layer, tf.keras.layers.Conv2D):
-                        layer_name = layer.name
+                        target_layer = layer
                         break
-                if layer_name is None:
-                    # Fallback: any layer with 'conv' in its name
-                    for layer in reversed(base_model.layers):
-                        if "conv" in layer.name.lower():
-                            layer_name = layer.name
+
+                if target_layer is None:
+                    for layer in reversed(model.layers):
+                        if isinstance(layer, tf.keras.Model):
+                            for sub_layer in reversed(layer.layers):
+                                if isinstance(sub_layer, tf.keras.layers.Conv2D):
+                                    target_layer = sub_layer
+                                    break
+                            if target_layer is not None:
+                                break
+
+                if target_layer is None:
+                    for layer in reversed(model.layers):
+                        if 'conv' in layer.name.lower():
+                            target_layer = layer
                             break
-            
-            if layer_name is None:
-                raise ValueError("No convolutional layer found in base model.")
-            
-            conv_layer = base_model.get_layer(layer_name)
-            
-            # Build a Grad-CAM graph rooted at base_model.input
-            x = base_model.output
-            for head_layer in model.layers[1:]:
-                x = head_layer(x)
-            preds = x
-            
-            grad_model = tf.keras.models.Model(
-                inputs=base_model.input,
-                outputs=[conv_layer.output, preds],
-            )
-            
-            # Preprocess image for model
+                        if isinstance(layer, tf.keras.Model):
+                            for sub_layer in reversed(layer.layers):
+                                if 'conv' in sub_layer.name.lower():
+                                    target_layer = sub_layer
+                                    break
+                            if target_layer is not None:
+                                break
+
+            if target_layer is None:
+                raise ValueError("No convolutional layer found anywhere in the model.")
+
+            logger.info(f"Grad-CAM++ target layer: {target_layer.name} ({type(target_layer).__name__})")
+
+            # -----------------------------------------------------------
+            # 2. Build the Grad-CAM model
+            # -----------------------------------------------------------
+            try:
+                model_input = model.input
+                model_output = model.output
+                grad_model = tf.keras.models.Model(
+                    inputs=model_input,
+                    outputs=[target_layer.output, model_output],
+                )
+            except (AttributeError, ValueError) as seq_err:
+                logger.info(
+                    "model.input unavailable (%s); "
+                    "rebuilding graph from base sub-model for Grad-CAM++",
+                    seq_err,
+                )
+                base_model = None
+                for layer in model.layers:
+                    if isinstance(layer, tf.keras.Model):
+                        base_model = layer
+                        break
+                if base_model is None:
+                    raise ValueError(
+                        "Cannot build Grad-CAM++: no Functional sub-model "
+                        "found in Sequential model."
+                    )
+                x = base_model.output
+                for head_layer in model.layers[model.layers.index(base_model) + 1:]:
+                    x = head_layer(x)
+                grad_model = tf.keras.models.Model(
+                    inputs=base_model.input,
+                    outputs=[target_layer.output, x],
+                )
+
+            # -----------------------------------------------------------
+            # 3. Preprocess the input image
+            # -----------------------------------------------------------
             img_resized = cv2.resize(image, (224, 224))
             img_rgb = cv2.cvtColor(img_resized, cv2.COLOR_BGR2RGB)
-            img_array = img_rgb.astype(np.float32) / 255.0
-            img_array = tf.keras.applications.mobilenet_v2.preprocess_input(img_array * 255.0)
-            img_array = np.expand_dims(img_array, axis=0).astype(np.float32)
-            
-            # Compute gradients
+            img_array = tf.keras.applications.mobilenet_v2.preprocess_input(
+                img_rgb.astype(np.float32)
+            )
+            img_tensor = tf.constant(np.expand_dims(img_array, axis=0))
+
+            # -----------------------------------------------------------
+            # 4. Compute gradients (Grad-CAM++)
+            # -----------------------------------------------------------
             with tf.GradientTape() as tape:
-                conv_outputs, predictions = grad_model(img_array)
+                conv_outputs, predictions = grad_model(img_tensor)
                 pred_index = tf.argmax(predictions[0])
                 loss = predictions[:, pred_index]
-            
+
+            # First-order gradients w.r.t. conv feature maps
             grads = tape.gradient(loss, conv_outputs)
-            pooled_grads = tf.reduce_mean(grads, axis=(0, 1, 2))
-            
-            conv_outputs = conv_outputs[0]
-            heatmap = tf.reduce_sum(pooled_grads * conv_outputs, axis=-1)
-            
-            # Convert to numpy and normalize
+
+            if grads is None:
+                raise ValueError(
+                    f"Gradients are None — the graph from layer "
+                    f"'{target_layer.name}' to the output may be disconnected."
+                )
+
+            # -----------------------------------------------------------
+            # 5. Compute Grad-CAM++ heatmap
+            # -----------------------------------------------------------
+            conv_out = conv_outputs[0]  # (H, W, C)
+            grads_val = grads[0]        # (H, W, C)
+
+            # Grad-CAM++ alpha weights (closed-form using first-order
+            # gradients only — Chattopadhay et al. 2018, Eq. 9-10).
+            grads_sq = grads_val ** 2
+            grads_cb = grads_val ** 3
+            sum_act = tf.reduce_sum(conv_out, axis=(0, 1), keepdims=True)
+            denom = 2.0 * grads_sq + sum_act * grads_cb + 1e-8
+            alpha_c = grads_sq / denom
+            # Only positive partial derivatives contribute
+            weights = tf.reduce_sum(
+                alpha_c * tf.nn.relu(grads_val), axis=(0, 1)
+            )
+
+            # Weighted combination of feature maps
+            heatmap = tf.reduce_sum(weights * conv_out, axis=-1)
+
+            # ReLU and normalize
             heatmap = heatmap.numpy()
             heatmap = np.maximum(heatmap, 0)
-            heatmap /= (np.max(heatmap) + 1e-8)
-            
-            # Resize to original image size
-            heatmap = cv2.resize(heatmap, (image.shape[1], image.shape[0]))
-            heatmap = np.uint8(255 * heatmap)
-            
-            # Apply colormap
-            heatmap_colored = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)
-            
-            # Overlay on original image
-            overlay = cv2.addWeighted(image, 0.6, heatmap_colored, 0.4, 0)
-            
+            max_val = np.max(heatmap)
+
+            if max_val < 1e-8:
+                logger.warning("Heatmap is all zeros, applying abs-gradient fallback")
+                abs_grads = tf.reduce_mean(tf.abs(grads), axis=-1)[0]
+                heatmap = abs_grads.numpy()
+                heatmap = np.maximum(heatmap, 0)
+                max_val = np.max(heatmap)
+
+            if max_val > 1e-8:
+                heatmap = heatmap / max_val
+            else:
+                logger.warning("Heatmap still zero after fallback")
+                heatmap = np.zeros_like(heatmap)
+
+            # -----------------------------------------------------------
+            # 6. Enhance contrast — make hot spots stand out more
+            # -----------------------------------------------------------
+            # Power transform suppresses low activations and
+            # sharpens the peaks around actual disease spots.
+            heatmap = np.power(heatmap, 2.0)
+            hm_max = np.max(heatmap)
+            if hm_max > 1e-8:
+                heatmap = heatmap / hm_max
+
+            # -----------------------------------------------------------
+            # 7. Create overlay with per-pixel alpha blending
+            # -----------------------------------------------------------
+            heatmap_resized = cv2.resize(heatmap, (image.shape[1], image.shape[0]))
+            heatmap_uint8 = np.uint8(255 * heatmap_resized)
+
+            # Apply colormap (JET: blue=cold, red=hot)
+            heatmap_colored = cv2.applyColorMap(heatmap_uint8, cv2.COLORMAP_JET)
+
+            # Per-pixel alpha: areas with low activation keep original
+            # image, high activation areas show the heatmap colour.
+            # Suppress activation below 35 % so only disease-relevant
+            # regions get coloured; the rest stays as the clear original.
+            alpha = heatmap_resized.copy()
+            alpha[alpha < 0.35] = 0.0           # hard cut-off
+            alpha = np.clip(alpha * 1.3, 0, 0.85)  # scale up, cap at 0.85
+            alpha_3ch = np.stack([alpha] * 3, axis=-1)
+
+            overlay = (
+                image.astype(np.float32) * (1 - alpha_3ch)
+                + heatmap_colored.astype(np.float32) * alpha_3ch
+            ).astype(np.uint8)
+
             # Estimate severity from heatmap
-            severity_info = ImageProcessor.estimate_severity_from_heatmap(heatmap)
-            
-            return overlay, severity_info
-            
+            severity_info = ImageProcessor.estimate_severity_from_heatmap(heatmap_uint8)
+
+            logger.info(
+                f"Grad-CAM++ generated: heatmap_max={max_val:.4f}, "
+                f"severity={severity_info.get('severity')}, "
+                f"infected_ratio={severity_info.get('infected_ratio')}%"
+            )
+
+            return overlay, severity_info, heatmap_resized
+
         except Exception as e:
-            logger.error(f"Error generating Grad-CAM heatmap: {e}")
-            # Return original image with default severity on error
-            return image, {"severity": "Unknown", "infected_ratio": 0.0}
+            import traceback
+            logger.error(f"Grad-CAM++ heatmap generation FAILED: {e}\n{traceback.format_exc()}")
+            return image, {"severity": "Unknown", "infected_ratio": 0.0}, None
     
     @staticmethod
     def estimate_severity_from_heatmap(heatmap: np.ndarray) -> Dict[str, Any]:
@@ -273,57 +405,162 @@ class ImageProcessor:
     def boxes_from_heatmap(
         cam: np.ndarray,
         image_shape: Tuple[int, int, int],
-        threshold: float = 0.4,
-        min_area_ratio: float = 0.01
+        threshold: float = 0.6,
+        min_area_ratio: float = 0.003,
+        max_area_ratio: float = 0.35
     ) -> List[Dict[str, Any]]:
         """
-        Derive bounding boxes from a Grad-CAM heatmap.
+        Derive tight bounding boxes from a Grad-CAM heatmap.
+
+        Uses a high threshold + morphological operations to isolate
+        individual hot-spots rather than one large blob.
 
         Args:
             cam: 2D heatmap array normalized to [0, 1]
             image_shape: Original image shape (H, W, C)
-            threshold: Heatmap threshold for binarization
-            min_area_ratio: Minimum box area ratio to keep
+            threshold: Heatmap threshold for binarization (higher = tighter)
+            min_area_ratio: Minimum box area as fraction of image area
+            max_area_ratio: Maximum box area as fraction of image area
 
         Returns:
             List of bounding boxes with confidence
         """
         try:
             height, width = image_shape[:2]
+            total_area = height * width
             heatmap = cv2.resize(cam, (width, height))
             heatmap = np.clip(heatmap, 0.0, 1.0)
+
+            # Binarize at the chosen threshold
+            heatmap_uint8 = (heatmap * 255).astype(np.uint8)
             _, binary = cv2.threshold(
-                (heatmap * 255).astype(np.uint8),
+                heatmap_uint8,
                 int(threshold * 255),
                 255,
                 cv2.THRESH_BINARY
             )
 
-            contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-            min_area = (height * width) * min_area_ratio
-            boxes = []
+            # Morphological opening (erode then dilate) to break apart
+            # large connected regions into smaller disease-spot clusters.
+            kernel_size = max(3, int(min(height, width) * 0.03))
+            if kernel_size % 2 == 0:
+                kernel_size += 1
+            kernel = cv2.getStructuringElement(
+                cv2.MORPH_ELLIPSE, (kernel_size, kernel_size)
+            )
+            binary = cv2.morphologyEx(binary, cv2.MORPH_OPEN, kernel, iterations=1)
+
+            contours, _ = cv2.findContours(
+                binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+            )
+
+            min_area = total_area * min_area_ratio
+            max_area = total_area * max_area_ratio
+            boxes: List[Dict[str, Any]] = []
 
             for contour in contours:
                 x, y, w, h = cv2.boundingRect(contour)
                 area = w * h
+
+                # Skip tiny noise
                 if area < min_area:
                     continue
 
+                # If a single contour is still too large, try to
+                # subdivide it by re-thresholding the ROI at a
+                # higher level.
+                if area > max_area:
+                    sub_boxes = ImageProcessor._subdivide_box(
+                        heatmap, x, y, w, h, min_area, max_area,
+                        depth=0
+                    )
+                    boxes.extend(sub_boxes)
+                    continue
+
                 roi = heatmap[y:y + h, x:x + w]
-                confidence = float(np.mean(roi)) if roi.size else 0.0
+                confidence = float(np.max(roi)) if roi.size else 0.0
 
                 boxes.append({
                     "x": int(x),
                     "y": int(y),
                     "width": int(w),
                     "height": int(h),
-                    "confidence": confidence
+                    "confidence": round(confidence, 3)
                 })
 
-            return boxes
+            # Sort by confidence descending
+            boxes.sort(key=lambda b: b["confidence"], reverse=True)
+
+            # Keep at most 8 boxes to avoid cluttering the UI
+            return boxes[:8]
         except Exception as e:
             logger.error(f"Error deriving boxes from heatmap: {e}")
             return []
+
+    @staticmethod
+    def _subdivide_box(
+        heatmap: np.ndarray,
+        x: int, y: int, w: int, h: int,
+        min_area: float, max_area: float,
+        depth: int = 0
+    ) -> List[Dict[str, Any]]:
+        """Recursively split an oversized box by raising the threshold."""
+        if depth > 3:
+            # Stop recursion — return the box as-is
+            roi = heatmap[y:y + h, x:x + w]
+            return [{
+                "x": int(x), "y": int(y),
+                "width": int(w), "height": int(h),
+                "confidence": round(float(np.max(roi)), 3)
+            }]
+
+        roi = heatmap[y:y + h, x:x + w]
+        # Raise threshold: use the 75th percentile of this ROI
+        new_thresh = float(np.percentile(roi, 75))
+        roi_uint8 = (roi * 255).astype(np.uint8)
+        _, sub_binary = cv2.threshold(
+            roi_uint8, int(new_thresh * 255), 255, cv2.THRESH_BINARY
+        )
+
+        k = max(3, int(min(w, h) * 0.05))
+        if k % 2 == 0:
+            k += 1
+        kern = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (k, k))
+        sub_binary = cv2.morphologyEx(sub_binary, cv2.MORPH_OPEN, kern)
+
+        contours, _ = cv2.findContours(
+            sub_binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+        )
+
+        results: List[Dict[str, Any]] = []
+        for cnt in contours:
+            bx, by, bw, bh = cv2.boundingRect(cnt)
+            area = bw * bh
+            if area < min_area:
+                continue
+            # Translate back to image coordinates
+            abs_x, abs_y = x + bx, y + by
+            if area > max_area:
+                results.extend(ImageProcessor._subdivide_box(
+                    heatmap, abs_x, abs_y, bw, bh,
+                    min_area, max_area, depth + 1
+                ))
+            else:
+                sub_roi = heatmap[abs_y:abs_y + bh, abs_x:abs_x + bw]
+                results.append({
+                    "x": int(abs_x), "y": int(abs_y),
+                    "width": int(bw), "height": int(bh),
+                    "confidence": round(float(np.max(sub_roi)), 3)
+                })
+
+        # If subdivision produced nothing, return the original box
+        if not results:
+            return [{
+                "x": int(x), "y": int(y),
+                "width": int(w), "height": int(h),
+                "confidence": round(float(np.max(roi)), 3)
+            }]
+        return results
     
     @staticmethod
     def detect_bounding_boxes(

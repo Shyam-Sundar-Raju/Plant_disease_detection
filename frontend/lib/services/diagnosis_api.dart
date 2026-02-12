@@ -3,21 +3,12 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:http_parser/http_parser.dart';
 
-import 'api_config.dart';
+import 'dio_client.dart';
 
 class DiagnosisApi {
-  DiagnosisApi({Dio? dio}) : _dio = dio ?? Dio(_defaultOptions());
+  DiagnosisApi({Dio? dio}) : _dio = dio ?? DioClient.instance;
 
   final Dio _dio;
-
-  static BaseOptions _defaultOptions() {
-    return BaseOptions(
-      baseUrl: ApiConfig.baseUrl,
-      connectTimeout: const Duration(seconds: 15),
-      receiveTimeout: const Duration(seconds: 30),
-      headers: {'Accept': 'application/json'},
-    );
-  }
 
   Future<Map<String, dynamic>> createDiagnosis({
     required String accessToken,

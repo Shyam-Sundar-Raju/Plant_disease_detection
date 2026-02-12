@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 
 import '../../services/auth_api.dart';
@@ -104,6 +105,21 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 
   String _friendlyError(Object error) {
+    if (error is DioException && error.response != null) {
+      final data = error.response!.data;
+      if (data is Map<String, dynamic>) {
+        final detail = data['detail'];
+        if (detail is List) {
+          // Pydantic validation errors: [{msg: ..., loc: [...]}]
+          return detail
+              .map((e) => '${e['loc']?.last ?? ''}: ${e['msg']}')
+              .join('\n');
+        }
+        if (detail is String) {
+          return detail;
+        }
+      }
+    }
     final message = error.toString();
     return message.replaceFirst('Exception: ', '');
   }
@@ -185,7 +201,10 @@ class _RegisterPageState extends State<RegisterPage> {
                                 textInputAction: TextInputAction.next,
                                 validator: (value) {
                                   if (value == null || value.trim().isEmpty) {
-                                    return context.t('Name is required.');
+                                    return context.tRead('Name is required.');
+                                  }
+                                  if (value.trim().length < 2) {
+                                    return context.tRead('Name must be at least 2 characters.');
                                   }
                                   return null;
                                 },
@@ -200,7 +219,7 @@ class _RegisterPageState extends State<RegisterPage> {
                                 textInputAction: TextInputAction.next,
                                 validator: (value) {
                                   if (value == null || value.trim().isEmpty) {
-                                    return context.t('Email is required.');
+                                    return context.tRead('Email is required.');
                                   }
                                   return null;
                                 },
@@ -257,7 +276,7 @@ class _RegisterPageState extends State<RegisterPage> {
                                       validator: (value) {
                                         if (value == null ||
                                             value.trim().isEmpty) {
-                                          return context.t(
+                                          return context.tRead(
                                             'Phone is required.',
                                           );
                                         }
@@ -277,11 +296,11 @@ class _RegisterPageState extends State<RegisterPage> {
                                 textInputAction: TextInputAction.next,
                                 validator: (value) {
                                   if (value == null || value.isEmpty) {
-                                    return context.t('Password is required.');
+                                    return context.tRead('Password is required.');
                                   }
                                   if (value.length < 8) {
-                                    return context.t(
-                                      'Password must be at least 6 characters.',
+                                    return context.tRead(
+                                      'Password must be at least 8 characters.',
                                     );
                                   }
                                   return null;
@@ -296,7 +315,7 @@ class _RegisterPageState extends State<RegisterPage> {
                                 textInputAction: TextInputAction.next,
                                 validator: (value) {
                                   if (value == null || value.trim().isEmpty) {
-                                    return context.t('Address is required.');
+                                    return context.tRead('Address is required.');
                                   }
                                   return null;
                                 },

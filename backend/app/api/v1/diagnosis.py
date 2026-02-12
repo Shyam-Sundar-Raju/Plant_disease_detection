@@ -132,6 +132,7 @@ async def create_diagnosis(
             "heatmap_url": FileHandler.get_file_url(heatmap_path),
             "bounding_boxes": diagnosis_result.get("bounding_boxes", []),
             "secondary_diagnoses": diagnosis_result.get("secondary_diagnoses", []),
+            "multi_infection": diagnosis_result.get("multi_infection", False),
             "created_at": datetime.utcnow(),
             "metadata": {
                 "image_quality": quality_check,

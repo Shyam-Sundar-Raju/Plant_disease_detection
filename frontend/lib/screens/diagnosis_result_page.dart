@@ -41,6 +41,8 @@ class DiagnosisResultPage extends StatelessWidget {
 
     final imageUrl = _resolveUrl(result['image_url']?.toString());
     final heatmapUrl = _resolveUrl(result['heatmap_url']?.toString());
+    final secondaryDiagnoses = _parseSecondaryDiagnoses(result);
+    final hasMultiInfection = secondaryDiagnoses.isNotEmpty;
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -141,6 +143,14 @@ class DiagnosisResultPage extends StatelessWidget {
                       'assets/images/reference_diseases/$diseaseId.jpeg',
                 ),
               ],
+              // ---------- US11: Multi-infection section ----------
+              if (hasMultiInfection) ...[
+                const SizedBox(height: 20),
+                _MultiInfectionSection(
+                  secondaries: secondaryDiagnoses,
+                  resolveUrl: _resolveUrl,
+                ),
+              ],
             ],
           ),
         ),
@@ -209,6 +219,174 @@ class DiagnosisResultPage extends StatelessWidget {
     }
 
     return '';
+  }
+
+  /// Parse secondary diagnoses from the API response.
+  List<Map<String, dynamic>> _parseSecondaryDiagnoses(
+    Map<String, dynamic> data,
+  ) {
+    final list = data['secondary_diagnoses'];
+    if (list is! List || list.isEmpty) return [];
+    return list
+        .whereType<Map<String, dynamic>>()
+        .where(
+          (d) =>
+              d['disease_id'] != null &&
+              d['confidence'] != null &&
+              (d['confidence'] as num) > 0,
+        )
+        .toList();
+  }
+}
+
+class _MultiInfectionSection extends StatelessWidget {
+  const _MultiInfectionSection({
+    required this.secondaries,
+    required this.resolveUrl,
+  });
+
+  final List<Map<String, dynamic>> secondaries;
+  final String Function(String?) resolveUrl;
+
+  double _parseConfidence(dynamic v) {
+    if (v == null) return 0;
+    final d = v is num ? v.toDouble() : double.tryParse(v.toString()) ?? 0;
+    return d <= 1 ? d * 100 : d;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Alert banner
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: Colors.orange.shade50,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.orange.shade300),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                Icons.warning_amber_rounded,
+                color: Colors.orange.shade700,
+                size: 28,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  context.t(
+                    'Multiple infections detected on this plant. '
+                    'Treat all infections for best results.',
+                  ),
+                  style: TextStyle(
+                    color: Colors.orange.shade900,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 14),
+        Text(
+          context.t('Additional infections'),
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
+        const SizedBox(height: 8),
+        // One card per secondary disease
+        ...secondaries.map((sec) {
+          final name = sec['disease_name']?.toString() ?? 'Unknown';
+          final confidence = _parseConfidence(sec['confidence']);
+          final severity =
+              sec['severity']?.toString().toUpperCase() ?? 'UNKNOWN';
+          final diseaseId = sec['disease_id']?.toString() ?? '';
+          final infectedRatio = sec['infected_ratio'] is num
+              ? (sec['infected_ratio'] as num).toStringAsFixed(1)
+              : '0.0';
+          final boxes = _parseSecBoxes(sec['bounding_boxes']);
+
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Card(
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(name, style: Theme.of(context).textTheme.titleSmall),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 6,
+                      children: [
+                        _StatusChip(label: severity),
+                        _StatusChip(
+                          label: context.t(
+                            'Confidence {value}%',
+                            args: {'value': confidence.toStringAsFixed(0)},
+                          ),
+                        ),
+                        if (boxes.isNotEmpty)
+                          _StatusChip(
+                            label: context.t(
+                              'Spots {count}',
+                              args: {'count': boxes.length.toString()},
+                            ),
+                          ),
+                        _StatusChip(
+                          label: context.t(
+                            'Affected {value}%',
+                            args: {'value': infectedRatio},
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: diseaseId.isEmpty
+                            ? null
+                            : () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => RemediationPage(
+                                      diseaseId: diseaseId,
+                                      diseaseName: name,
+                                      severity: severity.toLowerCase(),
+                                      isHealthy: false,
+                                    ),
+                                  ),
+                                );
+                              },
+                        icon: const Icon(
+                          Icons.medical_services_outlined,
+                          size: 18,
+                        ),
+                        label: Text(context.t('View remediation')),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }),
+      ],
+    );
+  }
+
+  List<_BoundingBox> _parseSecBoxes(dynamic data) {
+    if (data is! List) return [];
+    return data
+        .whereType<Map<String, dynamic>>()
+        .map(_BoundingBox.fromJson)
+        .toList();
   }
 }
 
