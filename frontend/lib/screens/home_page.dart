@@ -10,6 +10,7 @@ import '../services/user_api.dart';
 import '../services/weather_api.dart';
 import '../services/diagnosis_api.dart';
 import '../services/notification_api.dart';
+import '../services/diagnosis_cache.dart';
 import '../services/app_localizations.dart';
 import 'auth/login_page.dart';
 import 'crop_capture_page.dart';
@@ -35,6 +36,7 @@ class _HomePageState extends State<HomePage> {
   final _diagnosisApi = DiagnosisApi();
   final _authApi = AuthApi();
   final _notificationApi = NotificationApi();
+  final _diagnosisCache = const DiagnosisCache();
   Map<String, dynamic>? _profile;
   bool _isRefreshingProfile = false;
   WeatherInfo? _weatherInfo;
@@ -277,7 +279,7 @@ class _HomePageState extends State<HomePage> {
         language: language,
       );
 
-      await _tokenStorage.saveDiagnosisResult(
+      await _diagnosisCache.saveDiagnosisResult(
         diagnosisId: diagnosisId,
         result: diagnosis,
       );
@@ -310,7 +312,7 @@ class _HomePageState extends State<HomePage> {
     String diagnosisId,
     Map<String, dynamic> item,
   ) async {
-    final cached = await _tokenStorage.readDiagnosisResult(diagnosisId);
+    final cached = await _diagnosisCache.readDiagnosisResult(diagnosisId);
     if (cached == null || !mounted) {
       return false;
     }
@@ -603,6 +605,43 @@ class _HomePageState extends State<HomePage> {
                   padding: EdgeInsets.only(top: 8),
                   child: LinearProgressIndicator(),
                 ),
+              const SizedBox(height: 20),
+              // Safety First Banner
+              Container(
+                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                 decoration: BoxDecoration(
+                   color: Colors.orange.shade50,
+                   borderRadius: BorderRadius.circular(12),
+                   border: Border.all(color: Colors.orange.shade200),
+                 ),
+                 child: Row(
+                   children: [
+                     Icon(Icons.health_and_safety, color: Colors.orange.shade800),
+                     const SizedBox(width: 12),
+                     Expanded(
+                       child: Column(
+                         crossAxisAlignment: CrossAxisAlignment.start,
+                         children: [
+                           Text(
+                             context.t('Safety First'),
+                             style: TextStyle(
+                               fontWeight: FontWeight.bold,
+                               color: Colors.orange.shade900,
+                             ),
+                           ),
+                           Text(
+                             context.t('Always wear protective gear when handling chemicals.'),
+                             style: TextStyle(
+                               fontSize: 12,
+                               color: Colors.orange.shade900,
+                             ),
+                           ),
+                         ],
+                       ),
+                     ),
+                   ],
+                 ),
+              ),
               const SizedBox(height: 20),
               _SectionHeader(
                 title: context.t('Current weather'),
