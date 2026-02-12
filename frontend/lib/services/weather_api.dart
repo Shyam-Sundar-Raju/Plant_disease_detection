@@ -51,7 +51,11 @@ class WeatherInfo {
     if (value is num) {
       return value.toDouble();
     }
-    return 0.0;
+    try {
+      return double.parse(value.toString());
+    } catch (_) {
+      return 0.0;
+    }
   }
 }
 
@@ -73,19 +77,25 @@ class WeatherApi {
     required double latitude,
     required double longitude,
   }) async {
-    // Fetch current conditions for a lat/lng pair.
-    final response = await _dio.get(
-      '/current.json',
-      queryParameters: {
-        'key': ApiConfig.weatherApiKey,
-        'q': '$latitude,$longitude',
-      },
-    );
+    try {
+      final response = await _dio.get(
+        '/current.json',
+        queryParameters: {
+          'key': ApiConfig.weatherApiKey,
+          'q': '$latitude,$longitude',
+        },
+      );
 
-    if (response.data is Map<String, dynamic>) {
-      return WeatherInfo.fromJson(response.data as Map<String, dynamic>);
+      if (response.statusCode == 200 && response.data is Map<String, dynamic>) {
+        return WeatherInfo.fromJson(response.data as Map<String, dynamic>);
+      }
+      
+      throw Exception('Weather service returned ${response.statusCode}');
+    } on DioException catch (e) {
+      // Wrap Dio errors for cleaner UI handling
+      throw Exception('Weather unavailable: ${e.message}');
+    } catch (e) {
+      throw Exception('Failed to load weather: $e');
     }
-
-    throw Exception('Unexpected weather response format.');
   }
 }

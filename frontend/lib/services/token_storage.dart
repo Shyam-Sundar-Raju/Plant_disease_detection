@@ -104,35 +104,6 @@ class TokenStorage {
     return null;
   }
 
-  Future<void> saveDiagnosisResult({
-    required String diagnosisId,
-    required Map<String, dynamic> result,
-  }) async {
-    final cache = await _readDiagnosisCache();
-    cache[diagnosisId] = result;
-    await _storage.write(key: diagnosisCacheKey, value: jsonEncode(cache));
-  }
+  // Diagnosis cache moved to DiagnosisCache service.
 
-  Future<Map<String, dynamic>?> readDiagnosisResult(String diagnosisId) async {
-    final cache = await _readDiagnosisCache();
-    final entry = cache[diagnosisId];
-    if (entry is Map<String, dynamic>) {
-      return entry;
-    }
-    return null;
-  }
-
-  Future<Map<String, dynamic>> _readDiagnosisCache() async {
-    final raw = await _storage.read(key: diagnosisCacheKey);
-    if (raw == null || raw.isEmpty) {
-      return <String, dynamic>{};
-    }
-
-    final decoded = jsonDecode(raw);
-    if (decoded is Map<String, dynamic>) {
-      return decoded;
-    }
-
-    return <String, dynamic>{};
-  }
 }
