@@ -1,12 +1,13 @@
 """
 Notification Service
-Handles notification creation and management
+Handles notification creation and management with i18n support
 """
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Union
 from datetime import datetime
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from app.models.schemas import NotificationType
 from app.utils.localization import Localizer
+from app.utils.notification_templates import NotificationTemplateManager
 from bson import ObjectId
 import logging
 
@@ -21,26 +22,44 @@ class NotificationService:
         db: AsyncIOMotorDatabase,
         user_id: str,
         notification_type: NotificationType,
-        title: Dict[str, str],
-        message: Dict[str, str],
+        title: Union[Dict[str, str], str],
+        message: Union[Dict[str, str], str],
         data: Dict[str, Any] = None,
         priority: str = "normal"
     ) -> str:
         """
         Create a new notification
+        Support both legacy multi-language dict format and new i18n key format
         
         Args:
             db: Database connection
             user_id: User ID
             notification_type: Type of notification
-            title: Multi-language title
-            message: Multi-language message
+            title: Multi-language title dict, i18n key, or direct text
+            message: Multi-language message dict, i18n key, or direct text
             data: Additional data
         
         Returns:
             Notification ID
         """
         try:
+            # Normalize title and message to consistent format
+            if isinstance(title, str):
+                if title.startswith("notif."):
+                    # It's an i18n key
+                    title = {"__i18n_key__": title, "__params__": data.get("template_params", {}) if data else {}}
+                else:
+                    # Direct text - convert to default language dict
+                    title = {"en": title}
+            
+            if isinstance(message, str):
+                if message.startswith("notif."):
+                    # It's an i18n key
+                    message = {"__i18n_key__": message, "__params__": data.get("template_params", {}) if data else {}}
+                else:
+                    # Direct text - convert to default language dict  
+                    message = {"en": message}
+            
             notification = {
                 "user_id": user_id,
                 "type": notification_type,
@@ -69,7 +88,7 @@ class NotificationService:
         unread_only: bool = False
     ) -> List[Dict[str, Any]]:
         """
-        Get user notifications
+        Get user notifications with proper localization
         
         Args:
             db: Database connection
@@ -79,7 +98,7 @@ class NotificationService:
             unread_only: Return only unread notifications
         
         Returns:
-            List of notifications
+            List of localized notifications
         """
         try:
             query = {"user_id": user_id}
@@ -93,19 +112,34 @@ class NotificationService:
             # Localize notifications
             localized_notifications = []
             for notif in notifications:
+                # Translate title and message using new template manager
+                notification_data = {
+                    "title": notif.get("title", {}),
+                    "message": notif.get("message", {})
+                }
+                
+                translated_content = NotificationTemplateManager.translate_notification_data(
+                    notification_data, language
+                )
+                
                 localized_notifications.append({
                     "_id": str(notif["_id"]),
                     "user_id": notif["user_id"],
-                    "notification_type": notif.get("notification_type")
-                    or notif.get("type"),
+                    "notification_type": notif.get("notification_type") or notif.get("type"),
                     "priority": notif.get("priority", "normal"),
                     "type": notif.get("type"),
-                    "title": Localizer.get_localized_dict(notif.get("title", {}), language),
-                    "message": Localizer.get_localized_dict(notif.get("message", {}), language),
+                    "title": translated_content.get("title", ""),
+                    "message": translated_content.get("message", ""),
                     "data": notif.get("data", {}),
                     "is_read": notif.get("is_read", False),
                     "created_at": notif["created_at"]
                 })
+            
+            return localized_notifications
+            
+        except Exception as e:
+            logger.error(f"Error getting notifications: {e}")
+            raise
             
             return localized_notifications
             
@@ -211,32 +245,128 @@ class NotificationService:
         db: AsyncIOMotorDatabase,
         user_id: str,
         diagnosis_id: str,
-        disease_name: str
+        disease_name: str,
+        crop_type: str = None,
+        severity: str = None,
+        confidence: float = None
     ):
-        """Create notification for completed diagnosis"""
-        await NotificationService.create_notification(
-            db=db,
-            user_id=user_id,
-            notification_type=NotificationType.DIAGNOSIS_COMPLETE,
-            title={
-                "en": "Diagnosis Complete",
-                "hi": "निदान पूर्ण",
-                "kn": "ರೋಗನಿರ್ಣಯ ಪೂರ್ಣಗೊಂಡಿದೆ",
-                "ta": "நோய் கண்டறிதல் முடிந்தது",
-                "te": "రోగ నిర్ధారణ పూర్తయింది"
-            },
-            message={
-                "en": f"Your crop has been diagnosed with {disease_name}. View treatment recommendations.",
-                "hi": f"आपकी फसल में {disease_name} का निदान किया गया है। उपचार की सिफारिशें देखें।",
-                "kn": f"ನಿಮ್ಮ ಬೆಳೆಗೆ {disease_name} ರೋಗನಿರ್ಣಯ ಆಗಿದೆ. ಚಿಕಿತ್ಸಾ ಶಿಫಾರಸುಗಳನ್ನು ವೀಕ್ಷಿಸಿ.",
-                "ta": f"உங்கள் பயிருக்கு {disease_name} நோய் கண்டறியப்பட்டுள்ளது. சிகிச்சை பரிந்துரைகளைப் பார்க்கவும்.",
-                "te": f"మీ పంటకు {disease_name} నిర్ధారించబడింది. చికిత్స సిఫార్సులను చూడండి."
-            },
-            data={
-                "diagnosis_id": diagnosis_id,
-                "disease_name": disease_name
-            }
-        )
+        """Create notification for completed diagnosis using i18n templates"""
+        try:
+            # Use template manager to create notification data with i18n keys
+            notification_data = NotificationTemplateManager.create_diagnosis_notification_data(
+                diagnosis_id=diagnosis_id,
+                disease_name=disease_name,
+                crop_type=crop_type,
+                severity=severity,
+                confidence=confidence
+            )
+            
+            # Create notification with i18n key format
+            await NotificationService.create_notification(
+                db=db,
+                user_id=user_id,
+                notification_type=NotificationType.DIAGNOSIS_COMPLETE,
+                title=notification_data["title"],
+                message=notification_data["message"],
+                data={
+                    "diagnosis_id": diagnosis_id,
+                    "disease_name": disease_name,
+                    "crop_type": crop_type,
+                    "severity": severity,
+                    "confidence": confidence
+                }
+            )
+            
+        except Exception as e:
+            logger.error(f"Error creating diagnosis notification: {e}")
+            raise
+    
+    @staticmethod
+    async def create_treatment_update_notification(
+        db: AsyncIOMotorDatabase,
+        user_id: str,
+        crop_type: str = None,
+        treatment_type: str = None
+    ):
+        """Create treatment update notification"""
+        try:
+            notification_data = NotificationTemplateManager.create_treatment_update_notification_data(
+                crop_type=crop_type,
+                treatment_type=treatment_type
+            )
+            
+            await NotificationService.create_notification(
+                db=db,
+                user_id=user_id,
+                notification_type=NotificationType.TREATMENT_UPDATE,
+                title=notification_data["title"],
+                message=notification_data["message"],
+                data={
+                    "crop_type": crop_type,
+                    "treatment_type": treatment_type
+                }
+            )
+            
+        except Exception as e:
+            logger.error(f"Error creating treatment update notification: {e}")
+            raise
+    
+    @staticmethod
+    async def create_weather_alert_notification(
+        db: AsyncIOMotorDatabase,
+        user_id: str,
+        weather_condition: str = None,
+        location: str = None
+    ):
+        """Create weather alert notification"""
+        try:
+            notification_data = NotificationTemplateManager.create_weather_alert_notification_data(
+                weather_condition=weather_condition,
+                location=location
+            )
+            
+            await NotificationService.create_notification(
+                db=db,
+                user_id=user_id,
+                notification_type=NotificationType.WEATHER_ALERT,
+                title=notification_data["title"],
+                message=notification_data["message"],
+                data={
+                    "weather_condition": weather_condition,
+                    "location": location
+                }
+            )
+            
+        except Exception as e:
+            logger.error(f"Error creating weather alert notification: {e}")
+            raise
+    
+    @staticmethod
+    async def create_system_notification(
+        db: AsyncIOMotorDatabase,
+        user_id: str,
+        system_message: str = None
+    ):
+        """Create system notification"""
+        try:
+            notification_data = NotificationTemplateManager.create_system_notification_data(
+                system_message=system_message
+            )
+            
+            await NotificationService.create_notification(
+                db=db,
+                user_id=user_id,
+                notification_type=NotificationType.SYSTEM,
+                title=notification_data["title"],
+                message=notification_data["message"],
+                data={
+                    "system_message": system_message
+                }
+            )
+            
+        except Exception as e:
+            logger.error(f"Error creating system notification: {e}")
+            raise
 
 
 # Global service instance
