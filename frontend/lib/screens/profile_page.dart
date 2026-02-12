@@ -38,13 +38,11 @@ class _ProfilePageState extends State<ProfilePage> {
   bool _isUpdatingLocation = false;
   String? _errorMessage;
   String _selectedLanguage = 'en';
-  bool _simpleModeEnabled = false;
 
   @override
   void initState() {
     super.initState();
     _loadProfile();
-    _loadSimpleMode();
   }
 
   @override
@@ -76,15 +74,6 @@ class _ProfilePageState extends State<ProfilePage> {
       _applyProfile(profile);
     } catch (_) {
       // Keep cached data if request fails.
-    }
-  }
-
-  Future<void> _loadSimpleMode() async {
-    final enabled = await _tokenStorage.readSimpleMode();
-    if (mounted) {
-      setState(() {
-        _simpleModeEnabled = enabled;
-      });
     }
   }
 
@@ -140,9 +129,6 @@ class _ProfilePageState extends State<ProfilePage> {
         latitude: location.latitude,
         longitude: location.longitude,
       );
-
-      // Save Simple Mode preference
-      await _tokenStorage.saveSimpleMode(_simpleModeEnabled);
 
       await _tokenStorage.saveUserProfile(profile);
 
@@ -268,101 +254,6 @@ class _ProfilePageState extends State<ProfilePage> {
                                 _selectedLanguage = value;
                               });
                             },
-                          ),
-                          const SizedBox(height: 16),
-                          Card(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .primaryContainer
-                                .withOpacity(0.3),
-                            child: Padding(
-                              padding: const EdgeInsets.all(12),
-                              child: Column(
-                                children: [
-                                  Row(
-                                    children: [
-                                      Icon(
-                                        Icons.translate,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .primary,
-                                        size: 20,
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              context.t('Simple Mode'),
-                                              style: Theme.of(context)
-                                                  .textTheme
-                                                  .titleSmall,
-                                            ),
-                                            const SizedBox(height: 2),
-                                            Text(
-                                              context.t(
-                                                'Convert technical terms to farmer-friendly words',
-                                              ),
-                                              style: Theme.of(context)
-                                                  .textTheme
-                                                  .bodySmall,
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      Switch(
-                                        value: _simpleModeEnabled,
-                                        onChanged: (value) {
-                                          setState(() {
-                                            _simpleModeEnabled = value;
-                                          });
-                                        },
-                                        activeColor: Theme.of(context)
-                                            .colorScheme
-                                            .primary,
-                                      ),
-                                    ],
-                                  ),
-                                  if (_simpleModeEnabled) ...[
-                                    const SizedBox(height: 8),
-                                    Container(
-                                      padding: const EdgeInsets.all(8),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white.withOpacity(0.5),
-                                        borderRadius: BorderRadius.circular(6),
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          Icon(
-                                            Icons.info_outline,
-                                            size: 16,
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .primary,
-                                          ),
-                                          const SizedBox(width: 6),
-                                          Expanded(
-                                            child: Text(
-                                              context.t(
-                                                'Example: "fungicide" → "fungus medicine"',
-                                              ),
-                                              style: Theme.of(context)
-                                                  .textTheme
-                                                  .bodySmall
-                                                  ?.copyWith(
-                                                    fontStyle: FontStyle.italic,
-                                                  ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ],
-                              ),
-                            ),
                           ),
                           const SizedBox(height: 16),
                           Row(

@@ -101,50 +101,25 @@ flutter:
   # For details regarding adding assets from package dependencies, see
   # https://flutter.dev/to/asset-from-package
 
-  # Custom fonts configuration for Indian languages support
-  fonts:
-    - family: NotoSans
-      fonts:
-        - asset: assets/fonts/NotoSans-Regular.ttf
-        - asset: assets/fonts/NotoSans-Bold.ttf
-          weight: 700
-        - asset: assets/fonts/NotoSans-Medium.ttf
-          weight: 500
-    - family: NotoSansDevanagari
-      fonts:
-        - asset: assets/fonts/NotoSansDevanagari-Regular.ttf
-        - asset: assets/fonts/NotoSansDevanagari-Bold.ttf
-          weight: 700
-        - asset: assets/fonts/NotoSansDevanagari-Medium.ttf
-          weight: 500
-    - family: NotoSansTamil
-      fonts:
-        - asset: assets/fonts/NotoSansTamil-Regular.ttf
-        - asset: assets/fonts/NotoSansTamil-Bold.ttf
-          weight: 700
-        - asset: assets/fonts/NotoSansTamil-Medium.ttf
-          weight: 500
-    - family: NotoSansTelugu
-      fonts:
-        - asset: assets/fonts/NotoSansTelugu-Regular.ttf
-        - asset: assets/fonts/NotoSansTelugu-Bold.ttf
-          weight: 700
-        - asset: assets/fonts/NotoSansTelugu-Medium.ttf
-          weight: 500
-    - family: NotoSansKannada
-      fonts:
-        - asset: assets/fonts/NotoSansKannada-Regular.ttf
-        - asset: assets/fonts/NotoSansKannada-Bold.ttf
-          weight: 700
-        - asset: assets/fonts/NotoSansKannada-Medium.ttf
-          weight: 500
-    - family: NotoSansMalayalam
-      fonts:
-        - asset: assets/fonts/NotoSansMalayalam-Regular.ttf
-        - asset: assets/fonts/NotoSansMalayalam-Bold.ttf
-          weight: 700
-        - asset: assets/fonts/NotoSansMalayalam-Medium.ttf
-          weight: 500
+  # To add custom fonts to your application, add a fonts section here,
+  # in this "flutter" section. Each entry in this list should have a
+  # "family" key with the font family name, and a "fonts" key with a
+  # list giving the asset and other descriptors for the font. For
+  # example:
+  # fonts:
+  #   - family: Schyler
+  #     fonts:
+  #       - asset: fonts/Schyler-Regular.ttf
+  #       - asset: fonts/Schyler-Italic.ttf
+  #         style: italic
+  #   - family: Trajan Pro
+  #     fonts:
+  #       - asset: fonts/TrajanPro.ttf
+  #       - asset: fonts/TrajanPro_Bold.ttf
+  #         weight: 700
+  #
+  # For details regarding fonts from package dependencies,
+  # see https://flutter.dev/to/font-from-package
 
 flutter_launcher_icons:
   android: true

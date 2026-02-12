@@ -11,7 +11,6 @@ class TokenStorage {
   static const String historyCacheKey = 'history_cache';
   static const String analyticsCacheKey = 'history_analytics_cache';
   static const String diagnosisCacheKey = 'diagnosis_cache';
-  static const String simpleModeKey = 'simple_mode_enabled';
 
   const TokenStorage();
 
@@ -135,21 +134,5 @@ class TokenStorage {
     }
 
     return <String, dynamic>{};
-  }
-
-  /// Save Simple Mode preference
-  /// Simple Mode converts technical terms to farmer-friendly vocabulary
-  Future<void> saveSimpleMode(bool enabled) async {
-    await _storage.write(key: simpleModeKey, value: enabled.toString());
-  }
-
-  /// Read Simple Mode preference
-  /// Returns false by default if not set
-  Future<bool> readSimpleMode() async {
-    final raw = await _storage.read(key: simpleModeKey);
-    if (raw == null || raw.isEmpty) {
-      return false; // Default to false (technical terms)
-    }
-    return raw.toLowerCase() == 'true';
   }
 }

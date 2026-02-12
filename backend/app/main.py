@@ -2,8 +2,6 @@
 FastAPI Main Application
 Production-ready backend for Crop Disease Detection System
 """
-import os
-
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
@@ -29,15 +27,7 @@ logging.basicConfig(
 )
 
 if settings.LOG_FILE:
-    # Ensure log directory exists
-    log_dir = os.path.dirname(settings.LOG_FILE)
-    if log_dir:
-        os.makedirs(log_dir, exist_ok=True)
-
-    logging.getLogger().addHandler(
-        logging.FileHandler(settings.LOG_FILE)
-    )
-
+    logging.getLogger().addHandler(logging.FileHandler(settings.LOG_FILE))
 
 logger = logging.getLogger(__name__)
 
