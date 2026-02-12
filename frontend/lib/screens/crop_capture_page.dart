@@ -141,6 +141,9 @@ class _CropCapturePageState extends State<CropCapturePage> {
           lockAspectRatio: false,
         ),
         IOSUiSettings(title: context.tRead('Crop image')),
+        WebUiSettings(
+          context: context,
+        ),
       ],
     );
 

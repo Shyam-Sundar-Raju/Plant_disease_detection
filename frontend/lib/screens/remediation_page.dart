@@ -2,9 +2,11 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 
-import '../services/token_storage.dart';
 import '../services/app_localizations.dart';
+import '../services/token_storage.dart';
+import '../services/vocabulary_service.dart';
 
 // Screen for remediation guidance per diagnosis.
 class RemediationPage extends StatelessWidget {
@@ -21,25 +23,25 @@ class RemediationPage extends StatelessWidget {
   final String severity;
   final bool isHealthy;
 
-  Future<_RemediationData> _loadData() async {
+  /// Loads remediation data with the specified language
+  /// The language parameter is from global AppLanguage state
+  /// When language changes, the UI rebuilds automatically via context.watch()
+  Future<_RemediationData> _loadData(String language, bool simpleMode) async {
     // Load remediation JSON and apply preferred language.
     final raw = await rootBundle.loadString(
       'assets/remediation/remediation.json',
     );
     final decoded = jsonDecode(raw);
 
-    String language = 'en';
-    final profile = await const TokenStorage().readUserProfile();
-    final preferred = profile?['preferred_language']?.toString();
-    if (preferred != null && preferred.isNotEmpty) {
-      language = preferred;
-    }
-
-    return _RemediationData(decoded, language);
+    return _RemediationData(decoded, language, simpleMode);
   }
 
   @override
   Widget build(BuildContext context) {
+    // Watch for language changes and rebuild automatically
+    // This ensures UI updates instantly when user changes language
+    final currentLanguage = context.watch<AppLanguage>().code;
+    
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(title: Text(context.t('Remediation guide'))),
@@ -52,9 +54,17 @@ class RemediationPage extends StatelessWidget {
           ),
         ),
         child: SafeArea(
-          child: FutureBuilder<_RemediationData>(
-            future: _loadData(),
-            builder: (context, snapshot) {
+          child: FutureBuilder<bool>(
+            // Load Simple Mode preference
+            future: const TokenStorage().readSimpleMode(),
+            builder: (context, simpleModeSnapshot) {
+              final simpleMode = simpleModeSnapshot.data ?? false;
+              
+              return FutureBuilder<_RemediationData>(
+                // Key ensures FutureBuilder rebuilds when language or simple mode changes
+                key: ValueKey('remediation_${currentLanguage}_$simpleMode'),
+                future: _loadData(currentLanguage, simpleMode),
+                builder: (context, snapshot) {
               if (snapshot.connectionState != ConnectionState.done) {
                 return const Center(child: CircularProgressIndicator());
               }
@@ -198,6 +208,7 @@ class RemediationPage extends StatelessWidget {
                       title: context.t('Organic treatment'),
                       treatment: treatments['organic'] as Map<String, dynamic>?,
                       language: data.language,
+                      simpleMode: data.simpleMode,
                     ),
                     const SizedBox(height: 16),
                     _TreatmentSection(
@@ -205,6 +216,7 @@ class RemediationPage extends StatelessWidget {
                       treatment:
                           treatments['chemical'] as Map<String, dynamic>?,
                       language: data.language,
+                      simpleMode: data.simpleMode,
                     ),
                   ],
                   if (prevention.isNotEmpty) ...[
@@ -342,18 +354,27 @@ class RemediationPage extends StatelessWidget {
                 ],
               );
             },
-          ),
-        ),
+          );
+        },
       ),
-    );
-  }
+    ),
+  ),
+);
+}
 }
 
+/// Handles remediation data localization
+/// Provides methods to extract disease info and localize content
+/// All localize methods automatically fallback to English if translation missing
+/// Applies Simple Mode vocabulary transformation when enabled
 class _RemediationData {
-  _RemediationData(this.raw, this.language);
+  _RemediationData(this.raw, this.language, this.simpleMode);
 
   final dynamic raw;
   final String language;
+  final bool simpleMode;
+  
+  static const _vocabularyService = VocabularyService();
 
   Map<String, dynamic>? findDisease(String id) {
     if (raw is Map<String, dynamic>) {
@@ -391,29 +412,64 @@ class _RemediationData {
     return {'organic': organic, 'chemical': chemical};
   }
 
+  /// Localize value with automatic fallback to English if translation missing
+  /// Applies Simple Mode vocabulary transformation if enabled
   String? localize(dynamic value) {
-    // Fall back to English when the language entry is missing.
     if (value is Map<String, dynamic>) {
       final localized = value[language] ?? value['en'];
-      return localized?.toString();
+      final text = localized?.toString();
+      if (text == null) return null;
+      
+      // Apply Simple Mode transformation if enabled
+      return _vocabularyService.simplify(
+        text,
+        language: language,
+        simpleMode: simpleMode,
+      );
     }
-    return value?.toString();
+    final text = value?.toString();
+    if (text == null) return null;
+    
+    // Apply Simple Mode transformation if enabled
+    return _vocabularyService.simplify(
+      text,
+      language: language,
+      simpleMode: simpleMode,
+    );
   }
 
   List<String> localizeList(dynamic value) {
+    // Localize list with automatic fallback to English if translation missing
+    // Returns: localized string list in current language, or English if unavailable
+    // Applies Simple Mode vocabulary transformation to each item if enabled
     if (value is Map<String, dynamic>) {
       final localized = value[language] ?? value['en'];
       if (localized is List) {
-        return localized.map((item) => item.toString()).toList();
+        return localized.map((item) {
+          final text = item.toString();
+          return _vocabularyService.simplify(
+            text,
+            language: language,
+            simpleMode: simpleMode,
+          );
+        }).toList();
       }
     }
     if (value is List) {
-      return value.map((item) => item.toString()).toList();
+      return value.map((item) {
+        final text = item.toString();
+        return _vocabularyService.simplify(
+          text,
+          language: language,
+          simpleMode: simpleMode,
+        );
+      }).toList();
     }
     return [];
   }
 
   String localizeSeverity(dynamic value, String severity) {
+    // Localize severity guidance with automatic fallback to English
     if (value is Map<String, dynamic>) {
       final entry = value[severity];
       return localize(entry) ?? '';
@@ -427,18 +483,34 @@ class _TreatmentSection extends StatelessWidget {
     required this.title,
     required this.treatment,
     required this.language,
+    required this.simpleMode,
   });
 
   final String title;
   final Map<String, dynamic>? treatment;
   final String language;
+  final bool simpleMode;
+  
+  static const _vocabularyService = VocabularyService();
 
   String _localize(dynamic value) {
+    // Localize value with automatic fallback to English if translation missing
+    // Applies Simple Mode vocabulary transformation if enabled
     if (value is Map<String, dynamic>) {
       final localized = value[language] ?? value['en'];
-      return localized?.toString() ?? '';
+      final text = localized?.toString() ?? '';
+      return _vocabularyService.simplify(
+        text,
+        language: language,
+        simpleMode: simpleMode,
+      );
     }
-    return value?.toString() ?? '';
+    final text = value?.toString() ?? '';
+    return _vocabularyService.simplify(
+      text,
+      language: language,
+      simpleMode: simpleMode,
+    );
   }
 
   @override
@@ -475,6 +547,7 @@ class _TreatmentSection extends StatelessWidget {
               (step) => _StepRow(
                 step: step as Map<String, dynamic>,
                 language: language,
+                simpleMode: simpleMode,
               ),
             ),
             if (dosage.isNotEmpty ||
@@ -560,17 +633,36 @@ class _TreatmentSection extends StatelessWidget {
 }
 
 class _StepRow extends StatelessWidget {
-  const _StepRow({required this.step, required this.language});
+  const _StepRow({
+    required this.step,
+    required this.language,
+    required this.simpleMode,
+  });
 
   final Map<String, dynamic> step;
   final String language;
+  final bool simpleMode;
+  
+  static const _vocabularyService = VocabularyService();
 
   String _localize(dynamic value) {
+    // Localize value with automatic fallback to English if translation missing
+    // Applies Simple Mode vocabulary transformation if enabled
     if (value is Map<String, dynamic>) {
       final localized = value[language] ?? value['en'];
-      return localized?.toString() ?? '';
+      final text = localized?.toString() ?? '';
+      return _vocabularyService.simplify(
+        text,
+        language: language,
+        simpleMode: simpleMode,
+      );
     }
-    return value?.toString() ?? '';
+    final text = value?.toString() ?? '';
+    return _vocabularyService.simplify(
+      text,
+      language: language,
+      simpleMode: simpleMode,
+    );
   }
 
   @override
