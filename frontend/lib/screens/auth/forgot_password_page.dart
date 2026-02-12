@@ -64,6 +64,12 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
         _message = message;
         _resetToken = result['reset_token']?.toString();
         _showResetForm = true;
+        // If the server returned the OTP directly (email service
+        // unavailable), pre-fill it so the user can proceed.
+        final otp = result['otp']?.toString();
+        if (otp != null && otp.isNotEmpty) {
+          _otpController.text = otp;
+        }
       });
     } catch (error) {
       setState(() {
@@ -125,8 +131,17 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   }
 
   String _friendlyError(Object error) {
-    final message = error.toString();
-    return message.replaceFirst('Exception: ', '');
+    // Try to extract a human-readable message from DioException.
+    if (error is Exception) {
+      final raw = error.toString();
+      // DioException contains the server "detail" in its message.
+      // Try to pull it out; otherwise return a generic message.
+      final detailMatch = RegExp(r'"detail"\s*:\s*"([^"]+)"').firstMatch(raw);
+      if (detailMatch != null) {
+        return detailMatch.group(1)!;
+      }
+    }
+    return context.tRead('Something went wrong. Please try again.');
   }
 
   @override

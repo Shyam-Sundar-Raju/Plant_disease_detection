@@ -1,20 +1,11 @@
 import 'package:dio/dio.dart';
 
-import 'api_config.dart';
+import 'dio_client.dart';
 
 class UserApi {
-  UserApi({Dio? dio}) : _dio = dio ?? Dio(_defaultOptions());
+  UserApi({Dio? dio}) : _dio = dio ?? DioClient.instance;
 
   final Dio _dio;
-
-  static BaseOptions _defaultOptions() {
-    return BaseOptions(
-      baseUrl: ApiConfig.baseUrl,
-      connectTimeout: const Duration(seconds: 10),
-      receiveTimeout: const Duration(seconds: 20),
-      headers: {'Accept': 'application/json'},
-    );
-  }
 
   Future<Map<String, dynamic>> getProfile({required String accessToken}) async {
     final response = await _dio.get(

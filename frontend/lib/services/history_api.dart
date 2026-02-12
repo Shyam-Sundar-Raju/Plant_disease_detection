@@ -1,23 +1,16 @@
 import 'dart:io';
 
+import 'dart:io';
+
 import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
 
-import 'api_config.dart';
+import 'dio_client.dart';
 
 class HistoryApi {
-  HistoryApi({Dio? dio}) : _dio = dio ?? Dio(_defaultOptions());
+  HistoryApi({Dio? dio}) : _dio = dio ?? DioClient.instance;
 
   final Dio _dio;
-
-  static BaseOptions _defaultOptions() {
-    return BaseOptions(
-      baseUrl: ApiConfig.baseUrl,
-      connectTimeout: const Duration(seconds: 10),
-      receiveTimeout: const Duration(seconds: 20),
-      headers: {'Accept': 'application/json'},
-    );
-  }
 
   Future<List<Map<String, dynamic>>> getHistory({
     required String accessToken,

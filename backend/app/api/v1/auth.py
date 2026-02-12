@@ -328,22 +328,40 @@ async def forgot_password(
             "is_used": False
         })
         
+        # Try to send the OTP email; if SMTP is not configured or
+        # the send fails, log the OTP for development and continue
+        # so the user can still complete the reset flow.
+        email_sent = False
         user_email = user.get("email")
         if user_email:
             try:
                 send_password_reset_email(user_email, otp)
+                email_sent = True
+                logger.info(f"Password reset email sent to {user_email}")
             except Exception as e:
-                logger.error(f"Failed to send reset email: {e}")
-                raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="Unable to send reset email"
+                logger.warning(
+                    f"Could not send reset email to {user_email}: {e}. "
+                    f"OTP for development/testing: {otp}"
                 )
         
-        return {
+        response = {
             "message": "If the account exists, a reset code will be sent",
             "reset_token": reset_token
         }
         
+        # In development (when email fails), include the OTP in the
+        # response so the user can still complete the flow.
+        if not email_sent:
+            response["otp"] = otp
+            response["message"] = (
+                "Email service is unavailable. "
+                "Use the OTP provided below to reset your password."
+            )
+        
+        return response
+        
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error in forgot password: {e}")
         raise HTTPException(

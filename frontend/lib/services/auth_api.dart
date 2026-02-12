@@ -35,11 +35,7 @@ class AuthApi {
         'phone': phone,
         'password': password,
         'preferred_language': preferredLanguage,
-        'location': {
-          'latitude': latitude,
-          'longitude': longitude,
-          'address': address,
-        },
+        'location': 'lat:$latitude, lng:$longitude, $address',
       },
     );
 

@@ -93,6 +93,8 @@ class AppLocalizations {
           'If the account exists, a reset code will be sent.',
       'Password reset successful. You can log in now.':
           'Password reset successful. You can log in now.',
+      'Something went wrong. Please try again.':
+          'Something went wrong. Please try again.',
       'Profile': 'Profile',
       'Personal details': 'Personal details',
       'Name': 'Name',
