@@ -141,6 +141,8 @@ class RemediationService:
                     "सीज़न के अंत में पौधे के मलबे को हटा दें"
                 ]
             },
+
+            
             "severity_guidance": {
                 "low": {
                     "en": "Apply organic treatment only. Monitor daily.",
