@@ -11,6 +11,7 @@ class TokenStorage {
   static const String historyCacheKey = 'history_cache';
   static const String analyticsCacheKey = 'history_analytics_cache';
   static const String diagnosisCacheKey = 'diagnosis_cache';
+  static const String weatherCacheKey = 'weather_cache';
 
   const TokenStorage();
 
@@ -36,6 +37,7 @@ class TokenStorage {
     await _storage.delete(key: historyCacheKey);
     await _storage.delete(key: analyticsCacheKey);
     await _storage.delete(key: diagnosisCacheKey);
+    await _storage.delete(key: weatherCacheKey);
   }
 
   Future<String?> readAccessToken() {
@@ -92,6 +94,24 @@ class TokenStorage {
 
   Future<Map<String, dynamic>?> readHistoryAnalytics() async {
     final raw = await _storage.read(key: analyticsCacheKey);
+    if (raw == null || raw.isEmpty) {
+      return null;
+    }
+
+    final decoded = jsonDecode(raw);
+    if (decoded is Map<String, dynamic>) {
+      return decoded;
+    }
+
+    return null;
+  }
+
+  Future<void> saveWeather(Map<String, dynamic> weather) async {
+    await _storage.write(key: weatherCacheKey, value: jsonEncode(weather));
+  }
+
+  Future<Map<String, dynamic>?> readWeather() async {
+    final raw = await _storage.read(key: weatherCacheKey);
     if (raw == null || raw.isEmpty) {
       return null;
     }

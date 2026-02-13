@@ -94,11 +94,19 @@ class RemediationPage extends StatelessWidget {
               final noTreatmentNeeded =
                   disease['no_treatment_needed'] == true ||
                   (treatments == null && isHealthy);
-              final riskFactors = data.localizeList(disease['environmental_risk_factors']);
-              final affectedParts = data.localize(disease['affected_parts']) ?? '';
-              final communityTips = data.localizeList(disease['community_tips']);
-              final whenToSeekExpert = data.localize(disease['when_to_seek_expert']) ?? '';
-              final companionPlants = data.localizeList(disease['companion_plants']);
+              final riskFactors = data.localizeList(
+                disease['environmental_risk_factors'],
+              );
+              final affectedParts =
+                  data.localize(disease['affected_parts']) ?? '';
+              final communityTips = data.localizeList(
+                disease['community_tips'],
+              );
+              final whenToSeekExpert =
+                  data.localize(disease['when_to_seek_expert']) ?? '';
+              final companionPlants = data.localizeList(
+                disease['companion_plants'],
+              );
 
               return ListView(
                 padding: const EdgeInsets.all(20),
@@ -112,6 +120,8 @@ class RemediationPage extends StatelessWidget {
                           Text(
                             localizedName,
                             style: Theme.of(context).textTheme.headlineSmall,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                           ),
                           if (description.isNotEmpty) ...[
                             const SizedBox(height: 8),
@@ -149,13 +159,20 @@ class RemediationPage extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Icon(Icons.local_hospital, 
-                                  color: Theme.of(context).colorScheme.primary),
+                                Icon(
+                                  Icons.local_hospital,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
                                 const SizedBox(width: 8),
-                                Text(
-                                  context.t('Affected parts'),
-                                  style: Theme.of(context).textTheme.titleMedium,
+                                Expanded(
+                                  child: Text(
+                                    context.t('Affected parts'),
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.titleMedium,
+                                  ),
                                 ),
                               ],
                             ),
@@ -175,18 +192,24 @@ class RemediationPage extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Icon(Icons.warning_amber, 
-                                  color: Colors.orange),
+                                Icon(Icons.warning_amber, color: Colors.orange),
                                 const SizedBox(width: 8),
-                                Text(
-                                  context.t('Environmental risk factors'),
-                                  style: Theme.of(context).textTheme.titleMedium,
+                                Expanded(
+                                  child: Text(
+                                    context.t('Environmental risk factors'),
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.titleMedium,
+                                  ),
                                 ),
                               ],
                             ),
                             const SizedBox(height: 8),
-                            ...riskFactors.map((factor) => _BulletRow(text: factor)),
+                            ...riskFactors.map(
+                              (factor) => _BulletRow(text: factor),
+                            ),
                           ],
                         ),
                       ),
@@ -228,36 +251,51 @@ class RemediationPage extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Icon(Icons.people, color: Colors.green.shade700),
-                                const SizedBox(width: 8),
-                                Text(
-                                  context.t('Community tips'),
-                                  style: Theme.of(context).textTheme.titleMedium,
+                                Icon(
+                                  Icons.people,
+                                  color: Colors.green.shade700,
                                 ),
-                                const Spacer(),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: Colors.green.shade700,
-                                    borderRadius: BorderRadius.circular(12),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    context.t('Community tips'),
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.titleMedium,
                                   ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const Icon(Icons.verified, 
-                                        color: Colors.white, size: 16),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        context.t('Verified'),
-                                        style: const TextStyle(
+                                ),
+                                const SizedBox(width: 8),
+                                Flexible(
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.green.shade700,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(
+                                          Icons.verified,
                                           color: Colors.white,
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w600,
+                                          size: 16,
                                         ),
-                                      ),
-                                    ],
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          context.t('Verified'),
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ],
@@ -266,9 +304,13 @@ class RemediationPage extends StatelessWidget {
                             Text(
                               context.t('Tips from experienced farmers'),
                               style: Theme.of(context).textTheme.bodySmall,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                             ),
                             const SizedBox(height: 12),
-                            ...communityTips.map((tip) => _BulletRow(text: tip)),
+                            ...communityTips.map(
+                              (tip) => _BulletRow(text: tip),
+                            ),
                           ],
                         ),
                       ),
@@ -283,28 +325,36 @@ class RemediationPage extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Icon(Icons.eco, 
-                                  color: Colors.green.shade600),
+                                Icon(Icons.eco, color: Colors.green.shade600),
                                 const SizedBox(width: 8),
-                                Text(
-                                  context.t('Companion plants'),
-                                  style: Theme.of(context).textTheme.titleMedium,
+                                Expanded(
+                                  child: Text(
+                                    context.t('Companion plants'),
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.titleMedium,
+                                  ),
                                 ),
                               ],
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              context.t('Plant these nearby for natural protection'),
+                              context.t(
+                                'Plant these nearby for natural protection',
+                              ),
                               style: Theme.of(context).textTheme.bodySmall,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                             ),
                             const SizedBox(height: 8),
                             Wrap(
                               spacing: 8,
                               runSpacing: 8,
-                              children: companionPlants.map(
-                                (plant) => _PlantChip(label: plant),
-                              ).toList(),
+                              children: companionPlants
+                                  .map((plant) => _PlantChip(label: plant))
+                                  .toList(),
                             ),
                           ],
                         ),
@@ -321,13 +371,20 @@ class RemediationPage extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Icon(Icons.support_agent, 
-                                  color: Colors.orange.shade700),
+                                Icon(
+                                  Icons.support_agent,
+                                  color: Colors.orange.shade700,
+                                ),
                                 const SizedBox(width: 8),
-                                Text(
-                                  context.t('When to seek expert'),
-                                  style: Theme.of(context).textTheme.titleMedium,
+                                Expanded(
+                                  child: Text(
+                                    context.t('When to seek expert'),
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.titleMedium,
+                                  ),
                                 ),
                               ],
                             ),
@@ -469,7 +526,12 @@ class _TreatmentSection extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title, style: Theme.of(context).textTheme.titleMedium),
+            Text(
+              title,
+              style: Theme.of(context).textTheme.titleMedium,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
             const SizedBox(height: 12),
             ...steps.map(
               (step) => _StepRow(
@@ -518,7 +580,11 @@ class _TreatmentSection extends StatelessWidget {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.trending_up, color: Colors.blue.shade700, size: 20),
+                    Icon(
+                      Icons.trending_up,
+                      color: Colors.blue.shade700,
+                      size: 20,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Column(
@@ -530,6 +596,8 @@ class _TreatmentSection extends StatelessWidget {
                               fontWeight: FontWeight.w600,
                               color: Colors.blue.shade900,
                             ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                           const SizedBox(height: 4),
                           Text(
@@ -548,6 +616,8 @@ class _TreatmentSection extends StatelessWidget {
               Text(
                 context.t('Safety warnings'),
                 style: Theme.of(context).textTheme.titleSmall,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 6),
               ...safetyWarnings.map((warning) => _BulletRow(text: warning)),
@@ -629,7 +699,12 @@ class _SectionHeader extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: Theme.of(context).textTheme.titleLarge),
+        Text(
+          title,
+          style: Theme.of(context).textTheme.titleLarge,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
         const SizedBox(height: 4),
         Text(subtitle, style: Theme.of(context).textTheme.bodyMedium),
       ],
