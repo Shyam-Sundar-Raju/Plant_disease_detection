@@ -178,13 +178,6 @@ class AppLocalizations {
       'Keep plants resilient with these steps.':
           'Keep plants resilient with these steps.',
       'Safety warnings': 'Safety warnings',
-      'ppe_gloves': 'Wear protective gloves',
-      'ppe_mask': 'Wear a face mask',
-      'ppe_goggles': 'Wear safety goggles',
-      'env_water': 'Avoid water sources',
-      'env_bees': 'Harmful to bees',
-      'safety_high_risk': 'High Safety Risk',
-      'wash_hands': 'Wash hands after use',
       'Dosage {value}': 'Dosage {value}',
       'Frequency {value}': 'Frequency {value}',
       'Cost {value}': 'Cost {value}',

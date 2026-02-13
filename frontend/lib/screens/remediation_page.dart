@@ -5,7 +5,6 @@ import 'package:flutter/services.dart';
 
 import '../services/token_storage.dart';
 import '../services/app_localizations.dart';
-import '../widgets/safety_banner.dart';
 
 // Screen for remediation guidance per diagnosis.
 class RemediationPage extends StatelessWidget {
@@ -506,8 +505,6 @@ class _TreatmentSection extends StatelessWidget {
                     ),
                 ],
               ),
-                ],
-              ),
             ],
             if (expectedResults.isNotEmpty) ...[
               const SizedBox(height: 12),
@@ -546,38 +543,7 @@ class _TreatmentSection extends StatelessWidget {
                 ),
               ),
             ],
-            // Safety Banner Area
-            Builder(
-              builder: (context) {
-                final metadata = treatment!['safety_metadata'] as Map<String, dynamic>?;
-                if (metadata != null) {
-                  final ppe = (metadata['ppe_requirements'] as List<dynamic>?)
-                          ?.map((e) => e.toString())
-                          .toList() ??
-                      [];
-                  final env = (metadata['environmental_warnings'] as List<dynamic>?)
-                          ?.map((e) => e.toString())
-                          .toList() ??
-                      [];
-                  final soil = metadata['soil_protection']?.toString();
-                  
-                  // Determine type from title (lowercase check) or pass it
-                  final type = title.toLowerCase().contains('chemical') ? 'chemical' : 'organic';
-
-                  if (ppe.isNotEmpty || env.isNotEmpty || (soil != null && soil.isNotEmpty)) {
-                    return SafetyBanner(
-                      type: type,
-                      ppe: ppe,
-                      environmental: env,
-                      soilProtection: soil,
-                    );
-                  }
-                }
-                return const SizedBox.shrink();
-              },
-            ),
             if (safetyWarnings.isNotEmpty) ...[
-
               const SizedBox(height: 12),
               Text(
                 context.t('Safety warnings'),

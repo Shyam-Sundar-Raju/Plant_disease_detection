@@ -9,7 +9,6 @@ import 'package:video_thumbnail/video_thumbnail.dart';
 
 import '../services/blur_detector.dart';
 import '../services/diagnosis_api.dart';
-import '../services/diagnosis_cache.dart';
 import '../services/token_storage.dart';
 import '../services/app_localizations.dart';
 import 'diagnosis_result_page.dart';
@@ -28,7 +27,6 @@ class _CropCapturePageState extends State<CropCapturePage> {
   final _picker = ImagePicker();
   final _diagnosisApi = DiagnosisApi();
   final _tokenStorage = const TokenStorage();
-  final _diagnosisCache = const DiagnosisCache();
   final _blurDetector = const BlurDetector();
 
   bool _isSubmitting = false;
@@ -234,7 +232,7 @@ class _CropCapturePageState extends State<CropCapturePage> {
 
       final diagnosisId = _extractDiagnosisId(result);
       if (diagnosisId != null && diagnosisId.isNotEmpty) {
-        await _diagnosisCache.saveDiagnosisResult(
+        await _tokenStorage.saveDiagnosisResult(
           diagnosisId: diagnosisId,
           result: result,
         );
@@ -300,10 +298,7 @@ class _CropCapturePageState extends State<CropCapturePage> {
         child: Stack(
           children: [
             SafeArea(
-              child: Column(
-                children: [
-                  Expanded(
-                    child: GridView.builder(
+              child: GridView.builder(
                 padding: const EdgeInsets.all(20),
                 itemCount: _crops.length,
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -371,25 +366,6 @@ class _CropCapturePageState extends State<CropCapturePage> {
                 },
               ),
             ),
-            Container(
-              padding: const EdgeInsets.all(16),
-              color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
-              child: Row(
-                children: [
-                  const Icon(Icons.lightbulb_outline, size: 20),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      context.t('Tip: Ensure you are in a safe position before taking photos.'),
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
             if (_isSubmitting)
               Container(
                 color: Colors.black54,

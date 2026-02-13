@@ -185,13 +185,6 @@
         "ta": "10-14 நாட்களுக்குள் புதிய இலைப் புள்ளிகள் உருவாவது நிறுத்தப்பட வேண்டும். இருக்கும் புள்ளிகள் மறையாது ஆனால் நோய் பரவுவது நிற்கும்.",
         "te": "10-14 రోజుల్లో కొత్త ఆకు మచ్చలు ఏర్పడటం ఆగిపోవాలి. ఉన్న మచ్చలు మాయం కావు కానీ వ్యాధి వ్యాప్తి ఆగిపోతుంది.",
         "ml": "10-14 ദിവസത്തിനുള്ളിൽ പുതിയ ഇല പാടുകൾ രൂപപ്പെടുന്നത് നിർത്തണം. നിലവിലുള്ള പാടുകൾ അപ്രത്യക്ഷമാകില്ല എന്നാൽ രോഗം പടരുന്നത് നിർത്തുന്നു."
-      },
-      "safety_metadata": {
-        "ppe_requirements": [
-          "gloves"
-        ],
-        "environmental_warnings": [],
-        "soil_protection": "Avoid soil splash"
       }
     },
     "chemical_treatment": {
@@ -266,18 +259,7 @@
         "te": "ప్రతి 10 రోజులకు ఒకసారి, గరిష్టంగా 3 సార్లు",
         "ml": "10 ദിവസത്തിലൊരിക്കൽ, പരമാവധി 3 തവണ"
       },
-      "cost_estimate": "medium",
-      "safety_metadata": {
-        "ppe_requirements": [
-          "gloves",
-          "mask",
-          "goggles"
-        ],
-        "environmental_warnings": [
-          "water_contamination"
-        ],
-        "soil_protection": "Prevent runoff"
-      }
+      "cost_estimate": "medium"
     },
     "prevention_steps": {
       "en": [
@@ -613,14 +595,6 @@
         "ta": "விரைவில் கண்டறிந்தால், 7-10 நாட்களில் முன்னேற்றத்தை நிறுத்தலாம். ஒருமுறை நிறுவப்பட்டால், கட்டுப்படுத்துவது மிகவும் கடினம் - பாதிக்கப்படாத தாவரங்களைப் பாதுகாப்பதில் கவனம் செலுத்தவும்।",
         "te": "ముందుగానే పట్టుకుంటే, 7-10 రోజుల్లో పురోగతిని ఆపవచ్చు। ఒకసారి స్థాపించబడిన తర్వాత, నియంత్రించడం చాలా కష్టం - సోకని మొక్కలను రక్షించడంపై దృష్టి పెట్టం డి।",
         "ml": "നേരത്തെ കണ്ടെത്തിയാൽ, 7-10 ദിവസത്തിനുള്ളിൽ പുരോഗതി തടയാനാകും। ഒരിക്കൽ സ്ഥാപിച്ചാൽ, നിയന്ത്രിക്കാൻ വളരെ ബുദ്ധിമുട്ട് - രോഗം ബാധിക്കാത്ത ചെടികളെ സംരക്ഷിക്കുന്നതിൽ ശ്രദ്ധ കേന്ദ്രീകരിക്കുക।"
-      },
-      "safety_metadata": {
-        "ppe_requirements": [
-          "gloves",
-          "mask"
-        ],
-        "environmental_warnings": [],
-        "soil_protection": "Avoid soil splash"
       }
     },
     "chemical_treatment": {
@@ -692,19 +666,6 @@
         "ml": "ആർദ്ര കാലയളവുകളിൽ ഓരോ 7-10 ദിവസത്തിലും। കുറഞ്ഞത് 4 പ്രയോഗങ്ങൾ"
       },
       "cost_estimate": "₹300-500 per acre per application (Ridomil Gold ₹800/100g, Equation PRO ₹1200/100g)",
-      "safety_metadata": {
-        "ppe_requirements": [
-          "gloves",
-          "mask",
-          "goggles",
-          "boots"
-        ],
-        "environmental_warnings": [
-          "water_contamination",
-          "harmful_to_bees"
-        ],
-        "soil_protection": "Prevent chemical runoff"
-      },
       "safety_warnings": {
         "en": "Wear full protective gear. PHI (pre-harvest interval): 7 days for fruit. Do not spray if rain expected within 6 hours",
         "hi": "पूर्ण सुरक्षा उपकरण पहनें। PHI (फसल-पूर्व अंतराल): फल के लिए 7 दिन। यदि 6 घंटे के भीतर बारिश की उम्मीद है तो स्प्रे न करें",
