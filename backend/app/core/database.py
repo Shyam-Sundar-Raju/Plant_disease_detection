@@ -29,6 +29,7 @@ class Database:
                 serverSelectionTimeoutMS=5000
             )
             
+            
             cls.db = cls.client[settings.MONGODB_DB_NAME]
             
             # Test connection
