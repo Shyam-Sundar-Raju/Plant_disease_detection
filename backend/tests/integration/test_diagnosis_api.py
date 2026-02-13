@@ -20,6 +20,9 @@ class TestDiagnosisEndpoints:
         img_bytes = io.BytesIO()
         img.save(img_bytes, format='JPEG')
         img_bytes.seek(0)
+
+
+
         
         files = {
             "file": ("test.jpg", img_bytes, "image/jpeg")

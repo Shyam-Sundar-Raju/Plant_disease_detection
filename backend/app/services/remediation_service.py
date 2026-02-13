@@ -125,6 +125,7 @@ class RemediationService:
                 },
                 "cost_estimate": "medium"
             },
+            
             "prevention_steps": {
                 "en": [
                     "Practice crop rotation with non-solanaceous crops",
@@ -142,7 +143,7 @@ class RemediationService:
                 ]
             },
 
-            
+
             "severity_guidance": {
                 "low": {
                     "en": "Apply organic treatment only. Monitor daily.",
