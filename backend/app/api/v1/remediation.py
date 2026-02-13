@@ -68,6 +68,7 @@ async def get_remediation(
 
 @router.get("/healthy/guidance")
 async def get_healthy_guidance(
+    disease_id: str = Query("Tomato___healthy", description="Healthy disease id"),
     current_user: dict = Depends(get_current_user),
     accept_language: Optional[str] = Header(None)
 ):
@@ -80,7 +81,10 @@ async def get_healthy_guidance(
     try:
         language = get_language_from_request(accept_language, current_user.get("preferred_language"))
         
-        guidance = await remediation_service.get_healthy_plant_guidance(language=language)
+        guidance = await remediation_service.get_healthy_plant_guidance(
+            disease_id=disease_id,
+            language=language
+        )
         
         return guidance
         

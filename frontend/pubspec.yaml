@@ -49,17 +49,33 @@ dependencies:
   # 4. Networking (Future Proofing)
   http: ^1.2.0             # To eventually talk to your Python backend
   path_provider: ^2.1.2    # To find where to store files on the phone
+  
+  # Networking & API
+  dio: ^5.4.0
+  http_parser: ^4.0.0
+  
+  # State Management & Storage
+  provider: ^6.1.1
+  flutter_secure_storage: ^9.0.0
+  
+  # Media & Location
+  geolocator: ^10.1.0
+  connectivity_plus: ^6.1.0
+  image: ^4.2.0
+  video_player: ^2.9.1
+  video_thumbnail: ^0.5.3
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  flutter_launcher_icons: ^0.13.1
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
   # activated in the `analysis_options.yaml` file located at the root of your
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
-  flutter_lints: ^6.0.0
+  flutter_lints: ^3.0.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -73,9 +89,11 @@ flutter:
   uses-material-design: true
 
   # To add assets to your application, add an assets section, like this:
-  # assets:
-  #   - images/a_dot_burr.jpeg
-  #   - images/a_dot_ham.jpeg
+  assets:
+    - assets/images/crops/
+    - assets/images/reference_diseases/
+    - assets/logo.png
+    - assets/remediation/remediation.json
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
@@ -102,3 +120,8 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: assets/logo.png

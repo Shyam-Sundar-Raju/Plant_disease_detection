@@ -171,6 +171,16 @@ class DiseaseDetection(BaseModel):
     affected_area_percentage: Optional[float] = None
 
 
+class SecondaryDiagnosis(BaseModel):
+    """A secondary (co-occurring) infection detected on the same plant."""
+    disease_id: str
+    disease_name: str
+    confidence: float
+    severity: Optional[str] = "unknown"
+    infected_ratio: Optional[float] = 0.0
+    bounding_boxes: Optional[List[BoundingBox]] = []
+
+
 class DiagnosisCreate(BaseModel):
     """Schema for creating diagnosis"""
     crop_type: CropType
@@ -192,6 +202,7 @@ class DiagnosisResponse(BaseModel):
     heatmap_url: Optional[str] = None
     bounding_boxes: Optional[List[BoundingBox]] = []
     secondary_diagnoses: List[Dict[str, Any]] = []
+    multi_infection: bool = False
     created_at: datetime
     metadata: Optional[Dict[str, Any]] = None
 
@@ -263,10 +274,26 @@ class HistoryFilter(BaseModel):
     offset: int = Field(default=0, ge=0)
 
 
+class HistoryItem(BaseModel):
+    """History entry"""
+    id: Optional[str] = Field(None, alias="_id")
+    user_id: str
+    diagnosis_id: str
+    crop_type: str
+    disease_name: str
+    confidence: float
+    severity: str
+    image_url: Optional[str] = None
+    created_at: datetime
+
+    class Config:
+        populate_by_name = True
+
+
 class HistoryResponse(BaseModel):
     """History list response"""
     total: int
-    items: List[DiagnosisResponse]
+    items: List[HistoryItem]
     limit: int
     offset: int
 

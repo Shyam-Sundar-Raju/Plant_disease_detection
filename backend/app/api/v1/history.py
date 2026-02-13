@@ -44,7 +44,7 @@ async def get_history(
         user_id = str(current_user["_id"])
         
         # Build query
-        query = {"user_id": user_id}
+        query = {"user_id": user_id, "is_deleted": {"$ne": True}}
         
         if crop_type:
             query["crop_type"] = crop_type.value
@@ -60,16 +60,22 @@ async def get_history(
                 query["created_at"]["$lte"] = end_date
         
         # Get history
+        total = await db.history.count_documents(query)
         cursor = db.history.find(query).sort("created_at", -1).skip(skip).limit(limit)
         history = await cursor.to_list(length=limit)
-        
+
         # Format results
         for entry in history:
             entry["_id"] = str(entry["_id"])
-        
+
         logger.info(f"History fetched for user: {user_id}, filters: {query}")
-        
-        return history
+
+        return {
+            "total": total,
+            "items": history,
+            "limit": limit,
+            "offset": skip
+        }
         
     except Exception as e:
         logger.error(f"Error getting history: {e}")
@@ -141,7 +147,7 @@ async def get_analytics(
         user_id = str(current_user["_id"])
         
         # Get all history for the user
-        cursor = db.history.find({"user_id": user_id})
+        cursor = db.history.find({"user_id": user_id, "is_deleted": {"$ne": True}})
         history = await cursor.to_list(length=None)
         
         # Calculate statistics
@@ -225,18 +231,22 @@ async def download_report(
             )
         
         # Get treatment data if requested
-        treatment_data = None
-        if include_treatment and not diagnosis.get("is_healthy"):
-            remediation_data = await remediation_service.get_remediation(
-                db=db,
-                disease_id=diagnosis["disease_id"],
-                severity=diagnosis["severity"],
-                treatment_type="organic",
-                language=language
-            )
-            treatment_data = remediation_data.get("treatment")
-            if include_prevention:
-                treatment_data["prevention_tips"] = remediation_data.get("prevention_tips", [])
+        remediation_data = None
+        if include_treatment:
+            if diagnosis.get("is_healthy"):
+                remediation_data = await remediation_service.get_healthy_plant_guidance(
+                    disease_id=diagnosis["disease_id"],
+                    language=language
+                )
+            else:
+                remediation_data = await remediation_service.get_remediation_full(
+                    db=db,
+                    disease_id=diagnosis["disease_id"],
+                    severity=diagnosis["severity"],
+                    language=language
+                )
+                if not include_prevention and remediation_data:
+                    remediation_data["prevention_tips"] = []
         
         # Get user data
         user_data = {
@@ -248,7 +258,7 @@ async def download_report(
         # Generate PDF
         pdf_buffer = PDFReportGenerator.generate_diagnosis_report(
             diagnosis_data=diagnosis,
-            treatment_data=treatment_data,
+            remediation_data=remediation_data,
             user_data=user_data,
             language=language
         )

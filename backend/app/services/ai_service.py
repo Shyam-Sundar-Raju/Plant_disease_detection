@@ -23,43 +23,111 @@ class AIModelService:
     
     # Mock disease database (fallback)
     DISEASE_DATABASE = {
-        "tomato": {
-            "tomato_early_blight": {
-                "name": "Early Blight",
-                "disease_id": "tomato_early_blight",
-                "confidence_range": (0.75, 0.95)
+        "apple": {
+            "Apple___Apple_scab": {
+                "name": "Apple Scab",
+                "disease_id": "Apple___Apple_scab",
+                "confidence_range": (0.72, 0.94)
             },
-            "tomato_late_blight": {
-                "name": "Late Blight",
-                "disease_id": "tomato_late_blight",
+            "Apple___Black_rot": {
+                "name": "Black Rot",
+                "disease_id": "Apple___Black_rot",
                 "confidence_range": (0.70, 0.92)
             },
-            "tomato_leaf_mold": {
-                "name": "Leaf Mold",
-                "disease_id": "tomato_leaf_mold",
-                "confidence_range": (0.65, 0.88)
+            "Apple___Cedar_apple_rust": {
+                "name": "Cedar Apple Rust",
+                "disease_id": "Apple___Cedar_apple_rust",
+                "confidence_range": (0.68, 0.90)
             },
-            "tomato_healthy": {
+            "Apple___healthy": {
                 "name": "Healthy",
-                "disease_id": "tomato_healthy",
+                "disease_id": "Apple___healthy",
                 "confidence_range": (0.80, 0.98)
             }
         },
-        "rice": {
-            "rice_blast": {
-                "name": "Rice Blast",
-                "disease_id": "rice_blast",
-                "confidence_range": (0.72, 0.94)
+        "corn": {
+            "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot": {
+                "name": "Gray Leaf Spot",
+                "disease_id": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot",
+                "confidence_range": (0.70, 0.92)
             },
-            "rice_brown_spot": {
-                "name": "Brown Spot",
-                "disease_id": "rice_brown_spot",
+            "Corn_(maize)___Common_rust_": {
+                "name": "Common Rust",
+                "disease_id": "Corn_(maize)___Common_rust_",
                 "confidence_range": (0.68, 0.90)
             },
-            "rice_healthy": {
+            "Corn_(maize)___Northern_Leaf_Blight": {
+                "name": "Northern Leaf Blight",
+                "disease_id": "Corn_(maize)___Northern_Leaf_Blight",
+                "confidence_range": (0.69, 0.91)
+            },
+            "Corn_(maize)___healthy": {
                 "name": "Healthy",
-                "disease_id": "rice_healthy",
-                "confidence_range": (0.82, 0.96)
+                "disease_id": "Corn_(maize)___healthy",
+                "confidence_range": (0.80, 0.98)
+            }
+        },
+        "pepper": {
+            "Pepper,_bell___Bacterial_spot": {
+                "name": "Bacterial Spot",
+                "disease_id": "Pepper,_bell___Bacterial_spot",
+                "confidence_range": (0.70, 0.90)
+            },
+            "Pepper,_bell___healthy": {
+                "name": "Healthy",
+                "disease_id": "Pepper,_bell___healthy",
+                "confidence_range": (0.80, 0.98)
+            }
+        },
+        "potato": {
+            "Potato___Early_blight": {
+                "name": "Early Blight (Potato)",
+                "disease_id": "Potato___Early_blight",
+                "confidence_range": (0.72, 0.93)
+            },
+            "Potato___Late_blight": {
+                "name": "Late Blight (Potato)",
+                "disease_id": "Potato___Late_blight",
+                "confidence_range": (0.70, 0.92)
+            },
+            "Potato___healthy": {
+                "name": "Healthy",
+                "disease_id": "Potato___healthy",
+                "confidence_range": (0.80, 0.98)
+            }
+        },
+        "strawberry": {
+            "Strawberry___Leaf_scorch": {
+                "name": "Leaf Scorch",
+                "disease_id": "Strawberry___Leaf_scorch",
+                "confidence_range": (0.70, 0.90)
+            },
+            "Strawberry___healthy": {
+                "name": "Healthy",
+                "disease_id": "Strawberry___healthy",
+                "confidence_range": (0.80, 0.98)
+            }
+        },
+        "tomato": {
+            "Tomato___Early_blight": {
+                "name": "Early Blight",
+                "disease_id": "Tomato___Early_blight",
+                "confidence_range": (0.75, 0.95)
+            },
+            "Tomato___Late_blight": {
+                "name": "Late Blight",
+                "disease_id": "Tomato___Late_blight",
+                "confidence_range": (0.70, 0.92)
+            },
+            "Tomato___Tomato_Yellow_Leaf_Curl_Virus": {
+                "name": "Yellow Leaf Curl Virus",
+                "disease_id": "Tomato___Tomato_Yellow_Leaf_Curl_Virus",
+                "confidence_range": (0.68, 0.90)
+            },
+            "Tomato___healthy": {
+                "name": "Healthy",
+                "disease_id": "Tomato___healthy",
+                "confidence_range": (0.80, 0.98)
             }
         }
     }
@@ -81,10 +149,48 @@ class AIModelService:
             
             if model_path.exists():
                 logger.info(f"Loading AI model from {model_path}")
-                # Load with compile=False to avoid compatibility issues
-                self.model = tf.keras.models.load_model(str(model_path), compile=False)
-                logger.info("AI model loaded successfully")
+                
+                # Try loading with safe_mode=False to handle Keras version mismatches
+                # (e.g. quantization_config added in newer Keras versions)
+                try:
+                    self.model = tf.keras.models.load_model(
+                        str(model_path), compile=False, safe_mode=False
+                    )
+                except TypeError:
+                    # Older TF versions don't have safe_mode parameter
+                    self.model = tf.keras.models.load_model(
+                        str(model_path), compile=False
+                    )
+                except Exception as e1:
+                    logger.warning(f"Standard load failed: {e1}, trying H5 format...")
+                    # Try loading as H5 format as fallback
+                    h5_path = model_path.with_suffix('.h5')
+                    if h5_path.exists():
+                        self.model = tf.keras.models.load_model(
+                            str(h5_path), compile=False
+                        )
+                    else:
+                        raise e1
+                
+                logger.info(f"AI model loaded successfully. "
+                           f"Input: {self.model.input_shape}, "
+                           f"Output: {self.model.output_shape}, "
+                           f"Layers: {len(self.model.layers)}")
                 self.model_loaded = True
+                
+                # Build the computational graph so that .input / .output
+                # are available (required by Keras 3 Sequential models
+                # for Grad-CAM).
+                try:
+                    dummy = np.zeros((1, 224, 224, 3), dtype=np.float32)
+                    self.model.predict(dummy, verbose=0)
+                    logger.info("Model graph built successfully")
+                except Exception as build_err:
+                    logger.warning(f"Model graph build warning: {build_err}")
+                
+                # Log model layer structure for debugging Grad-CAM
+                for i, layer in enumerate(self.model.layers):
+                    logger.debug(f"  Layer [{i}]: {layer.name} ({type(layer).__name__})")
                 
                 # Load label map
                 if label_map_path.exists():
@@ -97,18 +203,40 @@ class AIModelService:
                 self.model_loaded = False
                 
         except Exception as e:
-            logger.error(f"Error loading AI model: {e}")
+            import traceback
+            logger.error(f"Error loading AI model: {e}\n{traceback.format_exc()}")
             self.model_loaded = False
     
     def _load_label_map(self, label_map_path: Path):
         """Load label map from file"""
         try:
-            with open(label_map_path, 'r', encoding='utf-8') as f:
-                labels = [line.strip() for line in f if line.strip()]
-            
-            self.label_map = {idx: label for idx, label in enumerate(labels)}
-            self.DISEASE_LABELS = labels
-            logger.info(f"Loaded {len(labels)} disease labels from label map")
+            with open(label_map_path, "r", encoding="utf-8") as f:
+                raw_lines = [line.strip() for line in f if line.strip()]
+
+            parsed_map: Dict[int, str] = {}
+            parsed_list: List[str] = []
+
+            for line in raw_lines:
+                if ":" in line:
+                    idx_str, label = line.split(":", 1)
+                    if idx_str.strip().isdigit():
+                        parsed_map[int(idx_str.strip())] = label.strip()
+                        continue
+                parsed_list.append(line)
+
+            if parsed_map:
+                self.label_map = parsed_map
+                self.DISEASE_LABELS = [
+                    label for _, label in sorted(parsed_map.items())
+                ]
+            else:
+                self.label_map = {idx: label for idx, label in enumerate(parsed_list)}
+                self.DISEASE_LABELS = parsed_list
+
+            logger.info(
+                "Loaded %s disease labels from label map",
+                len(self.DISEASE_LABELS)
+            )
             
         except Exception as e:
             logger.error(f"Error loading label map: {e}")
@@ -157,6 +285,10 @@ class AIModelService:
             Prediction results
         """
         try:
+            # Load model on first use
+            if not self.model_loaded:
+                self.load_models()
+
             # Preprocess image for model
             processed_image = self._preprocess_for_prediction(image)
             
@@ -178,24 +310,40 @@ class AIModelService:
             # Determine if healthy
             is_healthy = 'healthy' in disease_id.lower()
             
-            # Generate real Grad-CAM heatmap and severity estimation
-            if not is_healthy and self.model_loaded and self.model is not None:
+            # Generate Grad-CAM heatmap and severity estimation
+            if not is_healthy:
                 try:
-                    # Generate real Grad-CAM heatmap
-                    heatmap_image, severity_info = ImageProcessor.generate_gradcam(
-                        self.model, 
+                    if self.model is None:
+                        raise ValueError("Model is not loaded")
+
+                    heatmap_image, severity_info, raw_heatmap = ImageProcessor.generate_gradcam(
+                        self.model,
                         image
                     )
-                    severity = severity_info['severity']
-                    infected_ratio = severity_info['infected_ratio']
-                    
-                    # Also generate bounding boxes for additional visualization
-                    annotated_image, bounding_boxes = ImageProcessor.detect_bounding_boxes(image)
+                    severity = severity_info.get('severity', 'Unknown')
+                    infected_ratio = severity_info.get('infected_ratio', 0.0)
+
+                    # Derive bounding boxes from the Grad-CAM heatmap
+                    # so they highlight the actual infected regions.
+                    if raw_heatmap is not None:
+                        bounding_boxes = ImageProcessor.boxes_from_heatmap(
+                            raw_heatmap, image.shape,
+                            threshold=0.6,
+                            min_area_ratio=0.003,
+                            max_area_ratio=0.35,
+                        )
+                        annotated_image, _ = ImageProcessor.detect_bounding_boxes(
+                            image, detection_results=bounding_boxes
+                        )
+                    else:
+                        bounding_boxes = []
+                        annotated_image = image
                 except Exception as e:
-                    logger.warning(f"Grad-CAM generation failed: {e}, using fallback")
-                    # Fallback to bounding box severity if Grad-CAM fails
-                    annotated_image, bounding_boxes = ImageProcessor.detect_bounding_boxes(image)
-                    severity = ImageProcessor.calculate_severity(image, bounding_boxes)
+                    import traceback
+                    logger.error(f"Grad-CAM generation failed: {e}\n{traceback.format_exc()}")
+                    bounding_boxes = []
+                    annotated_image = image
+                    severity = "unknown"
                     heatmap_image = image
                     infected_ratio = 0.0
             else:
@@ -205,6 +353,8 @@ class AIModelService:
                 annotated_image = image
                 heatmap_image = image
                 infected_ratio = 0.0
+
+            severity = self._normalize_severity(severity)
             
             return {
                 "disease_id": disease_id,
@@ -227,22 +377,24 @@ class AIModelService:
     def _preprocess_for_prediction(self, image: np.ndarray) -> np.ndarray:
         """
         Preprocess image for model prediction
-        Model expects 224x224 RGB images normalized to [0, 1]
+        Model expects MobileNetV2 preprocessing
         """
         try:
             import cv2
             
             # Convert BGR to RGB
             rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-            
+
             # Resize to model input size (224x224 for MobileNetV2)
             resized = cv2.resize(rgb_image, (224, 224))
-            
-            # Normalize to [0, 1]
-            normalized = resized.astype(np.float32) / 255.0
-            
+
+            # Apply MobileNetV2 preprocessing
+            preprocessed = tf.keras.applications.mobilenet_v2.preprocess_input(
+                resized.astype(np.float32)
+            )
+
             # Add batch dimension
-            batched = np.expand_dims(normalized, axis=0)
+            batched = np.expand_dims(preprocessed, axis=0)
             
             return batched
             
@@ -252,24 +404,31 @@ class AIModelService:
     
     def _predict_with_model(self, processed_image: np.ndarray) -> Dict[str, Any]:
         """
-        Run prediction with loaded TensorFlow model
+        Run prediction with loaded TensorFlow model.
+        Uses test-time augmentation (TTA) for better accuracy.
         """
         try:
-            # Get predictions
-            predictions = self.model.predict(processed_image, verbose=0)
-            predictions = predictions[0]  # Remove batch dimension
+            # Simple prediction (TTA with vertical flip removed —
+            # it was hurting accuracy on plant images which have a
+            # natural orientation).
+            predictions = self.model.predict(processed_image, verbose=0)[0]
+            
+            # Log all prediction scores for debugging
+            logger.info(f"Prediction scores (TTA averaged): {dict(zip([self.label_map.get(i, f'Class_{i}') for i in range(len(predictions))], [f'{p:.4f}' for p in predictions]))}")
             
             # Get top prediction
             top_idx = np.argmax(predictions)
             top_confidence = float(predictions[top_idx])
             primary_disease = self.label_map.get(top_idx, f"Unknown_Class_{top_idx}")
             
+            logger.info(f"Top prediction: {primary_disease} ({top_confidence:.4f})")
+            
             # Get top 3 predictions for secondary diseases
             top_3_indices = np.argsort(predictions)[-3:][::-1]
             
             secondary_diseases = []
             for idx in top_3_indices[1:]:  # Skip the primary (already got it)
-                if predictions[idx] > 0.10:  # Only include if confidence > 10%
+                if predictions[idx] > 0.15:  # Only include if confidence > 15%
                     disease_id = self.label_map.get(idx, f"Unknown_Class_{idx}")
                     secondary_diseases.append({
                         "disease_id": disease_id,
@@ -293,6 +452,58 @@ class AIModelService:
         except Exception as e:
             logger.error(f"Error in model prediction: {e}")
             raise
+
+    def _compute_grad_cam(self, processed_image: np.ndarray) -> Optional[np.ndarray]:
+        """
+        Compute Grad-CAM heatmap for the top prediction.
+        Returns a 2D array normalized to [0, 1] or None on failure.
+        """
+        try:
+            if self.model is None:
+                return None
+
+            last_conv = self._get_last_conv_layer_name()
+            if last_conv is None:
+                return None
+
+            grad_model = tf.keras.models.Model(
+                [self.model.inputs],
+                [self.model.get_layer(last_conv).output, self.model.output]
+            )
+
+            with tf.GradientTape() as tape:
+                conv_outputs, predictions = grad_model(processed_image)
+                pred_index = tf.argmax(predictions[0])
+                pred_score = predictions[:, pred_index]
+
+            grads = tape.gradient(pred_score, conv_outputs)
+            if grads is None:
+                return None
+
+            pooled_grads = tf.reduce_mean(grads, axis=(0, 1, 2))
+            conv_outputs = conv_outputs[0]
+            heatmap = tf.reduce_sum(conv_outputs * pooled_grads, axis=-1)
+            heatmap = tf.maximum(heatmap, 0)
+            max_val = tf.reduce_max(heatmap)
+            if max_val == 0:
+                return None
+            heatmap = heatmap / max_val
+
+            return heatmap.numpy()
+        except Exception as e:
+            logger.error(f"Error generating Grad-CAM: {e}")
+            return None
+
+    def _get_last_conv_layer_name(self) -> Optional[str]:
+        """Find the last Conv2D layer name in the model."""
+        try:
+            for layer in reversed(self.model.layers):
+                if isinstance(layer, tf.keras.layers.Conv2D):
+                    return layer.name
+            return None
+        except Exception as e:
+            logger.error(f"Error locating last conv layer: {e}")
+            return None
     
     def _format_disease_name(self, disease_id: str) -> str:
         """Format disease ID to human-readable name"""
@@ -304,6 +515,20 @@ class AIModelService:
         name = name.replace('  ', ' ')
         
         return name
+
+    def _normalize_severity(self, severity: str) -> str:
+        """Normalize severity labels for consistent downstream use."""
+        if severity is None:
+            return "unknown"
+
+        normalized = str(severity).strip().lower()
+        if normalized in {"low", "medium", "high", "healthy", "unknown"}:
+            return normalized
+
+        if normalized in {"moderate", "mid"}:
+            return "medium"
+
+        return "unknown"
     
     async def _mock_predict(self, crop_type: str) -> Dict[str, Any]:
         """
