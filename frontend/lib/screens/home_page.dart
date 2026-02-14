@@ -11,6 +11,7 @@ import '../services/weather_api.dart';
 import '../services/diagnosis_api.dart';
 import '../services/notification_api.dart';
 import '../services/app_localizations.dart';
+import '../services/diagnosis_cache.dart';
 import 'auth/login_page.dart';
 import 'crop_capture_page.dart';
 import 'diagnosis_result_page.dart';
@@ -33,6 +34,7 @@ class _HomePageState extends State<HomePage> {
   final _weatherApi = WeatherApi();
   final _historyApi = HistoryApi();
   final _diagnosisApi = DiagnosisApi();
+  final _diagnosisCache = DiagnosisCacheService();
   final _authApi = AuthApi();
   final _notificationApi = NotificationApi();
   Map<String, dynamic>? _profile;
@@ -122,6 +124,7 @@ class _HomePageState extends State<HomePage> {
     await _refreshTokenIfWifi();
     _loadCachedProfile();
     _refreshProfile();
+    _loadCachedWeather();
     _loadWeather();
     _loadCachedHistory();
     _loadCachedAnalytics();
@@ -189,6 +192,15 @@ class _HomePageState extends State<HomePage> {
     if (cached != null && mounted) {
       setState(() {
         _historyAnalytics = cached;
+      });
+    }
+  }
+
+  Future<void> _loadCachedWeather() async {
+    final cached = await _tokenStorage.readWeather();
+    if (cached != null && mounted) {
+      setState(() {
+        _weatherInfo = WeatherInfo.fromJson(cached);
       });
     }
   }
@@ -276,10 +288,14 @@ class _HomePageState extends State<HomePage> {
         diagnosisId: diagnosisId,
         language: language,
       );
+      final cachedDiagnosis = await _diagnosisCache.cacheDiagnosisImages(
+        diagnosisId: diagnosisId,
+        result: diagnosis,
+      );
 
       await _tokenStorage.saveDiagnosisResult(
         diagnosisId: diagnosisId,
-        result: diagnosis,
+        result: cachedDiagnosis,
       );
 
       if (!mounted) {
@@ -290,8 +306,10 @@ class _HomePageState extends State<HomePage> {
       await Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) =>
-              DiagnosisResultPage(cropLabel: cropLabel, result: diagnosis),
+          builder: (_) => DiagnosisResultPage(
+            cropLabel: cropLabel,
+            result: cachedDiagnosis,
+          ),
         ),
       );
     } catch (error) {
@@ -404,6 +422,11 @@ class _HomePageState extends State<HomePage> {
       return;
     }
 
+    // Don't fetch if offline - just use cached weather
+    if (!_isOnline) {
+      return;
+    }
+
     setState(() {
       _isLoadingWeather = true;
       _weatherError = null;
@@ -416,6 +439,8 @@ class _HomePageState extends State<HomePage> {
         longitude: location.longitude,
       );
 
+      await _tokenStorage.saveWeather(weather.toJson());
+
       if (!mounted) {
         return;
       }
@@ -427,9 +452,12 @@ class _HomePageState extends State<HomePage> {
       if (!mounted) {
         return;
       }
-      setState(() {
-        _weatherError = error.toString().replaceFirst('Exception: ', '');
-      });
+      // Only show error if we don't have cached weather to display
+      if (_weatherInfo == null) {
+        setState(() {
+          _weatherError = error.toString().replaceFirst('Exception: ', '');
+        });
+      }
     } finally {
       if (mounted) {
         setState(() {
@@ -609,12 +637,31 @@ class _HomePageState extends State<HomePage> {
                 subtitle: context.t('Live conditions near your farm'),
               ),
               const SizedBox(height: 12),
-              if (_isLoadingWeather)
+              if (_weatherInfo != null)
+                Stack(
+                  children: [
+                    _WeatherCard(weather: _weatherInfo!),
+                    if (_isLoadingWeather)
+                      Positioned(
+                        top: 8,
+                        right: 8,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        ),
+                      ),
+                  ],
+                )
+              else if (_isLoadingWeather)
                 const Center(child: CircularProgressIndicator())
-              else if (_weatherError != null)
-                Text(_weatherError!, style: TextStyle(color: scheme.error))
-              else if (_weatherInfo != null)
-                _WeatherCard(weather: _weatherInfo!)
               else
                 Text(context.t('Weather data unavailable.')),
               const SizedBox(height: 24),
@@ -668,6 +715,7 @@ class _HomePageState extends State<HomePage> {
                         _deleteHistoryItem(item['_id']?.toString() ?? ''),
                     onDownload: () =>
                         _downloadReport(item['diagnosis_id']?.toString() ?? ''),
+                    actionsEnabled: _isOnline,
                   ),
                 ),
             ],
@@ -734,6 +782,13 @@ class _WeatherCard extends StatelessWidget {
                       weather.conditionIconUrl,
                       width: 44,
                       height: 44,
+                      errorBuilder: (context, error, stackTrace) {
+                        return const SizedBox(
+                          width: 44,
+                          height: 44,
+                          child: Icon(Icons.cloud),
+                        );
+                      },
                     ),
                   Text(
                     '${weather.tempC.toStringAsFixed(1)} C',
@@ -835,12 +890,14 @@ class _HistoryCard extends StatelessWidget {
     required this.onOpen,
     required this.onDelete,
     required this.onDownload,
+    required this.actionsEnabled,
   });
 
   final Map<String, dynamic> item;
   final VoidCallback onOpen;
   final VoidCallback onDelete;
   final VoidCallback onDownload;
+  final bool actionsEnabled;
 
   @override
   Widget build(BuildContext context) {
@@ -889,13 +946,13 @@ class _HistoryCard extends StatelessWidget {
               Row(
                 children: [
                   OutlinedButton.icon(
-                    onPressed: onDownload,
+                    onPressed: actionsEnabled ? onDownload : null,
                     icon: const Icon(Icons.download),
                     label: Text(context.t('Report')),
                   ),
                   const SizedBox(width: 12),
                   TextButton.icon(
-                    onPressed: onDelete,
+                    onPressed: actionsEnabled ? onDelete : null,
                     icon: const Icon(Icons.delete),
                     label: Text(context.t('Delete')),
                   ),

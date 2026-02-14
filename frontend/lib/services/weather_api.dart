@@ -37,6 +37,22 @@ class WeatherInfo {
     );
   }
 
+  Map<String, dynamic> toJson() {
+    return {
+      'location': {'name': locationName},
+      'current': {
+        'temp_c': tempC,
+        'feelslike_c': feelsLikeC,
+        'humidity': humidity,
+        'wind_kph': windKph,
+        'condition': {
+          'text': conditionText,
+          'icon': conditionIconUrl,
+        },
+      },
+    };
+  }
+
   static String _normalizeIcon(String? icon) {
     if (icon == null || icon.isEmpty) {
       return '';

@@ -9,6 +9,7 @@ import 'package:video_thumbnail/video_thumbnail.dart';
 
 import '../services/blur_detector.dart';
 import '../services/diagnosis_api.dart';
+import '../services/diagnosis_cache.dart';
 import '../services/token_storage.dart';
 import '../services/app_localizations.dart';
 import 'diagnosis_result_page.dart';
@@ -26,6 +27,7 @@ class CropCapturePage extends StatefulWidget {
 class _CropCapturePageState extends State<CropCapturePage> {
   final _picker = ImagePicker();
   final _diagnosisApi = DiagnosisApi();
+  final _diagnosisCache = DiagnosisCacheService();
   final _tokenStorage = const TokenStorage();
   final _blurDetector = const BlurDetector();
 
@@ -229,12 +231,16 @@ class _CropCapturePageState extends State<CropCapturePage> {
         imageFile: imageFile,
         language: language,
       );
-
+      var displayResult = result;
       final diagnosisId = _extractDiagnosisId(result);
       if (diagnosisId != null && diagnosisId.isNotEmpty) {
-        await _tokenStorage.saveDiagnosisResult(
+        displayResult = await _diagnosisCache.cacheDiagnosisImages(
           diagnosisId: diagnosisId,
           result: result,
+        );
+        await _tokenStorage.saveDiagnosisResult(
+          diagnosisId: diagnosisId,
+          result: displayResult,
         );
       }
 
@@ -246,7 +252,7 @@ class _CropCapturePageState extends State<CropCapturePage> {
         context,
         MaterialPageRoute(
           builder: (_) =>
-              DiagnosisResultPage(cropLabel: crop.label, result: result),
+              DiagnosisResultPage(cropLabel: crop.label, result: displayResult),
         ),
       );
     } catch (error) {

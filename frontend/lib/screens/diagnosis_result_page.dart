@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 
 import '../services/api_config.dart';
@@ -41,6 +43,8 @@ class DiagnosisResultPage extends StatelessWidget {
 
     final imageUrl = _resolveUrl(result['image_url']?.toString());
     final heatmapUrl = _resolveUrl(result['heatmap_url']?.toString());
+    final localImagePath = result['local_image_path']?.toString() ?? '';
+    final localHeatmapPath = result['local_heatmap_path']?.toString() ?? '';
     final secondaryDiagnoses = _parseSecondaryDiagnoses(result);
     final hasMultiInfection = secondaryDiagnoses.isNotEmpty;
 
@@ -118,27 +122,44 @@ class DiagnosisResultPage extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16),
-              if (imageUrl.isNotEmpty)
+              if (localImagePath.isNotEmpty || imageUrl.isNotEmpty)
                 _ImageSection(
                   label: context.t('Image'),
-                  url: imageUrl,
+                  url: localImagePath.isNotEmpty ? localImagePath : imageUrl,
+                  isLocalPath: localImagePath.isNotEmpty,
                   boxes: boxes,
                 ),
-              if (heatmapUrl.isNotEmpty) ...[
+              if (localHeatmapPath.isNotEmpty || heatmapUrl.isNotEmpty) ...[
                 const SizedBox(height: 16),
-                if (imageUrl.isNotEmpty)
+                if (localImagePath.isNotEmpty || imageUrl.isNotEmpty)
                   _MatchedImageSection(
                     label: context.t('Heatmap'),
-                    imageUrl: heatmapUrl,
-                    matchUrl: imageUrl,
+                    imageUrl: localHeatmapPath.isNotEmpty
+                        ? localHeatmapPath
+                        : heatmapUrl,
+                    matchUrl: localImagePath.isNotEmpty
+                        ? localImagePath
+                        : imageUrl,
+                    isLocalImage: localHeatmapPath.isNotEmpty,
+                    isLocalMatch: localImagePath.isNotEmpty,
                   )
                 else
-                  _ImageSection(label: context.t('Heatmap'), url: heatmapUrl),
+                  _ImageSection(
+                    label: context.t('Heatmap'),
+                    url: localHeatmapPath.isNotEmpty
+                        ? localHeatmapPath
+                        : heatmapUrl,
+                    isLocalPath: localHeatmapPath.isNotEmpty,
+                  ),
               ],
-              if (imageUrl.isNotEmpty && diseaseId.isNotEmpty) ...[
+              if ((localImagePath.isNotEmpty || imageUrl.isNotEmpty) &&
+                  diseaseId.isNotEmpty) ...[
                 const SizedBox(height: 20),
                 _SideBySideComparison(
-                  capturedUrl: imageUrl,
+                  capturedUrl: localImagePath.isNotEmpty
+                      ? localImagePath
+                      : imageUrl,
+                  isLocalPath: localImagePath.isNotEmpty,
                   referenceAsset:
                       'assets/images/reference_diseases/$diseaseId.jpeg',
                 ),
@@ -170,6 +191,19 @@ class DiagnosisResultPage extends StatelessWidget {
       return '${ApiConfig.baseHost}$path';
     }
     return '${ApiConfig.baseHost}/$path';
+  }
+
+  String _resolveImageSource(String? urlOrPath) {
+    // Use cached local path if available, otherwise use network URL.
+    if (urlOrPath == null || urlOrPath.isEmpty) {
+      return '';
+    }
+    // If path starts with / and contains diagnosis_cache, it's a local file path
+    if (urlOrPath.startsWith('/') && urlOrPath.contains('diagnosis_cache')) {
+      return urlOrPath;
+    }
+    // Otherwise resolve to URL
+    return _resolveUrl(urlOrPath);
   }
 
   List<_BoundingBox> _parseBoxes(dynamic data) {
@@ -394,11 +428,13 @@ class _ImageSection extends StatelessWidget {
   const _ImageSection({
     required this.label,
     required this.url,
+    this.isLocalPath = false,
     this.boxes = const [],
   });
 
   final String label;
   final String url;
+  final bool isLocalPath;
   final List<_BoundingBox> boxes;
 
   @override
@@ -411,22 +447,41 @@ class _ImageSection extends StatelessWidget {
         ClipRRect(
           borderRadius: BorderRadius.circular(16),
           child: boxes.isEmpty
-              ? Image.network(
-                  url,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.surfaceContainerHighest,
-                      padding: const EdgeInsets.all(20),
-                      child: const Center(child: Icon(Icons.broken_image)),
-                    );
-                  },
-                )
-              : _ImageWithBoxes(url: url, boxes: boxes),
+              ? _buildImage(url, isLocalPath)
+              : _ImageWithBoxes(
+                  url: url,
+                  isLocalPath: isLocalPath,
+                  boxes: boxes,
+                ),
         ),
       ],
+    );
+  }
+
+  Widget _buildImage(String source, bool isLocal) {
+    if (isLocal) {
+      return Image.file(
+        File(source),
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return Container(
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            padding: const EdgeInsets.all(20),
+            child: const Center(child: Icon(Icons.broken_image)),
+          );
+        },
+      );
+    }
+    return Image.network(
+      source,
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) {
+        return Container(
+          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+          padding: const EdgeInsets.all(20),
+          child: const Center(child: Icon(Icons.broken_image)),
+        );
+      },
     );
   }
 }
@@ -453,11 +508,15 @@ class _MatchedImageSection extends StatelessWidget {
     required this.label,
     required this.imageUrl,
     required this.matchUrl,
+    this.isLocalImage = false,
+    this.isLocalMatch = false,
   });
 
   final String label;
   final String imageUrl;
   final String matchUrl;
+  final bool isLocalImage;
+  final bool isLocalMatch;
 
   @override
   Widget build(BuildContext context) {
@@ -471,6 +530,8 @@ class _MatchedImageSection extends StatelessWidget {
           child: _ImageWithMatchedAspect(
             imageUrl: imageUrl,
             matchUrl: matchUrl,
+            isLocalImage: isLocalImage,
+            isLocalMatch: isLocalMatch,
           ),
         ),
       ],
@@ -482,10 +543,14 @@ class _ImageWithMatchedAspect extends StatefulWidget {
   const _ImageWithMatchedAspect({
     required this.imageUrl,
     required this.matchUrl,
+    this.isLocalImage = false,
+    this.isLocalMatch = false,
   });
 
   final String imageUrl;
   final String matchUrl;
+  final bool isLocalImage;
+  final bool isLocalMatch;
 
   @override
   State<_ImageWithMatchedAspect> createState() =>
@@ -512,7 +577,9 @@ class _ImageWithMatchedAspectState extends State<_ImageWithMatchedAspect> {
 
   void _resolveMatchImage() {
     // Match aspect ratio to the reference image.
-    final image = Image.network(widget.matchUrl);
+    final image = widget.isLocalMatch
+        ? Image.file(File(widget.matchUrl))
+        : Image.network(widget.matchUrl);
     final stream = image.image.resolve(const ImageConfiguration());
     stream.addListener(
       ImageStreamListener(
@@ -552,17 +619,33 @@ class _ImageWithMatchedAspectState extends State<_ImageWithMatchedAspect> {
         return SizedBox(
           width: width,
           height: height,
-          child: Image.network(
-            widget.imageUrl,
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) {
-              return Container(
-                color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                padding: const EdgeInsets.all(20),
-                child: const Center(child: Icon(Icons.broken_image)),
-              );
-            },
-          ),
+          child: widget.isLocalImage
+              ? Image.file(
+                  File(widget.imageUrl),
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.surfaceContainerHighest,
+                      padding: const EdgeInsets.all(20),
+                      child: const Center(child: Icon(Icons.broken_image)),
+                    );
+                  },
+                )
+              : Image.network(
+                  widget.imageUrl,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.surfaceContainerHighest,
+                      padding: const EdgeInsets.all(20),
+                      child: const Center(child: Icon(Icons.broken_image)),
+                    );
+                  },
+                ),
         );
       },
     );
@@ -573,10 +656,12 @@ class _SideBySideComparison extends StatelessWidget {
   const _SideBySideComparison({
     required this.capturedUrl,
     required this.referenceAsset,
+    this.isLocalPath = false,
   });
 
   final String capturedUrl;
   final String referenceAsset;
+  final bool isLocalPath;
 
   @override
   Widget build(BuildContext context) {
@@ -593,13 +678,21 @@ class _SideBySideComparison extends StatelessWidget {
             Expanded(
               child: _ComparisonTile(
                 label: context.t('Captured'),
-                child: Image.network(
-                  capturedUrl,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return const _ImageFallback();
-                  },
-                ),
+                child: isLocalPath
+                    ? Image.file(
+                        File(capturedUrl),
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return const _ImageFallback();
+                        },
+                      )
+                    : Image.network(
+                        capturedUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return const _ImageFallback();
+                        },
+                      ),
               ),
             ),
             const SizedBox(width: 12),
@@ -657,10 +750,15 @@ class _ImageFallback extends StatelessWidget {
 }
 
 class _ImageWithBoxes extends StatefulWidget {
-  const _ImageWithBoxes({required this.url, required this.boxes});
+  const _ImageWithBoxes({
+    required this.url,
+    required this.boxes,
+    this.isLocalPath = false,
+  });
 
   final String url;
   final List<_BoundingBox> boxes;
+  final bool isLocalPath;
 
   @override
   State<_ImageWithBoxes> createState() => _ImageWithBoxesState();
@@ -685,7 +783,9 @@ class _ImageWithBoxesState extends State<_ImageWithBoxes> {
   }
 
   void _resolveImage() {
-    final image = Image.network(widget.url);
+    final image = widget.isLocalPath
+        ? Image.file(File(widget.url))
+        : Image.network(widget.url);
     final stream = image.image.resolve(const ImageConfiguration());
     stream.addListener(
       ImageStreamListener(
@@ -728,19 +828,33 @@ class _ImageWithBoxesState extends State<_ImageWithBoxes> {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              Image.network(
-                widget.url,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.surfaceContainerHighest,
-                    padding: const EdgeInsets.all(20),
-                    child: const Center(child: Icon(Icons.broken_image)),
-                  );
-                },
-              ),
+              widget.isLocalPath
+                  ? Image.file(
+                      File(widget.url),
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.surfaceContainerHighest,
+                          padding: const EdgeInsets.all(20),
+                          child: const Center(child: Icon(Icons.broken_image)),
+                        );
+                      },
+                    )
+                  : Image.network(
+                      widget.url,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.surfaceContainerHighest,
+                          padding: const EdgeInsets.all(20),
+                          child: const Center(child: Icon(Icons.broken_image)),
+                        );
+                      },
+                    ),
               if (imageSize != null)
                 CustomPaint(
                   painter: _BoundingBoxPainter(

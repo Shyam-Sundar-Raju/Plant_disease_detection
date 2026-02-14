@@ -9,6 +9,8 @@ from functools import lru_cache
 import json
 
 
+
+
 class Settings(BaseSettings):
     """Application settings loaded from environment variables"""
     
@@ -21,6 +23,7 @@ class Settings(BaseSettings):
     # Server
     HOST: str = "0.0.0.0"
     PORT: int = 8000
+
     
     # MongoDB Configuration
     MONGODB_URL: str
