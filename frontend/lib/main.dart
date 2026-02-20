@@ -125,6 +125,10 @@ class PlantDiseaseApp extends StatelessWidget {
           CropCapturePage.routeName: (_) => const CropCapturePage(),
           ChatbotPage.routeName: (_) => const ChatbotPage(),
         },
+      ),
+    );
+  }
+}
 
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
