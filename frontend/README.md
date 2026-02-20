@@ -1,4 +1,5 @@
 # Plant Disease Detection Frontend (Flutter)
+[![Frontend CI](https://github.com/Shyam-Sundar-Raju/Plant_disease_detection/actions/workflows/frontend.yml/badge.svg)](https://github.com/Shyam-Sundar-Raju/Plant_disease_detection/actions/workflows/frontend.yml)
 
 Mobile client for the Plant Disease Detection platform. The app handles user auth, crop image capture, diagnosis results, remediation guidance, and profile/history views.
 

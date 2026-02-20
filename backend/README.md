@@ -1,4 +1,5 @@
 # Crop Disease Detection - Backend API
+[![Backend CI](https://github.com/Shyam-Sundar-Raju/Plant_disease_detection/actions/workflows/backend.yml/badge.svg)](https://github.com/Shyam-Sundar-Raju/Plant_disease_detection/actions/workflows/backend.yml)
 
 ## 🌾 Overview
 
