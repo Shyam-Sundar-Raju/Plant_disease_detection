@@ -59,3 +59,6 @@ gunicorn==21.2.0
 # AI/ML Libraries
 tensorflow==2.15.0
 scikit-learn==1.4.0
+transformers==4.36.2
+torch==2.1.2
+deep-translator==1.11.4
