@@ -1,0 +1,49 @@
+name: Production Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Build Docker Image
+        run: |
+          cd backend
+          docker build -t plant-disease-backend:${{ github.ref_name }} .
+          # Here you would typically push to a registry like Docker Hub or GHCR
+          # docker push plant-disease-backend:${{ github.ref_name }}
+
+  release-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Build APK
+        run: |
+          cd frontend
+          flutter pub get
+          flutter build apk --release
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: plant-disease-app-apk
+          path: frontend/build/app/outputs/flutter-apk/app-release.apk
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: frontend/build/app/outputs/flutter-apk/app-release.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
