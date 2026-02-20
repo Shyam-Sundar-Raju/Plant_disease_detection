@@ -16,6 +16,7 @@ import 'auth/login_page.dart';
 import 'crop_capture_page.dart';
 import 'diagnosis_result_page.dart';
 import 'profile_page.dart';
+import 'chatbot_page.dart';
 
 // Dashboard screen for weather, history, and actions.
 class HomePage extends StatefulWidget {
@@ -722,12 +723,28 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          Navigator.pushNamed(context, CropCapturePage.routeName);
-        },
-        icon: const Icon(Icons.camera_alt),
-        label: Text(context.t('Scan crop')),
+      floatingActionButton: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          FloatingActionButton(
+            heroTag: "chatbot",
+            onPressed: () {
+              Navigator.pushNamed(context, ChatbotPage.routeName);
+            },
+            backgroundColor: Theme.of(context).colorScheme.secondary,
+            child: const Icon(Icons.smart_toy),
+            tooltip: context.t('AI Assistant'),
+          ),
+          const SizedBox(width: 16),
+          FloatingActionButton.extended(
+            heroTag: "camera",
+            onPressed: () {
+              Navigator.pushNamed(context, CropCapturePage.routeName);
+            },
+            icon: const Icon(Icons.camera_alt),
+            label: Text(context.t('Scan crop')),
+          ),
+        ],
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: const BottomAppBar(
