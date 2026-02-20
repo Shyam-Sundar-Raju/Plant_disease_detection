@@ -192,6 +192,8 @@ class AppLocalizations {
       'Frequency {value}': 'Frequency {value}',
       'Cost {value}': 'Cost {value}',
       'Crop image': 'Crop image',
+      'The AI could not identify this disease with certainty. Please consult an agricultural expert for an accurate diagnosis.':
+          'The AI could not identify this disease with certainty. Please consult an agricultural expert for an accurate diagnosis.',
     },
     'hi': {
       'AgroScan': 'AgroScan',
@@ -338,6 +340,8 @@ class AppLocalizations {
       'Frequency {value}': 'आवृत्ति {value}',
       'Cost {value}': 'लागत {value}',
       'Crop image': 'छवि क्रॉप करें',
+      'The AI could not identify this disease with certainty. Please consult an agricultural expert for an accurate diagnosis.':
+          'AI इस रोग की पहचान निश्चितता से नहीं कर सका। सटीक निदान के लिए किसी कृषि विशेषज्ञ से परामर्श करें।',
     },
     'ta': {
       'AgroScan': 'AgroScan',
@@ -486,6 +490,8 @@ class AppLocalizations {
       'Frequency {value}': 'அடிக்கடி {value}',
       'Cost {value}': 'செலவு {value}',
       'Crop image': 'படத்தை குரைத்தல்',
+      'The AI could not identify this disease with certainty. Please consult an agricultural expert for an accurate diagnosis.':
+          'AI இந்த நோயை உறுதியாக அடையாளம் காண இயலவில்லை. சரியான நோயறிதலுக்கு விவசாய நிபுணரிடம் ஆலோசிக்கவும்.',
     },
     'te': {
       'AgroScan': 'AgroScan',
@@ -633,6 +639,8 @@ class AppLocalizations {
       'Frequency {value}': 'తరచుదనం {value}',
       'Cost {value}': 'ఖర్చు {value}',
       'Crop image': 'చిత్రాన్ని క్రాప్ చేయండి',
+      'The AI could not identify this disease with certainty. Please consult an agricultural expert for an accurate diagnosis.':
+          'AI ఈ వ్యాధిని ఖచ్చితంగా గుర్తించలేకపోయింది. సరైన నిర్ధారణ కోసం వ్యవసాయ నిపుణుని సంప్రదించండి.',
     },
     'kn': {
       'AgroScan': 'AgroScan',
@@ -781,6 +789,8 @@ class AppLocalizations {
       'Frequency {value}': 'ಆವೃತ್ತಿ {value}',
       'Cost {value}': 'ವೆಚ್ಚ {value}',
       'Crop image': 'ಚಿತ್ರವನ್ನು ಕ್ರಾಪ್ ಮಾಡಿ',
+      'The AI could not identify this disease with certainty. Please consult an agricultural expert for an accurate diagnosis.':
+          'AI ಈ ರೋಗವನ್ನು ಖಚಿತವಾಗಿ ಗುರುತಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ನಿಖರ ನಿರ್ಣಯಕ್ಕಾಗಿ ಕೃಷಿ ತಜ್ಞರನ್ನು ಸಂಪರ್ಕಿಸಿ.',
     },
     'ml': {
       'AgroScan': 'AgroScan',
@@ -930,6 +940,8 @@ class AppLocalizations {
       'Frequency {value}': 'ആവർത്തനം {value}',
       'Cost {value}': 'ചെലവ് {value}',
       'Crop image': 'ചിത്രം ക്രോപ് ചെയ്യുക',
+      'The AI could not identify this disease with certainty. Please consult an agricultural expert for an accurate diagnosis.':
+          'AI ഈ രോഗം ഉറപ്പോടെ തിരിച്ചറിയാൻ കഴിഞ്ഞില്ല. കൃത്യമായ രോഗനിർണയത്തിനായി ഒരു കാർഷിക വിദഗ്ധനെ സമീപിക്കുക.',
     },
   };
 

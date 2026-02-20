@@ -25,8 +25,10 @@ class DiagnosisResultPage extends StatelessWidget {
     final confidencePercent = _parseConfidencePercent(result['confidence']);
     final isHealthy = result['is_healthy'] == true;
     final boxes = _parseBoxes(result['bounding_boxes']);
+    // US13: Check backend is_uncertain flag OR client-side low confidence
     final isLowConfidence =
-        !isHealthy && confidencePercent > 0 && confidencePercent < 40;
+        result['is_uncertain'] == true ||
+        (!isHealthy && confidencePercent > 0 && confidencePercent < 40);
     final displayDiseaseName = isLowConfidence
         ? context.t('Unknown disease')
         : (isHealthy ? context.t('Healthy') : diseaseName);
@@ -47,6 +49,7 @@ class DiagnosisResultPage extends StatelessWidget {
     final localHeatmapPath = result['local_heatmap_path']?.toString() ?? '';
     final secondaryDiagnoses = _parseSecondaryDiagnoses(result);
     final hasMultiInfection = secondaryDiagnoses.isNotEmpty;
+    final isOffline = result['is_offline'] == true;
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -122,6 +125,74 @@ class DiagnosisResultPage extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16),
+              // US13: Warning banner for uncertain / low-confidence results
+              if (isLowConfidence) ...[
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.amber.shade400),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.help_outline_rounded,
+                        color: Colors.amber.shade800,
+                        size: 28,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          context.t(
+                            'The AI could not identify this disease with certainty. '
+                            'Please consult an agricultural expert for an accurate diagnosis.',
+                          ),
+                          style: TextStyle(
+                            color: Colors.amber.shade900,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+              // Offline indicator banner
+              if (isOffline) ...[
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.blue.shade300),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.cloud_off_rounded,
+                        color: Colors.blue.shade700,
+                        size: 28,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          context.t(
+                            'Offline result — diagnosis was run on-device. '
+                            'Results may be less accurate than online analysis.',
+                          ),
+                          style: TextStyle(
+                            color: Colors.blue.shade800,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
               if (localImagePath.isNotEmpty || imageUrl.isNotEmpty)
                 _ImageSection(
                   label: context.t('Image'),

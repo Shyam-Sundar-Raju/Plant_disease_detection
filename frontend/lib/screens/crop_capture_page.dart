@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
@@ -10,6 +11,7 @@ import 'package:video_thumbnail/video_thumbnail.dart';
 import '../services/blur_detector.dart';
 import '../services/diagnosis_api.dart';
 import '../services/diagnosis_cache.dart';
+import '../services/offline_model_service.dart';
 import '../services/token_storage.dart';
 import '../services/app_localizations.dart';
 import 'diagnosis_result_page.dart';
@@ -212,36 +214,49 @@ class _CropCapturePageState extends State<CropCapturePage> {
         return;
       }
 
-      final accessToken = await _tokenStorage.readAccessToken();
-      if (accessToken == null || accessToken.isEmpty) {
-        _showError(context.tRead('Missing access token. Please log in again.'));
-        return;
-      }
-
-      final profile = await _tokenStorage.readUserProfile();
-      final language = profile?['preferred_language']?.toString();
-
       setState(() {
         _isSubmitting = true;
       });
 
-      final result = await _diagnosisApi.createDiagnosis(
-        accessToken: accessToken,
-        cropType: crop.code,
-        imageFile: imageFile,
-        language: language,
-      );
-      var displayResult = result;
-      final diagnosisId = _extractDiagnosisId(result);
-      if (diagnosisId != null && diagnosisId.isNotEmpty) {
-        displayResult = await _diagnosisCache.cacheDiagnosisImages(
-          diagnosisId: diagnosisId,
-          result: result,
+      // Check network connectivity
+      final connectivity = await Connectivity().checkConnectivity();
+      final isOffline = connectivity.contains(ConnectivityResult.none);
+
+      Map<String, dynamic> displayResult;
+
+      if (isOffline) {
+        // --- Offline: run on-device TFLite model ---
+        final offlineService = OfflineModelService.instance;
+        displayResult = await offlineService.predict(imageFile, crop.code);
+      } else {
+        // --- Online: use backend API ---
+        final accessToken = await _tokenStorage.readAccessToken();
+        if (accessToken == null || accessToken.isEmpty) {
+          _showError(context.tRead('Missing access token. Please log in again.'));
+          return;
+        }
+
+        final profile = await _tokenStorage.readUserProfile();
+        final language = profile?['preferred_language']?.toString();
+
+        final result = await _diagnosisApi.createDiagnosis(
+          accessToken: accessToken,
+          cropType: crop.code,
+          imageFile: imageFile,
+          language: language,
         );
-        await _tokenStorage.saveDiagnosisResult(
-          diagnosisId: diagnosisId,
-          result: displayResult,
-        );
+        displayResult = result;
+        final diagnosisId = _extractDiagnosisId(result);
+        if (diagnosisId != null && diagnosisId.isNotEmpty) {
+          displayResult = await _diagnosisCache.cacheDiagnosisImages(
+            diagnosisId: diagnosisId,
+            result: result,
+          );
+          await _tokenStorage.saveDiagnosisResult(
+            diagnosisId: diagnosisId,
+            result: displayResult,
+          );
+        }
       }
 
       if (!mounted) {

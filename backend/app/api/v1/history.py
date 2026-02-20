@@ -239,7 +239,7 @@ async def download_report(
                     language=language
                 )
             else:
-                remediation_data = await remediation_service.get_remediation_full(
+                remediation_data = await remediation_service.get_remediation(
                     db=db,
                     disease_id=diagnosis["disease_id"],
                     severity=diagnosis["severity"],

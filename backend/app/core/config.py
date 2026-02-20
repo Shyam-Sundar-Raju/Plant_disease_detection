@@ -70,7 +70,7 @@ class Settings(BaseSettings):
     # AI Model Settings
     MODEL_PATH: str = "models"
     BLUR_THRESHOLD: int = 100  # Laplacian variance threshold
-    CONFIDENCE_THRESHOLD: float = 0.45
+    CONFIDENCE_THRESHOLD: float = 0.85
     SEVERITY_LOW_THRESHOLD: float = 0.10
     SEVERITY_MEDIUM_THRESHOLD: float = 0.40
     
