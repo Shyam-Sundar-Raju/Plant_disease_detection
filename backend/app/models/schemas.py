@@ -198,6 +198,7 @@ class DiagnosisResponse(BaseModel):
     confidence: float
     severity: str
     is_healthy: bool
+    is_uncertain: bool = False
     image_url: str
     heatmap_url: Optional[str] = None
     bounding_boxes: Optional[List[BoundingBox]] = []

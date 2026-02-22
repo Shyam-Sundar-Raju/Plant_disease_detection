@@ -302,7 +302,34 @@ class AIModelService:
             # Get top prediction
             disease_id = predictions['primary_disease']
             confidence = predictions['confidence']
-            disease_name = self._format_disease_name(disease_id)
+            entropy = predictions.get('entropy', 0.0)
+            margin = predictions.get('margin', 1.0)
+            
+            # US13: Multi-signal uncertainty detection
+            # Flag as uncertain if ANY of these are true:
+            #   1. Confidence below threshold (default 0.85)
+            #   2. High entropy (model output is spread across classes — OOD input)
+            #   3. Small margin between top-2 predictions (model can't distinguish)
+            low_confidence = not self.check_confidence_threshold(confidence)
+            high_entropy = entropy > 2.0
+            low_margin = margin < 0.10
+            is_uncertain = low_confidence or high_entropy or low_margin
+            
+            if is_uncertain:
+                disease_name = "Unknown/Unclear"
+                reasons = []
+                if low_confidence:
+                    reasons.append(f"confidence {confidence:.4f} < {settings.CONFIDENCE_THRESHOLD}")
+                if high_entropy:
+                    reasons.append(f"entropy {entropy:.4f} > 2.0")
+                if low_margin:
+                    reasons.append(f"margin {margin:.4f} < 0.10")
+                logger.warning(
+                    f"Uncertain prediction ({', '.join(reasons)}). "
+                    f"Original guess: {disease_id}. Returning Unknown/Unclear."
+                )
+            else:
+                disease_name = self._format_disease_name(disease_id)
             
             # Check if multiple diseases detected
             secondary_diseases = predictions.get('secondary_diseases', [])
@@ -360,6 +387,7 @@ class AIModelService:
                 "disease_id": disease_id,
                 "disease_name": disease_name,
                 "confidence": float(confidence),
+                "is_uncertain": is_uncertain,
                 "severity": severity,
                 "infected_ratio": infected_ratio,
                 "is_healthy": is_healthy,
@@ -423,6 +451,17 @@ class AIModelService:
             
             logger.info(f"Top prediction: {primary_disease} ({top_confidence:.4f})")
             
+            # --- US13: Additional uncertainty signals ---
+            # 1. Entropy check: high entropy means the model is confused / input is OOD
+            clipped = np.clip(predictions, 1e-10, 1.0)
+            entropy = -np.sum(clipped * np.log(clipped))
+            
+            # 2. Margin check: small gap between top-2 means model can't distinguish
+            sorted_preds = np.sort(predictions)[::-1]
+            margin = float(sorted_preds[0] - sorted_preds[1]) if len(sorted_preds) > 1 else 1.0
+            
+            logger.info(f"Entropy: {entropy:.4f}, Margin (top1-top2): {margin:.4f}")
+            
             # Get top 3 predictions for secondary diseases
             top_3_indices = np.argsort(predictions)[-3:][::-1]
             
@@ -445,6 +484,8 @@ class AIModelService:
             return {
                 "primary_disease": primary_disease,
                 "confidence": top_confidence,
+                "entropy": entropy,
+                "margin": margin,
                 "secondary_diseases": secondary_diseases,
                 "all_predictions": all_predictions
             }

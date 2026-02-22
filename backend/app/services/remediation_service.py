@@ -9,186 +9,55 @@ import logging
 
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from app.utils.localization import Localizer
-import logging
 
 logger = logging.getLogger(__name__)
 
 
+def _load_remediation_json() -> Dict[str, Any]:
+    """Load the comprehensive remediation knowledge base from JSON file."""
+    json_path = Path(__file__).parent.parent / "data" / "remediation.json"
+    try:
+        with open(json_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        logger.info(f"Loaded remediation knowledge base with {len(data)} diseases from {json_path}")
+        return data
+    except Exception as e:
+        logger.warning(f"Could not load remediation.json: {e}. Using empty fallback.")
+        return {}
+
+
 class RemediationService:
     """Service for disease remediation and treatment recommendations"""
-    
 
-    KNOWLEDGE_BASE = {
-        "tomato_early_blight": {
-            "disease_id": "tomato_early_blight",
-            "name": {
-                "en": "Early Blight",
-                "hi": "प्रारंभिक झुलसा",
-                "kn": "ಆರಂಭಿಕ ಬ್ಲೈಟ್",
-                "ta": "ஆரம்ப வாட்டம்",
-                "te": "ప్రారంభ బ్లైట్"
-            },
-            "description": {
-                "en": "A fungal disease affecting tomato leaves and stems",
-                "hi": "टमाटर की पत्तियों और तनों को प्रभावित करने वाली फफूंद रोग"
-            },
-            "organic_treatment": {
-                "type": "organic",
-                "steps": [
-                    {
-                        "step_number": 1,
-                        "description": {
-                            "en": "Remove and destroy infected leaves immediately",
-                            "hi": "संक्रमित पत्तियों को तुरंत हटाएं और नष्ट करें"
-                        },
-                        "icon": "remove",
-                        "safety_warning": {
-                            "en": "Wear gloves while handling infected plants",
-                            "hi": "संक्रमित पौधों को संभालते समय दस्ताने पहनें"
-                        }
-                    },
-                    {
-                        "step_number": 2,
-                        "description": {
-                            "en": "Apply neem oil spray (5ml per liter of water)",
-                            "hi": "नीम का तेल स्प्रे करें (प्रति लीटर पानी में 5ml)"
-                        },
-                        "icon": "spray",
-                        "duration": {
-                            "en": "Every 7 days",
-                            "hi": "हर 7 दिन में"
-                        }
-                    },
-                    {
-                        "step_number": 3,
-                        "description": {
-                            "en": "Improve air circulation around plants",
-                            "hi": "पौधों के चारों ओर हवा का संचार बेहतर करें"
-                        },
-                        "icon": "air"
-                    }
-                ],
-                "dosage": {
-                    "en": "5ml neem oil per liter of water",
-                    "hi": "प्रति लीटर पानी में 5ml नीम का तेल"
-                },
-                "frequency": {
-                    "en": "Once every 7 days for 3 weeks",
-                    "hi": "3 सप्ताह के लिए हर 7 दिन में एक बार"
-                },
-                "cost_estimate": "low"
-            },
-            "chemical_treatment": {
-                "type": "chemical",
-                "steps": [
-                    {
-                        "step_number": 1,
-                        "description": {
-                            "en": "Apply Chlorothalonil-based fungicide (2g per liter)",
-                            "hi": "क्लोरोथैलोनिल आधारित फफूंदनाशक लगाएं (प्रति लीटर 2g)"
-                        },
-                        "icon": "spray",
-                        "safety_warning": {
-                            "en": "Use protective equipment: mask, gloves, and goggles",
-                            "hi": "सुरक्षा उपकरण उपयोग करें: मास्क, दस्ताने और चश्मा"
-                        }
-                    },
-                    {
-                        "step_number": 2,
-                        "description": {
-                            "en": "Spray during early morning or late evening",
-                            "hi": "सुबह जल्दी या देर शाम को स्प्रे करें"
-                        },
-                        "icon": "time"
-                    },
-                    {
-                        "step_number": 3,
-                        "description": {
-                            "en": "Do not harvest for 7 days after application",
-                            "hi": "आवेदन के 7 दिन बाद तक फसल न काटें"
-                        },
-                        "icon": "wait",
-                        "safety_warning": {
-                            "en": "Keep away from water sources",
-                            "hi": "पानी के स्रोतों से दूर रखें"
-                        }
-                    }
-                ],
-                "dosage": {
-                    "en": "2g per liter of water",
-                    "hi": "प्रति लीटर पानी में 2g"
-                },
-                
-                "frequency": {
-                    "en": "Once every 10 days, maximum 3 applications",
-                    "hi": "हर 10 दिन में एक बार, अधिकतम 3 अनुप्रयोग"
-                },
-                "cost_estimate": "medium"
-            },
-            
-            "prevention_steps": {
-                "en": [
-                    "Practice crop rotation with non-solanaceous crops",
-                    "Ensure proper spacing between plants (18-24 inches)",
-                    "Water at the base of plants, avoid wetting foliage",
-                    "Apply mulch to prevent soil splash",
-                    "Remove plant debris at season end"
-                ],
-                "hi": [
-                    "गैर-सोलानेसियस फसलों के साथ फसल चक्र का अभ्यास करें",
-                    "पौधों के बीच उचित दूरी सुनिश्चित करें (18-24 इंच)",
-                    "पौधों के आधार पर पानी दें, पत्तियों को गीला करने से बचें",
-                    "मिट्टी के छींटे को रोकने के लिए मल्च लगाएं",
-                    "सीज़न के अंत में पौधे के मलबे को हटा दें"
-                ]
-            },
+    # Load comprehensive knowledge base from remediation.json
+    KNOWLEDGE_BASE = _load_remediation_json()
 
+    @staticmethod
+    def _localize_treatment(treatment_data: Dict[str, Any], language: str) -> Dict[str, Any]:
+        """Localize treatment data by extracting the correct language from multi-lang dicts."""
+        if not treatment_data:
+            return {}
+        
+        localized = {}
+        for key, value in treatment_data.items():
+            if key == "steps" and isinstance(value, list):
+                localized_steps = []
+                for step in value:
+                    localized_step = {}
+                    for sk, sv in step.items():
+                        if isinstance(sv, dict) and (language in sv or "en" in sv):
+                            localized_step[sk] = sv.get(language, sv.get("en", str(sv)))
+                        else:
+                            localized_step[sk] = sv
+                    localized_steps.append(localized_step)
+                localized["steps"] = localized_steps
+            elif isinstance(value, dict) and (language in value or "en" in value):
+                localized[key] = value.get(language, value.get("en", str(value)))
+            else:
+                localized[key] = value
+        
+        return localized
 
-            "severity_guidance": {
-                "low": {
-                    "en": "Apply organic treatment only. Monitor daily.",
-                    "hi": "केवल जैविक उपचार लगाएं। दैनिक निगरानी करें।"
-                },
-                "medium": {
-                    "en": "Start with organic treatment. If no improvement in 7 days, switch to chemical.",
-                    "hi": "जैविक उपचार से शुरू करें। 7 दिनों में सुधार न होने पर रासायनिक पर स्विच करें।"
-                },
-                "high": {
-                    "en": "Immediate chemical intervention required. Remove heavily infected plants.",
-                    "hi": "तत्काल रासायनिक हस्तक्षेप की आवश्यकता है। अत्यधिक संक्रमित पौधों को हटा दें।"
-                }
-            }
-        },
-        "tomato_healthy": {
-            "disease_id": "tomato_healthy",
-            "name": {
-                "en": "Healthy Plant",
-                "hi": "स्वस्थ पौधा",
-                "kn": "ಆರೋಗ್ಯಕರ ಸಸ್ಯ",
-                "ta": "ஆரோக்கியமான தாவரம்",
-                "te": "ఆరోగ్యకరమైన మొక్క"
-            },
-            "description": {
-                "en": "Your plant appears healthy with no signs of disease",
-                "hi": "आपका पौधा स्वस्थ दिखाई देता है और बीमारी के कोई लक्षण नहीं हैं"
-            },
-            "prevention_steps": {
-                "en": [
-                    "Continue regular watering and fertilization",
-                    "Monitor plants weekly for any changes",
-                    "Maintain good air circulation",
-                    "Practice preventive spraying during monsoon"
-                ],
-                "hi": [
-                    "नियमित पानी देना और उर्वरक देना जारी रखें",
-                    "किसी भी परिवर्तन के लिए साप्ताहिक पौधों की निगरानी करें",
-                    "अच्छा हवा संचार बनाए रखें",
-                    "मानसून के दौरान निवारक छिड़काव का अभ्यास करें"
-                ]
-            }
-        }
-    }
-    
     @staticmethod
     async def get_remediation(
         db: AsyncIOMotorDatabase,
@@ -214,7 +83,7 @@ class RemediationService:
             # First try to get from database
             knowledge = await db.knowledge_base.find_one({"disease_id": disease_id})
             
-            # Fall back to mock data
+            # Fall back to local knowledge base (remediation.json)
             if not knowledge:
                 knowledge = RemediationService.KNOWLEDGE_BASE.get(disease_id, {})
             
@@ -277,7 +146,22 @@ class RemediationService:
         language: str = "en"
     ) -> Dict[str, Any]:
         """Get guidance for healthy plants"""
-        knowledge = RemediationService.KNOWLEDGE_BASE.get("tomato_healthy", {})
+        # Try to find crop-specific healthy guidance (e.g., "Tomato___healthy", "Apple___healthy")
+        knowledge = RemediationService.KNOWLEDGE_BASE.get(disease_id, {})
+        
+        # Fallback: try generic healthy keys
+        if not knowledge:
+            for key in RemediationService.KNOWLEDGE_BASE:
+                if "healthy" in key.lower():
+                    knowledge = RemediationService.KNOWLEDGE_BASE[key]
+                    break
+        
+        if not knowledge:
+            knowledge = {
+                "name": {"en": "Healthy Plant"},
+                "description": {"en": "Your plant appears healthy with no signs of disease"},
+                "prevention_steps": {"en": ["Continue regular care and monitoring"]}
+            }
         
         return {
             "disease_id": "healthy",

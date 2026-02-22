@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 
 import '../../services/auth_api.dart';
@@ -87,6 +88,23 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   String _friendlyError(Object error) {
+    if (error is DioException) {
+      final data = error.response?.data;
+      if (data is Map<String, dynamic> && data.containsKey('detail')) {
+        return data['detail'].toString();
+      }
+      if (error.response?.statusCode == 401) {
+        return 'Incorrect email or password.';
+      }
+      if (error.type == DioExceptionType.connectionTimeout ||
+          error.type == DioExceptionType.receiveTimeout) {
+        return 'Connection timed out. Please try again.';
+      }
+      if (error.type == DioExceptionType.connectionError) {
+        return 'Unable to connect to server. Check your internet connection.';
+      }
+      return 'Something went wrong. Please try again.';
+    }
     final message = error.toString();
     return message.replaceFirst('Exception: ', '');
   }
