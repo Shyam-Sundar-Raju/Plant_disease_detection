@@ -7,6 +7,7 @@ import 'screens/auth/register_page.dart';
 import 'screens/crop_capture_page.dart';
 import 'screens/home_page.dart';
 import 'screens/profile_page.dart';
+import 'screens/chatbot_page.dart';
 import 'services/app_localizations.dart';
 import 'services/dio_client.dart';
 import 'services/token_storage.dart';
@@ -122,6 +123,7 @@ class PlantDiseaseApp extends StatelessWidget {
           HomePage.routeName: (_) => const HomePage(),
           ProfilePage.routeName: (_) => const ProfilePage(),
           CropCapturePage.routeName: (_) => const CropCapturePage(),
+          ChatbotPage.routeName: (_) => const ChatbotPage(),
         },
       ),
     );
