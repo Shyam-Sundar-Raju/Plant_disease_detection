@@ -5,9 +5,10 @@ import 'package:flutter/services.dart';
 
 import '../services/token_storage.dart';
 import '../services/app_localizations.dart';
+import '../services/tts_service.dart';
 
 // Screen for remediation guidance per diagnosis.
-class RemediationPage extends StatelessWidget {
+class RemediationPage extends StatefulWidget {
   const RemediationPage({
     super.key,
     required this.diseaseId,
@@ -20,6 +21,76 @@ class RemediationPage extends StatelessWidget {
   final String diseaseName;
   final String severity;
   final bool isHealthy;
+
+  @override
+  State<RemediationPage> createState() => _RemediationPageState();
+}
+
+class _RemediationPageState extends State<RemediationPage> {
+  late final TtsService _ttsService;
+  bool _ttsLanguageFallback = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _ttsService = TtsService();
+    _initializeTts();
+  }
+
+  Future<void> _initializeTts() async {
+    final success = await _ttsService.initialize();
+    if (success && _ttsService.fellBackToEnglish) {
+      setState(() {
+        _ttsLanguageFallback = true;
+      });
+      // Show fallback message after a short delay
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted && _ttsLanguageFallback) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                context.t(
+                  'TTS not available in your language on this device. Reading in English.',
+                ),
+              ),
+              backgroundColor: Colors.orange,
+              duration: const Duration(seconds: 5),
+            ),
+          );
+          setState(() {
+            _ttsLanguageFallback = false;
+          });
+        }
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _ttsService.stop();
+    _ttsService.dispose();
+    super.dispose();
+  }
+
+  /// Helper method to wrap content with tap-to-speak functionality
+  Widget _speakOnTap({required Widget child, required String? textToSpeak}) {
+    // If text is null or empty, return child unwrapped
+    if (textToSpeak == null || textToSpeak.trim().isEmpty) {
+      return child;
+    }
+
+    return GestureDetector(
+      onTap: () => _ttsService.speak(textToSpeak),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Flexible(child: child),
+          const SizedBox(width: 6),
+          const Icon(Icons.volume_up, size: 16, color: Colors.green),
+        ],
+      ),
+    );
+  }
 
   Future<_RemediationData> _loadData() async {
     // Load remediation JSON and apply preferred language.
@@ -42,7 +113,16 @@ class RemediationPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       extendBodyBehindAppBar: true,
-      appBar: AppBar(title: Text(context.t('Remediation guide'))),
+      appBar: AppBar(
+        title: Text(context.t('Remediation guide')),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.stop_circle_outlined),
+            onPressed: () => _ttsService.stop(),
+            tooltip: context.t('Stop reading'),
+          ),
+        ],
+      ),
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -67,15 +147,15 @@ class RemediationPage extends StatelessWidget {
 
               final data = snapshot.data!;
               final disease =
-                  data.findDisease(diseaseId) ??
-                  (isHealthy ? data.findHealthyFallback() : null);
+                  data.findDisease(widget.diseaseId) ??
+                  (widget.isHealthy ? data.findHealthyFallback() : null);
 
               if (disease == null) {
                 return Center(
                   child: Text(
                     context.t(
                       'No remediation found for {name}.',
-                      args: {'name': diseaseName},
+                      args: {'name': widget.diseaseName},
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -83,17 +163,17 @@ class RemediationPage extends StatelessWidget {
               }
 
               final localizedName =
-                  data.localize(disease['name']) ?? diseaseName;
+                  data.localize(disease['name']) ?? widget.diseaseName;
               final description = data.localize(disease['description']) ?? '';
               final prevention = data.localizeList(disease['prevention_steps']);
               final severityGuidance = data.localizeSeverity(
                 disease['severity_guidance'],
-                severity,
+                widget.severity,
               );
               final treatments = data.resolveTreatments(disease);
               final noTreatmentNeeded =
                   disease['no_treatment_needed'] == true ||
-                  (treatments == null && isHealthy);
+                  (treatments == null && widget.isHealthy);
               final riskFactors = data.localizeList(
                 disease['environmental_risk_factors'],
               );
@@ -117,11 +197,14 @@ class RemediationPage extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            localizedName,
-                            style: Theme.of(context).textTheme.headlineSmall,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
+                          _speakOnTap(
+                            child: Text(
+                              localizedName,
+                              style: Theme.of(context).textTheme.headlineSmall,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            textToSpeak: 'Disease detected: $localizedName',
                           ),
                           if (description.isNotEmpty) ...[
                             const SizedBox(height: 8),
@@ -132,7 +215,13 @@ class RemediationPage extends StatelessWidget {
                             spacing: 10,
                             runSpacing: 8,
                             children: [
-                              _InfoChip(label: severity.toUpperCase()),
+                              _speakOnTap(
+                                child: _InfoChip(
+                                  label: widget.severity.toUpperCase(),
+                                ),
+                                textToSpeak:
+                                    'Severity level: ${widget.severity}',
+                              ),
                               if (noTreatmentNeeded)
                                 _InfoChip(
                                   label: context.t('No treatment needed'),
@@ -145,9 +234,12 @@ class RemediationPage extends StatelessWidget {
                   ),
                   if (severityGuidance.isNotEmpty) ...[
                     const SizedBox(height: 16),
-                    _SectionHeader(
-                      title: context.t('Severity guidance'),
-                      subtitle: severityGuidance,
+                    _speakOnTap(
+                      child: _SectionHeader(
+                        title: context.t('Severity guidance'),
+                        subtitle: severityGuidance,
+                      ),
+                      textToSpeak: 'Severity guidance: $severityGuidance',
                     ),
                   ],
                   if (affectedParts.isNotEmpty) ...[
@@ -177,7 +269,10 @@ class RemediationPage extends StatelessWidget {
                               ],
                             ),
                             const SizedBox(height: 8),
-                            Text(affectedParts),
+                            _speakOnTap(
+                              child: Text(affectedParts),
+                              textToSpeak: 'Affected parts: $affectedParts',
+                            ),
                           ],
                         ),
                       ),
@@ -208,7 +303,10 @@ class RemediationPage extends StatelessWidget {
                             ),
                             const SizedBox(height: 8),
                             ...riskFactors.map(
-                              (factor) => _BulletRow(text: factor),
+                              (factor) => _speakOnTap(
+                                child: _BulletRow(text: factor),
+                                textToSpeak: 'Risk factor: $factor',
+                              ),
                             ),
                           ],
                         ),
@@ -221,6 +319,7 @@ class RemediationPage extends StatelessWidget {
                       title: context.t('Organic treatment'),
                       treatment: treatments['organic'] as Map<String, dynamic>?,
                       language: data.language,
+                      ttsService: _ttsService,
                     ),
                     const SizedBox(height: 16),
                     _TreatmentSection(
@@ -228,6 +327,7 @@ class RemediationPage extends StatelessWidget {
                       treatment:
                           treatments['chemical'] as Map<String, dynamic>?,
                       language: data.language,
+                      ttsService: _ttsService,
                     ),
                   ],
                   if (prevention.isNotEmpty) ...[
@@ -239,7 +339,12 @@ class RemediationPage extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    ...prevention.map((tip) => _BulletRow(text: tip)),
+                    ...prevention.map(
+                      (tip) => _speakOnTap(
+                        child: _BulletRow(text: tip),
+                        textToSpeak: 'Prevention tip: $tip',
+                      ),
+                    ),
                   ],
                   if (communityTips.isNotEmpty) ...[
                     const SizedBox(height: 20),
@@ -309,7 +414,10 @@ class RemediationPage extends StatelessWidget {
                             ),
                             const SizedBox(height: 12),
                             ...communityTips.map(
-                              (tip) => _BulletRow(text: tip),
+                              (tip) => _speakOnTap(
+                                child: _BulletRow(text: tip),
+                                textToSpeak: 'Community tip: $tip',
+                              ),
                             ),
                           ],
                         ),
@@ -389,7 +497,11 @@ class RemediationPage extends StatelessWidget {
                               ],
                             ),
                             const SizedBox(height: 8),
-                            Text(whenToSeekExpert),
+                            _speakOnTap(
+                              child: Text(whenToSeekExpert),
+                              textToSpeak:
+                                  'When to seek expert: $whenToSeekExpert',
+                            ),
                           ],
                         ),
                       ),
@@ -484,11 +596,13 @@ class _TreatmentSection extends StatelessWidget {
     required this.title,
     required this.treatment,
     required this.language,
+    required this.ttsService,
   });
 
   final String title;
   final Map<String, dynamic>? treatment;
   final String language;
+  final TtsService ttsService;
 
   String _localize(dynamic value) {
     if (value is Map<String, dynamic>) {
@@ -496,6 +610,26 @@ class _TreatmentSection extends StatelessWidget {
       return localized?.toString() ?? '';
     }
     return value?.toString() ?? '';
+  }
+
+  /// Helper method to wrap content with tap-to-speak functionality
+  Widget _speakOnTap({required Widget child, required String? textToSpeak}) {
+    // If text is null or empty, return child unwrapped
+    if (textToSpeak == null || textToSpeak.trim().isEmpty) {
+      return child;
+    }
+
+    return GestureDetector(
+      onTap: () => ttsService.speak(textToSpeak),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Flexible(child: child),
+          const SizedBox(width: 6),
+          const Icon(Icons.volume_up, size: 16, color: Colors.green),
+        ],
+      ),
+    );
   }
 
   @override
@@ -526,17 +660,21 @@ class _TreatmentSection extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              title,
-              style: Theme.of(context).textTheme.titleMedium,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
+            _speakOnTap(
+              child: Text(
+                title,
+                style: Theme.of(context).textTheme.titleMedium,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              textToSpeak: title,
             ),
             const SizedBox(height: 12),
             ...steps.map(
               (step) => _StepRow(
                 step: step as Map<String, dynamic>,
                 language: language,
+                ttsService: ttsService,
               ),
             ),
             if (dosage.isNotEmpty ||
@@ -548,11 +686,14 @@ class _TreatmentSection extends StatelessWidget {
                 runSpacing: 8,
                 children: [
                   if (dosage.isNotEmpty)
-                    _InfoChip(
-                      label: context.t(
-                        'Dosage {value}',
-                        args: {'value': dosage},
+                    _speakOnTap(
+                      child: _InfoChip(
+                        label: context.t(
+                          'Dosage {value}',
+                          args: {'value': dosage},
+                        ),
                       ),
+                      textToSpeak: 'Dosage: $dosage',
                     ),
                   if (frequency.isNotEmpty)
                     _InfoChip(
@@ -562,53 +703,59 @@ class _TreatmentSection extends StatelessWidget {
                       ),
                     ),
                   if (cost.isNotEmpty)
-                    _InfoChip(
-                      label: context.t('Cost {value}', args: {'value': cost}),
+                    _speakOnTap(
+                      child: _InfoChip(
+                        label: context.t('Cost {value}', args: {'value': cost}),
+                      ),
+                      textToSpeak: 'Estimated cost: $cost',
                     ),
                 ],
               ),
             ],
             if (expectedResults.isNotEmpty) ...[
               const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.blue.shade200),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(
-                      Icons.trending_up,
-                      color: Colors.blue.shade700,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            context.t('Expected results'),
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              color: Colors.blue.shade900,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            expectedResults,
-                            style: TextStyle(color: Colors.blue.shade900),
-                          ),
-                        ],
+              _speakOnTap(
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.blue.shade200),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        Icons.trending_up,
+                        color: Colors.blue.shade700,
+                        size: 20,
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              context.t('Expected results'),
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: Colors.blue.shade900,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              expectedResults,
+                              style: TextStyle(color: Colors.blue.shade900),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
+                textToSpeak: 'Expected results: $expectedResults',
               ),
             ],
             if (safetyWarnings.isNotEmpty) ...[
@@ -620,7 +767,12 @@ class _TreatmentSection extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 6),
-              ...safetyWarnings.map((warning) => _BulletRow(text: warning)),
+              ...safetyWarnings.map(
+                (warning) => _speakOnTap(
+                  child: _BulletRow(text: warning),
+                  textToSpeak: 'Safety warning: $warning',
+                ),
+              ),
             ],
           ],
         ),
@@ -630,10 +782,15 @@ class _TreatmentSection extends StatelessWidget {
 }
 
 class _StepRow extends StatelessWidget {
-  const _StepRow({required this.step, required this.language});
+  const _StepRow({
+    required this.step,
+    required this.language,
+    required this.ttsService,
+  });
 
   final Map<String, dynamic> step;
   final String language;
+  final TtsService ttsService;
 
   String _localize(dynamic value) {
     if (value is Map<String, dynamic>) {
@@ -643,46 +800,69 @@ class _StepRow extends StatelessWidget {
     return value?.toString() ?? '';
   }
 
+  /// Helper method to wrap content with tap-to-speak functionality
+  Widget _speakOnTap({required Widget child, required String? textToSpeak}) {
+    // If text is null or empty, return child unwrapped
+    if (textToSpeak == null || textToSpeak.trim().isEmpty) {
+      return child;
+    }
+
+    return GestureDetector(
+      onTap: () => ttsService.speak(textToSpeak),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Flexible(child: child),
+          const SizedBox(width: 6),
+          const Icon(Icons.volume_up, size: 16, color: Colors.green),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final stepNumber = step['step_number']?.toString() ?? '';
     final description = _localize(step['description']);
     final duration = _localize(step['duration']);
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          CircleAvatar(
-            radius: 14,
-            backgroundColor: Theme.of(context).colorScheme.primary,
-            child: Text(
-              stepNumber,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
+    return _speakOnTap(
+      textToSpeak: 'Step $stepNumber: $description',
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            CircleAvatar(
+              radius: 14,
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              child: Text(
+                stepNumber,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(description),
-                if (duration.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Text(
-                      duration,
-                      style: Theme.of(context).textTheme.bodySmall,
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(description),
+                  if (duration.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        duration,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
