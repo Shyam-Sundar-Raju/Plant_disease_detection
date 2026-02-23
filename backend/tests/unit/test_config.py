@@ -52,4 +52,4 @@ class TestConfiguration:
     def test_confidence_threshold(self):
         """Test AI confidence threshold"""
         assert 0 < settings.CONFIDENCE_THRESHOLD < 1
-        assert settings.CONFIDENCE_THRESHOLD == 0.45
+        assert settings.CONFIDENCE_THRESHOLD == 0.85

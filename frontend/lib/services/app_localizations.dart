@@ -192,6 +192,23 @@ class AppLocalizations {
       'Frequency {value}': 'Frequency {value}',
       'Cost {value}': 'Cost {value}',
       'Crop image': 'Crop image',
+      'The AI could not identify this disease with certainty. Please consult an agricultural expert for an accurate diagnosis.':
+          'The AI could not identify this disease with certainty. Please consult an agricultural expert for an accurate diagnosis.',
+      'Simple Mode': 'Simple Mode',
+      'Convert technical terms to farmer-friendly words':
+          'Convert technical terms to farmer-friendly words',
+      'Example: "fungicide" → "fungus medicine"':
+          'Example: "fungicide" → "fungus medicine"',
+      
+      // Chatbot strings
+      'AI Assistant': 'AI Assistant',
+      'AI Farm Assistant': 'AI Farm Assistant',
+      'Type your message...': 'Type your message...',
+      'Chat history cleared': 'Chat history cleared',
+      'Failed to clear chat history': 'Failed to clear chat history',
+      'Clear chat': 'Clear chat',
+      'Sorry, I\'m having trouble right now. Please try again later.':
+          'Sorry, I\'m having trouble right now. Please try again later.',
     },
     'hi': {
       'AgroScan': 'AgroScan',
@@ -338,6 +355,18 @@ class AppLocalizations {
       'Frequency {value}': 'आवृत्ति {value}',
       'Cost {value}': 'लागत {value}',
       'Crop image': 'छवि क्रॉप करें',
+      'The AI could not identify this disease with certainty. Please consult an agricultural expert for an accurate diagnosis.':
+          'AI इस रोग की पहचान निश्चितता से नहीं कर सका। सटीक निदान के लिए किसी कृषि विशेषज्ञ से परामर्श करें।',
+      
+      // Chatbot strings
+      'AI Assistant': 'एआई सहायक',
+      'AI Farm Assistant': 'एआई कृषि सहायक',
+      'Type your message...': 'अपना संदेश लिखें...',
+      'Chat history cleared': 'चैट इतिहास साफ़ किया गया',
+      'Failed to clear chat history': 'चैट इतिहास साफ़ करने में विफल',
+      'Clear chat': 'चैट साफ़ करें',
+      'Sorry, I\'m having trouble right now. Please try again later.':
+          'क्षमा करें, मुझे अभी समस्या हो रही है। कृपया बाद में पुनः प्रयास करें।',
     },
     'ta': {
       'AgroScan': 'AgroScan',
@@ -486,6 +515,18 @@ class AppLocalizations {
       'Frequency {value}': 'அடிக்கடி {value}',
       'Cost {value}': 'செலவு {value}',
       'Crop image': 'படத்தை குரைத்தல்',
+      'The AI could not identify this disease with certainty. Please consult an agricultural expert for an accurate diagnosis.':
+          'AI இந்த நோயை உறுதியாக அடையாளம் காண இயலவில்லை. சரியான நோயறிதலுக்கு விவசாய நிபுணரிடம் ஆலோசிக்கவும்.',
+      
+      // Chatbot strings
+      'AI Assistant': 'AI உதவியாளர்',
+      'AI Farm Assistant': 'AI விவசாய உதவியாளர்',
+      'Type your message...': 'உங்கள் செய்தியை தட்டச்சு செய்யுங்கள்...',
+      'Chat history cleared': 'அரட்டை வரலாறு அழிக்கப்பட்டது',
+      'Failed to clear chat history': 'அரட்டை வரலாறு அழிக்க முடியவில்லை',
+      'Clear chat': 'அரட்டையை அழி',
+      'Sorry, I\'m having trouble right now. Please try again later.':
+          'மன்னிக்கவும், எனக்கு இப்போது சிக்கல் உள்ளது. தயவுசெய்து பின்னர் மீண்டும் முயற்சிக்கவும்.',
     },
     'te': {
       'AgroScan': 'AgroScan',
@@ -633,6 +674,18 @@ class AppLocalizations {
       'Frequency {value}': 'తరచుదనం {value}',
       'Cost {value}': 'ఖర్చు {value}',
       'Crop image': 'చిత్రాన్ని క్రాప్ చేయండి',
+      'The AI could not identify this disease with certainty. Please consult an agricultural expert for an accurate diagnosis.':
+          'AI ఈ వ్యాధిని ఖచ్చితంగా గుర్తించలేకపోయింది. సరైన నిర్ధారణ కోసం వ్యవసాయ నిపుణుని సంప్రదించండి.',
+      
+      // Chatbot strings
+      'AI Assistant': 'AI సహాయకుడు',
+      'AI Farm Assistant': 'AI వ్యవసాయ సహాయకుడు',
+      'Type your message...': 'మీ సందేశాన్ని టైప్ చేయండి...',
+      'Chat history cleared': 'చాట్ చరిత్ర క్లియర్ చేయబడింది',
+      'Failed to clear chat history': 'చాట్ చరిత్రను క్లియర్ చేయడంలో విఫలమైంది',
+      'Clear chat': 'చాట్ క్లియర్ చేయండి',
+      'Sorry, I\'m having trouble right now. Please try again later.':
+          'క్షమించండి, నాకు ఇప్పుడు ఇబ్బంది ఉంది. దయచేసి తర్వాత మళ్లీ ప్రయత్నించండి.',
     },
     'kn': {
       'AgroScan': 'AgroScan',
@@ -781,6 +834,18 @@ class AppLocalizations {
       'Frequency {value}': 'ಆವೃತ್ತಿ {value}',
       'Cost {value}': 'ವೆಚ್ಚ {value}',
       'Crop image': 'ಚಿತ್ರವನ್ನು ಕ್ರಾಪ್ ಮಾಡಿ',
+      'The AI could not identify this disease with certainty. Please consult an agricultural expert for an accurate diagnosis.':
+          'AI ಈ ರೋಗವನ್ನು ಖಚಿತವಾಗಿ ಗುರುತಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ನಿಖರ ನಿರ್ಣಯಕ್ಕಾಗಿ ಕೃಷಿ ತಜ್ಞರನ್ನು ಸಂಪರ್ಕಿಸಿ.',
+      
+      // Chatbot strings
+      'AI Assistant': 'AI ಸಹಾಯಕ',
+      'AI Farm Assistant': 'AI ಕೃಷಿ ಸಹಾಯಕ',
+      'Type your message...': 'ನಿಮ್ಮ ಸಂದೇಶವನ್ನು ಟೈಪ್ ಮಾಡಿ...',
+      'Chat history cleared': 'ಚಾಟ್ ಇತಿಹಾಸ ತೆರವುಗೊಳಿಸಲಾಗಿದೆ',
+      'Failed to clear chat history': 'ಚಾಟ್ ಇತಿಹಾಸ ತೆರವುಗೊಳಿಸುವಲ್ಲಿ ವಿಫಲವಾಗಿದೆ',
+      'Clear chat': 'ಚಾಟ್ ತೆರವುಗೊಳಿಸಿ',
+      'Sorry, I\'m having trouble right now. Please try again later.':
+          'ಕ್ಷಮಿಸಿ, ನನಗೆ ಇದೀಗ ತೊಂದರೆಯಾಗುತ್ತಿದೆ. ದಯವಿಟ್ಟು ನಂತರ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.',
     },
     'ml': {
       'AgroScan': 'AgroScan',
@@ -930,6 +995,18 @@ class AppLocalizations {
       'Frequency {value}': 'ആവർത്തനം {value}',
       'Cost {value}': 'ചെലവ് {value}',
       'Crop image': 'ചിത്രം ക്രോപ് ചെയ്യുക',
+      'The AI could not identify this disease with certainty. Please consult an agricultural expert for an accurate diagnosis.':
+          'AI ഈ രോഗം ഉറപ്പോടെ തിരിച്ചറിയാൻ കഴിഞ്ഞില്ല. കൃത്യമായ രോഗനിർണയത്തിനായി ഒരു കാർഷിക വിദഗ്ധനെ സമീപിക്കുക.',
+      
+      // Chatbot strings
+      'AI Assistant': 'AI സഹായി',
+      'AI Farm Assistant': 'AI കൃഷി സഹായി',
+      'Type your message...': 'നിങ്ങളുടെ സന്ദേശം ടൈപ്പ് ചെയ്യുക...',
+      'Chat history cleared': 'ചാറ്റ് ചരിത്രം മായ്ച്ചു',
+      'Failed to clear chat history': 'ചാറ്റ് ചരിത്രം മായ്ക്കുന്നതിൽ പരാജയപ്പെട്ടു',
+      'Clear chat': 'ചാറ്റ് മായ്ക്കുക',
+      'Sorry, I\'m having trouble right now. Please try again later.':
+          'ക്ഷമിക്കണം, എനിക്ക് ഇപ്പോൾ പ്രശ്നമുണ്ട്. ദയവായി പിന്നീട് വീണ്ടും ശ്രമിക്കുക.',
     },
   };
 

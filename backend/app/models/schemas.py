@@ -198,6 +198,7 @@ class DiagnosisResponse(BaseModel):
     confidence: float
     severity: str
     is_healthy: bool
+    is_uncertain: bool = False
     image_url: str
     heatmap_url: Optional[str] = None
     bounding_boxes: Optional[List[BoundingBox]] = []
@@ -370,6 +371,48 @@ class HealthCheck(BaseModel):
     timestamp: datetime
     database: str
     message: str
+
+
+# ============ CHATBOT SCHEMAS ============
+
+class ChatMessage(BaseModel):
+    """Chat message from user"""
+    message: str = Field(..., min_length=1, max_length=1000)
+    language: str = Field(default="en", pattern=r'^(en|hi|ta|te|kn|ml)$')
+
+
+class ChatResponse(BaseModel):
+    """Chat response from AI assistant"""
+    response: str
+    intent: str
+    confidence: float = Field(..., ge=0.0, le=1.0)
+    language: str
+    message_processed: bool
+    error: Optional[str] = None
+
+
+class ConversationHistory(BaseModel):
+    """User conversation history entry"""
+    id: str = Field(..., alias="_id")
+    user_id: str
+    message: str
+    response: str
+    intent: str
+    confidence: float
+    language: str
+    timestamp: datetime
+    
+    class Config:
+        populate_by_name = True
+
+
+class ConversationSummary(BaseModel):
+    """Summary of user's conversation patterns"""
+    user_id: str
+    total_messages: int
+    common_intents: List[Dict[str, Any]]
+    preferred_language: str
+    last_conversation: datetime
 
 
 class ErrorResponse(BaseModel):

@@ -2,7 +2,7 @@
 API v1 Router Configuration
 """
 from fastapi import APIRouter
-from app.api.v1 import auth, user, diagnosis, remediation, history, notifications
+from app.api.v1 import auth, user, diagnosis, remediation, history, notifications, chatbot
 
 api_router = APIRouter()
 
@@ -13,3 +13,4 @@ api_router.include_router(diagnosis.router)
 api_router.include_router(remediation.router)
 api_router.include_router(history.router)
 api_router.include_router(notifications.router)
+api_router.include_router(chatbot.router)
