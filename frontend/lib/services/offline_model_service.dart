@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'dart:math';
-import 'dart:typed_data';
 
 import 'package:flutter/services.dart';
 import 'package:image/image.dart' as img;
@@ -83,7 +82,11 @@ class OfflineModelService {
       throw Exception('Failed to decode image.');
     }
 
-    final resized = img.copyResize(decoded, width: inputSize, height: inputSize);
+    final resized = img.copyResize(
+      decoded,
+      width: inputSize,
+      height: inputSize,
+    );
 
     // Build input tensor [1, 224, 224, 3] normalized to [0, 1]
     final input = List.generate(
@@ -92,11 +95,7 @@ class OfflineModelService {
         inputSize,
         (y) => List.generate(inputSize, (x) {
           final pixel = resized.getPixel(x, y);
-          return [
-            pixel.r / 255.0,
-            pixel.g / 255.0,
-            pixel.b / 255.0,
-          ];
+          return [pixel.r / 255.0, pixel.g / 255.0, pixel.b / 255.0];
         }),
       ),
     );
@@ -128,7 +127,8 @@ class OfflineModelService {
     }
 
     // Margin (top1 - top2)
-    final sorted = List<double>.from(predictions)..sort((a, b) => b.compareTo(a));
+    final sorted = List<double>.from(predictions)
+      ..sort((a, b) => b.compareTo(a));
     final margin = sorted.length > 1 ? sorted[0] - sorted[1] : 1.0;
 
     // Uncertainty decision (mirrors backend)
