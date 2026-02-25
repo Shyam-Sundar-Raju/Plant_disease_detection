@@ -35,11 +35,10 @@ class TtsService {
   final Map<String, String> _languageMap = {
     'en': 'en-US',
     'hi': 'hi-IN',
-    'kn': 'kn-IN',
     'ta': 'ta-IN',
     'te': 'te-IN',
-    'mr': 'mr-IN',
-    'bn': 'bn-IN',
+    'kn': 'kn-IN',
+    'ml': 'ml-IN',
   };
 
   /// Initialize the TTS service

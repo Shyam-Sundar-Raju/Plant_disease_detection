@@ -85,7 +85,7 @@ void main() {
     });
 
     test('TTS should work with different language preferences', () async {
-      final languages = ['en', 'hi', 'kn', 'ta', 'te', 'mr', 'bn'];
+      final languages = ['en', 'hi', 'ta', 'te', 'kn', 'ml'];
 
       for (final lang in languages) {
         SharedPreferences.setMockInitialValues({
@@ -142,7 +142,7 @@ void main() {
       // Document all implemented TTS features
       final features = {
         'Offline TTS support': true,
-        'Multi-language support (7 languages)': true,
+        'Multi-language support (6 languages)': true,
         'Tap-to-speak on remediation content': true,
         'Visual indicators (volume icons)': true,
         'Preferred language detection from SharedPreferences': true,
@@ -223,11 +223,11 @@ void main() {
   group('Example Failed Test (for demonstration)', () {
     test('Example: TTS should support 10 languages (WILL FAIL)', () {
       // This test intentionally fails to demonstrate test failure
-      final supportedLanguages = ['en', 'hi', 'kn', 'ta', 'te', 'mr', 'bn'];
+      final supportedLanguages = ['en', 'hi', 'ta', 'te', 'kn', 'ml'];
 
-      // FAILS: We only support 7 languages, not 10
+      // FAILS: We only support 6 languages, not 10
       expect(supportedLanguages.length, equals(10),
-          reason: 'Expected 10 languages but only 7 are supported');
+          reason: 'Expected 10 languages but only 6 are supported');
     });
   });
 }
