@@ -32,10 +32,8 @@ class PlantDiseaseApp extends StatelessWidget {
       secondary: const Color(0xFFFFB300),
       surface: const Color(0xFFF7F4EE),
       surfaceContainerHighest: const Color(0xFFEDE6DC),
-      background: const Color(0xFFF5F1EA),
       error: const Color(0xFFD32F2F),
       onSurface: const Color(0xFF1F2A1F),
-      onBackground: const Color(0xFF1F2A1F),
     );
 
     // Initialise the shared Dio client with the navigator key for auto-logout.
@@ -51,7 +49,7 @@ class PlantDiseaseApp extends StatelessWidget {
           colorScheme: colorScheme,
           useMaterial3: true,
           fontFamily: 'serif',
-          scaffoldBackgroundColor: colorScheme.background,
+          scaffoldBackgroundColor: colorScheme.surface,
           appBarTheme: const AppBarTheme(
             backgroundColor: Colors.transparent,
             elevation: 0,
@@ -76,11 +74,11 @@ class PlantDiseaseApp extends StatelessWidget {
             fillColor: const Color(0xFFFDFBF7),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
-              borderSide: BorderSide(color: Color(0xFFE0D8CC)),
+              borderSide: const BorderSide(color: Color(0xFFE0D8CC)),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
-              borderSide: BorderSide(color: Color(0xFF1B5E20), width: 1.6),
+              borderSide: const BorderSide(color: Color(0xFF1B5E20), width: 1.6),
             ),
           ),
           elevatedButtonTheme: ElevatedButtonThemeData(
@@ -135,7 +133,7 @@ class AuthGate extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final storage = const TokenStorage();
+    const storage = TokenStorage();
 
     return FutureBuilder<String?>(
       future: storage.readAccessToken(),

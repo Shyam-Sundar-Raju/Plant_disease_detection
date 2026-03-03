@@ -189,7 +189,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                 radius: 24,
                                 backgroundColor: Theme.of(
                                   context,
-                                ).colorScheme.primary.withOpacity(0.12),
+                                ).colorScheme.primary.withValues(alpha: 0.12),
                                 child: Icon(
                                   Icons.person,
                                   color: Theme.of(context).colorScheme.primary,
@@ -234,7 +234,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           ),
                           const SizedBox(height: 16),
                           DropdownButtonFormField<String>(
-                            value: _selectedLanguage,
+                            initialValue: _selectedLanguage,
                             decoration: InputDecoration(
                               labelText: context.t('Preferred language'),
                             ),

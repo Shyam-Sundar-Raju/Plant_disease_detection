@@ -324,11 +324,11 @@ class _CropCapturePageState extends State<CropCapturePage> {
                           colors: [
                             Theme.of(
                               context,
-                            ).colorScheme.surface.withOpacity(0.9),
+                            ).colorScheme.surface.withValues(alpha: 0.9),
                             Theme.of(context)
                                 .colorScheme
                                 .surfaceContainerHighest
-                                .withOpacity(0.95),
+                                .withValues(alpha: 0.95),
                           ],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
@@ -337,11 +337,11 @@ class _CropCapturePageState extends State<CropCapturePage> {
                         border: Border.all(
                           color: Theme.of(
                             context,
-                          ).colorScheme.outline.withOpacity(0.2),
+                          ).colorScheme.outline.withValues(alpha: 0.2),
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.06),
+                            color: Colors.black.withValues(alpha: 0.06),
                             blurRadius: 14,
                             offset: const Offset(0, 8),
                           ),

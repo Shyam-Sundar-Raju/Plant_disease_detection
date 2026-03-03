@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 
 import '../services/chatbot_api.dart';
 import '../services/token_storage.dart';
@@ -20,7 +19,7 @@ class _ChatbotPageState extends State<ChatbotPage> {
   final _scrollController = ScrollController();
   final _chatbotApi = ChatbotApi();
   final _tokenStorage = const TokenStorage();
-  
+
   List<ChatMessage> _messages = [];
   bool _isLoading = false;
   bool _isSending = false;
@@ -79,19 +78,25 @@ class _ChatbotPageState extends State<ChatbotPage> {
       if (mounted) {
         setState(() {
           _messages = history
-              .map((h) => [
-                    ChatMessage(
-                      content: h['message'] ?? '',
-                      isUser: true,
-                      timestamp: DateTime.tryParse(h['timestamp'] ?? '') ?? DateTime.now(),
-                    ),
-                    ChatMessage(
-                      content: h['response'] ?? '',
-                      isUser: false,
-                      timestamp: DateTime.tryParse(h['timestamp'] ?? '') ?? DateTime.now(),
-                      intent: h['intent'],
-                    ),
-                  ])
+              .map(
+                (h) => [
+                  ChatMessage(
+                    content: h['message'] ?? '',
+                    isUser: true,
+                    timestamp:
+                        DateTime.tryParse(h['timestamp'] ?? '') ??
+                        DateTime.now(),
+                  ),
+                  ChatMessage(
+                    content: h['response'] ?? '',
+                    isUser: false,
+                    timestamp:
+                        DateTime.tryParse(h['timestamp'] ?? '') ??
+                        DateTime.now(),
+                    intent: h['intent'],
+                  ),
+                ],
+              )
               .expand((pair) => pair)
               .toList();
         });
@@ -109,23 +114,32 @@ class _ChatbotPageState extends State<ChatbotPage> {
 
   void _addWelcomeMessage() {
     final welcomeMessages = {
-      'en': 'Hello! I\'m your AI farming assistant. I can help you with crop diseases, weather information, farming advice, and more. How can I assist you today?',
-      'hi': 'नमस्ते! मैं आपका एआई कृषि सहायक हूं। मैं फसल की बीमारियों, मौसम की जानकारी, खेती की सलाह और भी बहुत कुछ में आपकी मदद कर सकता हूं। आज मैं आपकी कैसे सहायता कर सकता हूं?',
-      'ta': 'வணக்கம்! நான் உங்கள் AI விவசாய உதவியாளர். பயிர் நோய்கள், வானிலை தகவல், விவசாய ஆலோசனை மற்றும் பல விஷயங்களில் உங்களுக்கு உதவ முடியும். இன்று நான் உங்களுக்கு எவ்வாறு உதவ முடியும்?',
-      'te': 'నమస్కారం! నేను మీ AI వ్యవసాయ సహాయకుడిని. పంట వ్యాధులు, వాతావరణ సమాచారం, వ్యవసాయ సలహా మరియు మరిన్నింటిలో మీకు సహాయం చేయగలను. ఈ రోజు నేను మీకు ఎలా సహాయం చేయగలను?',
-      'kn': 'ನಮಸ್ಕಾರ! ನಾನು ನಿಮ್ಮ AI ಕೃಷಿ ಸಹಾಯಕ. ಬೆಳೆ ರೋಗಗಳು, ಹವಾಮಾನ ಮಾಹಿತಿ, ಕೃಷಿ ಸಲಹೆ ಮತ್ತು ಇತರ ವಿಷಯಗಳಲ್ಲಿ ನಿಮಗೆ ಸಹಾಯ ಮಾಡಬಹುದು. ಇಂದು ನಾನು ನಿಮಗೆ ಹೇಗೆ ಸಹಾಯ ಮಾಡಬಹುದು?',
-      'ml': 'നമസ്കാരം! ഞാൻ നിങ്ങളുടെ AI കൃഷി സഹായിയാണ്. വിള രോഗങ്ങൾ, കാലാവസ്ഥാ വിവരങ്ങൾ, കൃഷി ഉപദേശം എന്നിവയിലും മറ്റും നിങ്ങളെ സഹായിക്കാൻ എനിക്ക് കഴിയും. ഇന്ന് ഞാൻ നിങ്ങളെ എങ്ങനെ സഹായിക്കാം?',
+      'en':
+          'Hello! I\'m your AI farming assistant. I can help you with crop diseases, weather information, farming advice, and more. How can I assist you today?',
+      'hi':
+          'नमस्ते! मैं आपका एआई कृषि सहायक हूं। मैं फसल की बीमारियों, मौसम की जानकारी, खेती की सलाह और भी बहुत कुछ में आपकी मदद कर सकता हूं। आज मैं आपकी कैसे सहायता कर सकता हूं?',
+      'ta':
+          'வணக்கம்! நான் உங்கள் AI விவசாய உதவியாளர். பயிர் நோய்கள், வானிலை தகவல், விவசாய ஆலோசனை மற்றும் பல விஷயங்களில் உங்களுக்கு உதவ முடியும். இன்று நான் உங்களுக்கு எவ்வாறு உதவ முடியும்?',
+      'te':
+          'నమస్కారం! నేను మీ AI వ్యవసాయ సహాయకుడిని. పంట వ్యాధులు, వాతావరణ సమాచారం, వ్యవసాయ సలహా మరియు మరిన్నింటిలో మీకు సహాయం చేయగలను. ఈ రోజు నేను మీకు ఎలా సహాయం చేయగలను?',
+      'kn':
+          'ನಮಸ್ಕಾರ! ನಾನು ನಿಮ್ಮ AI ಕೃಷಿ ಸಹಾಯಕ. ಬೆಳೆ ರೋಗಗಳು, ಹವಾಮಾನ ಮಾಹಿತಿ, ಕೃಷಿ ಸಲಹೆ ಮತ್ತು ಇತರ ವಿಷಯಗಳಲ್ಲಿ ನಿಮಗೆ ಸಹಾಯ ಮಾಡಬಹುದು. ಇಂದು ನಾನು ನಿಮಗೆ ಹೇಗೆ ಸಹಾಯ ಮಾಡಬಹುದು?',
+      'ml':
+          'നമസ്കാരം! ഞാൻ നിങ്ങളുടെ AI കൃഷി സഹായിയാണ്. വിള രോഗങ്ങൾ, കാലാവസ്ഥാ വിവരങ്ങൾ, കൃഷി ഉപദേശം എന്നിവയിലും മറ്റും നിങ്ങളെ സഹായിക്കാൻ എനിക്ക് കഴിയും. ഇന്ന് ഞാൻ നിങ്ങളെ എങ്ങനെ സഹായിക്കാം?',
     };
 
-    final welcomeText = welcomeMessages[_userLanguage] ?? welcomeMessages['en']!;
-    
+    final welcomeText =
+        welcomeMessages[_userLanguage] ?? welcomeMessages['en']!;
+
     setState(() {
-      _messages.add(ChatMessage(
-        content: welcomeText,
-        isUser: false,
-        timestamp: DateTime.now(),
-        intent: 'welcome',
-      ));
+      _messages.add(
+        ChatMessage(
+          content: welcomeText,
+          isUser: false,
+          timestamp: DateTime.now(),
+          intent: 'welcome',
+        ),
+      );
     });
 
     _scrollToBottom();
@@ -165,7 +179,8 @@ class _ChatbotPageState extends State<ChatbotPage> {
 
       // Add bot response to chat
       final botMessage = ChatMessage(
-        content: response['response'] ?? 'Sorry, I couldn\'t process your message.',
+        content:
+            response['response'] ?? 'Sorry, I couldn\'t process your message.',
         isUser: false,
         timestamp: DateTime.now(),
         intent: response['intent'],
@@ -181,7 +196,9 @@ class _ChatbotPageState extends State<ChatbotPage> {
     } catch (e) {
       // Add error message
       final errorMessage = ChatMessage(
-        content: context.t('Sorry, I\'m having trouble right now. Please try again later.'),
+        content: context.t(
+          'Sorry, I\'m having trouble right now. Please try again later.',
+        ),
         isUser: false,
         timestamp: DateTime.now(),
         intent: 'error',
@@ -276,16 +293,18 @@ class _ChatbotPageState extends State<ChatbotPage> {
                     },
                   ),
           ),
-          
+
           // Message input area
           Container(
             padding: const EdgeInsets.all(16.0),
             decoration: BoxDecoration(
               color: scheme.surface,
-              border: Border(top: BorderSide(color: scheme.outline.withOpacity(0.2))),
+              border: Border(
+                top: BorderSide(color: scheme.outline.withValues(alpha: 0.2)),
+              ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withValues(alpha: 0.1),
                   offset: const Offset(0, -2),
                   blurRadius: 4,
                 ),
@@ -303,7 +322,7 @@ class _ChatbotPageState extends State<ChatbotPage> {
                         borderSide: BorderSide.none,
                       ),
                       filled: true,
-                      fillColor: scheme.surfaceVariant,
+                      fillColor: scheme.surfaceContainerHighest,
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: 20,
                         vertical: 12,
@@ -342,18 +361,16 @@ class _ChatbotPageState extends State<ChatbotPage> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
-        mainAxisAlignment: message.isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment: message.isUser
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (!message.isUser) ...[
             CircleAvatar(
               radius: 16,
               backgroundColor: scheme.primary,
-              child: Icon(
-                Icons.smart_toy,
-                size: 18,
-                color: scheme.onPrimary,
-              ),
+              child: Icon(Icons.smart_toy, size: 18, color: scheme.onPrimary),
             ),
             const SizedBox(width: 8),
           ],
@@ -361,10 +378,16 @@ class _ChatbotPageState extends State<ChatbotPage> {
             child: Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: message.isUser ? scheme.primary : scheme.surfaceVariant,
+                color: message.isUser
+                    ? scheme.primary
+                    : scheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(18).copyWith(
-                  bottomLeft: message.isUser ? const Radius.circular(18) : const Radius.circular(4),
-                  bottomRight: message.isUser ? const Radius.circular(4) : const Radius.circular(18),
+                  bottomLeft: message.isUser
+                      ? const Radius.circular(18)
+                      : const Radius.circular(4),
+                  bottomRight: message.isUser
+                      ? const Radius.circular(4)
+                      : const Radius.circular(18),
                 ),
               ),
               child: Column(
@@ -373,7 +396,9 @@ class _ChatbotPageState extends State<ChatbotPage> {
                   Text(
                     message.content,
                     style: TextStyle(
-                      color: message.isUser ? scheme.onPrimary : scheme.onSurfaceVariant,
+                      color: message.isUser
+                          ? scheme.onPrimary
+                          : scheme.onSurfaceVariant,
                       fontSize: 16,
                     ),
                   ),
@@ -384,8 +409,11 @@ class _ChatbotPageState extends State<ChatbotPage> {
                       Text(
                         _formatTime(message.timestamp),
                         style: TextStyle(
-                          color: (message.isUser ? scheme.onPrimary : scheme.onSurfaceVariant)
-                              .withOpacity(0.7),
+                          color:
+                              (message.isUser
+                                      ? scheme.onPrimary
+                                      : scheme.onSurfaceVariant)
+                                  .withValues(alpha: 0.7),
                           fontSize: 12,
                         ),
                       ),
@@ -394,7 +422,7 @@ class _ChatbotPageState extends State<ChatbotPage> {
                         Icon(
                           _getIntentIcon(message.intent!),
                           size: 12,
-                          color: scheme.onSurfaceVariant.withOpacity(0.7),
+                          color: scheme.onSurfaceVariant.withValues(alpha: 0.7),
                         ),
                       ],
                     ],
@@ -408,11 +436,7 @@ class _ChatbotPageState extends State<ChatbotPage> {
             CircleAvatar(
               radius: 16,
               backgroundColor: scheme.secondary,
-              child: Icon(
-                Icons.person,
-                size: 18,
-                color: scheme.onSecondary,
-              ),
+              child: Icon(Icons.person, size: 18, color: scheme.onSecondary),
             ),
           ],
         ],
@@ -423,7 +447,7 @@ class _ChatbotPageState extends State<ChatbotPage> {
   String _formatTime(DateTime dateTime) {
     final now = DateTime.now();
     final difference = now.difference(dateTime);
-    
+
     if (difference.inDays > 0) {
       return '${difference.inDays}d ago';
     } else if (difference.inHours > 0) {

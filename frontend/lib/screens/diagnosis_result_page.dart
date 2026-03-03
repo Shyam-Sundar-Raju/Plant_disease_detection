@@ -193,19 +193,6 @@ class DiagnosisResultPage extends StatelessWidget {
     return '${ApiConfig.baseHost}/$path';
   }
 
-  String _resolveImageSource(String? urlOrPath) {
-    // Use cached local path if available, otherwise use network URL.
-    if (urlOrPath == null || urlOrPath.isEmpty) {
-      return '';
-    }
-    // If path starts with / and contains diagnosis_cache, it's a local file path
-    if (urlOrPath.startsWith('/') && urlOrPath.contains('diagnosis_cache')) {
-      return urlOrPath;
-    }
-    // Otherwise resolve to URL
-    return _resolveUrl(urlOrPath);
-  }
-
   List<_BoundingBox> _parseBoxes(dynamic data) {
     if (data is! List) {
       return [];
@@ -496,9 +483,9 @@ class _StatusChip extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return Chip(
       label: Text(label),
-      backgroundColor: scheme.primary.withOpacity(0.1),
+      backgroundColor: scheme.primary.withValues(alpha: 0.1),
       labelStyle: TextStyle(color: scheme.primary, fontWeight: FontWeight.w600),
-      side: BorderSide(color: scheme.primary.withOpacity(0.4)),
+      side: BorderSide(color: scheme.primary.withValues(alpha: 0.4)),
     );
   }
 }

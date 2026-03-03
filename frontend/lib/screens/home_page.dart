@@ -580,7 +580,7 @@ class _HomePageState extends State<HomePage> {
                     children: [
                       CircleAvatar(
                         radius: 28,
-                        backgroundColor: scheme.primary.withOpacity(0.12),
+                        backgroundColor: scheme.primary.withValues(alpha: 0.12),
                         child: Icon(Icons.eco, color: scheme.primary, size: 28),
                       ),
                       const SizedBox(width: 12),
@@ -613,7 +613,7 @@ class _HomePageState extends State<HomePage> {
                               : context.t('Offline'),
                         ),
                         backgroundColor: _isOnline
-                            ? scheme.primary.withOpacity(0.12)
+                            ? scheme.primary.withValues(alpha: 0.12)
                             : null,
                         labelStyle: TextStyle(
                           color: _isOnline ? scheme.primary : scheme.error,
@@ -680,7 +680,7 @@ class _HomePageState extends State<HomePage> {
               const SizedBox(height: 8),
               if (cropOptions.isNotEmpty)
                 DropdownButtonFormField<String>(
-                  value: _selectedCropFilter,
+                  initialValue: _selectedCropFilter,
                   decoration: InputDecoration(
                     labelText: context.t('Filter by crop'),
                   ),
@@ -732,8 +732,8 @@ class _HomePageState extends State<HomePage> {
               Navigator.pushNamed(context, ChatbotPage.routeName);
             },
             backgroundColor: Theme.of(context).colorScheme.secondary,
-            child: const Icon(Icons.smart_toy),
             tooltip: context.t('AI Assistant'),
+            child: const Icon(Icons.smart_toy),
           ),
           const SizedBox(width: 16),
           FloatingActionButton.extended(
@@ -768,7 +768,7 @@ class _WeatherCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: scheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: scheme.outline.withOpacity(0.25)),
+        border: Border.all(color: scheme.outline.withValues(alpha: 0.25)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1012,9 +1012,9 @@ class _InfoChip extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return Chip(
       label: Text(label),
-      backgroundColor: scheme.primary.withOpacity(0.08),
+      backgroundColor: scheme.primary.withValues(alpha: 0.08),
       labelStyle: TextStyle(color: scheme.primary, fontWeight: FontWeight.w600),
-      side: BorderSide(color: scheme.primary.withOpacity(0.4)),
+      side: BorderSide(color: scheme.primary.withValues(alpha: 0.4)),
     );
   }
 }
