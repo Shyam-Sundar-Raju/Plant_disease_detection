@@ -1,4 +1,7 @@
 # Plant Disease Detection App
+[![Frontend CI](https://github.com/Shyam-Sundar-Raju/Plant_disease_detection/actions/workflows/frontend.yml/badge.svg?branch=setup-cicd)](https://github.com/Shyam-Sundar-Raju/Plant_disease_detection/actions/workflows/frontend.yml)
+[![Backend CI](https://github.com/Shyam-Sundar-Raju/Plant_disease_detection/actions/workflows/backend.yml/badge.svg?branch=setup-cicd)](https://github.com/Shyam-Sundar-Raju/Plant_disease_detection/actions/workflows/backend.yml)
+
 > [!NOTE]
 > CI/CD testing in progress on `setup-cicd` branch.
 
