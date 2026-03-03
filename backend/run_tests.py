@@ -7,6 +7,7 @@ Usage:
     python run_tests.py                # Run all tests
     python run_tests.py --unit         # Run only unit tests
     python run_tests.py --integration  # Run only integration tests
+    python run_tests.py --api          # Run only API endpoint tests
     python run_tests.py --coverage     # Run with detailed coverage report
 """
 import sys
@@ -30,6 +31,19 @@ def run_tests(args=None):
     elif "--integration" in args:
         cmd.extend(["-m", "integration"])
         args.remove("--integration")
+    elif "--api" in args:
+        # Run only the API endpoint integration tests
+        cmd.extend([
+            "tests/integration/test_auth_api.py",
+            "tests/integration/test_diagnosis_api.py",
+            "tests/integration/test_history_api.py",
+            "tests/integration/test_notifications_api.py",
+            "tests/integration/test_remediation_api.py",
+            "tests/integration/test_user_api.py",
+            "-v",
+            "--tb=short"
+        ])
+        args.remove("--api")
     elif "--coverage" in args:
         cmd.extend([
             "--cov=app",

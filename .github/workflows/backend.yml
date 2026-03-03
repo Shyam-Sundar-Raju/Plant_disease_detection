@@ -94,9 +94,41 @@ jobs:
       - name: Run Integration Tests
         run: python run_tests.py --integration
 
+  api-tests:
+    name: API Tests
+    needs: integration-tests
+    runs-on: ubuntu-latest
+    services:
+      mongodb:
+        image: mongo:6.0
+        ports:
+          - 27017:27017
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      MONGODB_URL: mongodb://localhost:27017
+      MONGODB_DB_NAME: plant_disease_test
+      SECRET_KEY: test_secret_key_123_test_secret_key_123
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q libglib2.0-0
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Run API Endpoint Tests
+        run: python run_tests.py --api
+
   security-scan:
     name: Build & Security Check
-    needs: integration-tests
+    needs: [api-tests, validate-k8s, validate-terraform]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
