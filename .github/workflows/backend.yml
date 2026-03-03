@@ -178,9 +178,53 @@ jobs:
         run: terraform fmt -recursive
         working-directory: terraform
 
+  docker-build:
+    name: Build & Push Docker Image
+    needs: security-scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/plant-disease-backend
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha,prefix=sha-
+
+      - name: Build and Push Docker Image to GHCR
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          push: ${{ github.ref == 'refs/heads/main' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Print image info
+        run: |
+          echo "✅ Docker image built"
+          echo "Tags: ${{ steps.meta.outputs.tags }}"
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "📦 Image pushed to ghcr.io/${{ github.repository_owner }}/plant-disease-backend"
+          else
+            echo "ℹ️  Not on main branch — image built but not pushed"
+          fi
+
   deploy-staging:
     name: Deploy to Staging
-    needs: [security-scan, validate-k8s, validate-terraform]
+    needs: [docker-build, validate-k8s, validate-terraform]
     runs-on: ubuntu-latest
     steps:
       - name: Simulate Deployment
