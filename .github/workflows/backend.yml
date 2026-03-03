@@ -115,14 +115,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install kubectl
-        uses: azure/setup-kubectl@v3
-        with:
-          version: 'v1.29.0'
-      - name: Validate K8s Manifests (dry-run)
+      - name: Install kubeconform
+        run: |
+          curl -sSLo kubeconform.tar.gz https://github.com/yannh/kubeconform/releases/download/v0.6.4/kubeconform-linux-amd64.tar.gz
+          tar -xzf kubeconform.tar.gz
+          sudo mv kubeconform /usr/local/bin/kubeconform
+      - name: Validate K8s Manifests (schema check)
         run: |
           echo "Validating Kubernetes manifests..."
-          kubectl apply --dry-run=client -f k8s/ --validate=false
+          kubeconform -strict -summary -ignore-missing-schemas k8s/
           echo "✅ All Kubernetes manifests are valid"
 
   validate-terraform:
