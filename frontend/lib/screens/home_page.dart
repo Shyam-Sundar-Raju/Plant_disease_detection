@@ -41,7 +41,6 @@ class _HomePageState extends State<HomePage> {
   Map<String, dynamic>? _profile;
   bool _isRefreshingProfile = false;
   WeatherInfo? _weatherInfo;
-  String? _weatherError;
   bool _isLoadingWeather = false;
   Map<String, dynamic>? _historyAnalytics;
   List<Map<String, dynamic>> _historyItems = [];
@@ -430,7 +429,6 @@ class _HomePageState extends State<HomePage> {
 
     setState(() {
       _isLoadingWeather = true;
-      _weatherError = null;
     });
 
     try {
@@ -453,12 +451,7 @@ class _HomePageState extends State<HomePage> {
       if (!mounted) {
         return;
       }
-      // Only show error if we don't have cached weather to display
-      if (_weatherInfo == null) {
-        setState(() {
-          _weatherError = error.toString().replaceFirst('Exception: ', '');
-        });
-      }
+      // Error fetching weather, but we might have cached data.
     } finally {
       if (mounted) {
         setState(() {

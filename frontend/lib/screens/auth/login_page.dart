@@ -9,7 +9,12 @@ import '../home_page.dart';
 
 // Screen for user sign-in.
 class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+  const LoginPage({super.key, AuthApi? api, TokenStorage? storage})
+    : _api = api,
+      _storage = storage;
+
+  final AuthApi? _api;
+  final TokenStorage? _storage;
 
   static const String routeName = '/login';
 
@@ -21,8 +26,15 @@ class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _api = AuthApi();
-  final _tokenStorage = const TokenStorage();
+  late final AuthApi _api;
+  late final TokenStorage _tokenStorage;
+
+  @override
+  void initState() {
+    super.initState();
+    _api = widget._api ?? AuthApi();
+    _tokenStorage = widget._storage ?? const TokenStorage();
+  }
 
   bool _isLoading = false;
   String? _errorMessage;
@@ -165,7 +177,9 @@ class _LoginPageState extends State<LoginPage> {
                                 textInputAction: TextInputAction.done,
                                 validator: (value) {
                                   if (value == null || value.isEmpty) {
-                                    return context.tRead('Password is required.');
+                                    return context.tRead(
+                                      'Password is required.',
+                                    );
                                   }
                                   if (value.length < 6) {
                                     return context.tRead(

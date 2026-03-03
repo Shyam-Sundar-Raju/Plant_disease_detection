@@ -13,9 +13,12 @@ class TokenStorage {
   static const String diagnosisCacheKey = 'diagnosis_cache';
   static const String weatherCacheKey = 'weather_cache';
 
-  const TokenStorage();
+  const TokenStorage({FlutterSecureStorage? storage})
+    : _injectedStorage = storage;
 
-  FlutterSecureStorage get _storage => const FlutterSecureStorage();
+  final FlutterSecureStorage? _injectedStorage;
+  FlutterSecureStorage get _storage =>
+      _injectedStorage ?? const FlutterSecureStorage();
 
   Future<void> saveTokens({
     required String accessToken,

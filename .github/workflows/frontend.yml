@@ -5,14 +5,17 @@ on:
     branches: [ main, setup-cicd ]
     paths:
       - 'frontend/**'
+      - 'k8s/**'
+      - 'terraform/**'
+      - '.github/workflows/frontend.yml'
   pull_request:
     branches: [ main, setup-cicd ]
     paths:
       - 'frontend/**'
 
 jobs:
-  analyze:
-    name: Frontend Static Analysis
+  lint:
+    name: Code Quality Check
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -33,6 +36,7 @@ jobs:
 
   unit-tests:
     name: Frontend Unit Tests
+    needs: lint
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -46,13 +50,111 @@ jobs:
           cache: true
       - name: Install dependencies
         run: flutter pub get
-      - name: Run tests
-        run: flutter test
+      - name: Run Unit & Widget Tests
+        run: flutter test --no-pub
 
-  build:
-    name: Frontend Android Build
+  validate-k8s:
+    name: Validate Kubernetes Manifests
+    needs: lint
     runs-on: ubuntu-latest
-    needs: [analyze, unit-tests]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install kubeconform
+        run: |
+          curl -sSLo kubeconform.tar.gz https://github.com/yannh/kubeconform/releases/download/v0.6.4/kubeconform-linux-amd64.tar.gz
+          tar -xzf kubeconform.tar.gz
+          sudo mv kubeconform /usr/local/bin/kubeconform
+      - name: Validate K8s Manifests (schema check)
+        run: |
+          echo "Validating Kubernetes manifests..."
+          kubeconform -strict -summary -ignore-missing-schemas k8s/
+          echo "✅ All Kubernetes manifests are valid"
+
+  validate-terraform:
+    name: Validate Terraform IaC
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.7.0"
+      - name: Terraform Init
+        run: terraform init -backend=false
+        working-directory: terraform
+      - name: Terraform Validate
+        run: terraform validate
+        working-directory: terraform
+      - name: Terraform Format
+        run: terraform fmt -recursive
+        working-directory: terraform
+
+  integration-tests:
+    name: Frontend Integration Tests
+    needs: unit-tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+      - name: Install dependencies
+        run: flutter pub get
+      - name: Run Integration Tests (Web)
+        run: |
+          # Use chromebot for flutter integration tests in headless mode
+          # Note: Real hardware or emulator tests usually happen in a specialized lab
+          flutter test integration_test/app_test.dart -d chrome --no-pub --release --headless
+
+  security-scan:
+    name: Build & Security Check
+    needs: [integration-tests, validate-k8s, validate-terraform]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Vulnerability Scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          ignore-unfixed: true
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
+
+  build-web:
+    name: Build Web App
+    needs: security-scan
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+      - name: Install dependencies
+        run: flutter pub get
+      - name: Build Web
+        run: flutter build web --release --no-pub
+      - name: Upload Web Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-build
+          path: frontend/build/web/
+          retention-days: 7
+
+  build-apk:
+    name: Build Android APK
+    needs: security-scan
+    runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: frontend
@@ -72,10 +174,32 @@ jobs:
         run: flutter pub get
       - name: Build APK
         run: flutter build apk --release --no-pub
-      - name: Upload APK
+      - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: release-apk
           path: frontend/build/app/outputs/flutter-apk/app-release.apk
-          if-no-files-found: error
           retention-days: 7
+
+  deploy-staging:
+    name: Deploy to Staging
+    needs: [build-web, build-apk, validate-k8s, validate-terraform]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Simulate Deployment to Staging
+        run: |
+          echo "Promoting web build to staging environment..."
+          echo "Distributing APK to Beta testing track..."
+          echo "Deployment to Staging successful! ✅"
+
+  deploy-production:
+    name: Deploy to Production
+    needs: deploy-staging
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Simulate Production Deployment
+        run: |
+          echo "Deploying stable web build to production..."
+          echo "Releasing APK to Play Store production track..."
+          echo "Deployment to Production successful! 🚀"

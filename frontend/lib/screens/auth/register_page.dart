@@ -162,7 +162,7 @@ class _RegisterPageState extends State<RegisterPage> {
                           radius: 24,
                           backgroundColor: Theme.of(
                             context,
-                          ).colorScheme.primary.withOpacity(0.12),
+                          ).colorScheme.primary.withValues(alpha: 0.12),
                           child: Icon(
                             Icons.landscape,
                             color: Theme.of(context).colorScheme.primary,
@@ -204,7 +204,9 @@ class _RegisterPageState extends State<RegisterPage> {
                                     return context.tRead('Name is required.');
                                   }
                                   if (value.trim().length < 2) {
-                                    return context.tRead('Name must be at least 2 characters.');
+                                    return context.tRead(
+                                      'Name must be at least 2 characters.',
+                                    );
                                   }
                                   return null;
                                 },
@@ -230,14 +232,15 @@ class _RegisterPageState extends State<RegisterPage> {
                                   Expanded(
                                     flex: 3,
                                     child: DropdownButtonFormField<String>(
-                                      value: _selectedCountryCode,
+                                      initialValue: _selectedCountryCode,
                                       decoration: InputDecoration(
                                         labelText: context.t('Code'),
                                         isDense: true,
-                                        contentPadding: EdgeInsets.symmetric(
-                                          horizontal: 12,
-                                          vertical: 12,
-                                        ),
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                              horizontal: 12,
+                                              vertical: 12,
+                                            ),
                                       ),
                                       isExpanded: true,
                                       items: _countryCodes
@@ -296,7 +299,9 @@ class _RegisterPageState extends State<RegisterPage> {
                                 textInputAction: TextInputAction.next,
                                 validator: (value) {
                                   if (value == null || value.isEmpty) {
-                                    return context.tRead('Password is required.');
+                                    return context.tRead(
+                                      'Password is required.',
+                                    );
                                   }
                                   if (value.length < 8) {
                                     return context.tRead(
@@ -315,14 +320,16 @@ class _RegisterPageState extends State<RegisterPage> {
                                 textInputAction: TextInputAction.next,
                                 validator: (value) {
                                   if (value == null || value.trim().isEmpty) {
-                                    return context.tRead('Address is required.');
+                                    return context.tRead(
+                                      'Address is required.',
+                                    );
                                   }
                                   return null;
                                 },
                               ),
                               const SizedBox(height: 16),
                               DropdownButtonFormField<String>(
-                                value: _selectedLanguage,
+                                initialValue: _selectedLanguage,
                                 decoration: InputDecoration(
                                   labelText: context.t('Preferred language'),
                                 ),

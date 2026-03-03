@@ -107,10 +107,21 @@ class _CropCapturePageState extends State<CropCapturePage> {
       if (video == null) {
         return;
       }
+      if (!mounted) {
+        return;
+      }
 
+      final fallbackMessage = context.tRead(
+        'Unable to extract a frame from video.',
+      );
       final frameFile = await _extractFrame(File(video.path));
+
+      if (!mounted) {
+        return;
+      }
+
       if (frameFile == null) {
-        _showError(context.tRead('Unable to extract a frame from video.'));
+        _showError(fallbackMessage);
         return;
       }
 
@@ -136,13 +147,14 @@ class _CropCapturePageState extends State<CropCapturePage> {
       compressQuality: 95,
       uiSettings: [
         AndroidUiSettings(
-          toolbarTitle: context.tRead('Crop image'),
+          toolbarTitle:
+              'Crop image', // Hardcoded fallback or handle before await
           toolbarColor: const Color(0xFF1B5E20),
           toolbarWidgetColor: Colors.white,
           activeControlsWidgetColor: const Color(0xFF1B5E20),
           lockAspectRatio: false,
         ),
-        IOSUiSettings(title: context.tRead('Crop image')),
+        IOSUiSettings(title: 'Crop image'),
       ],
     );
 
@@ -192,18 +204,24 @@ class _CropCapturePageState extends State<CropCapturePage> {
         threshold: 200.0,
       );
       if (isBlurry) {
+        if (!mounted) {
+          return;
+        }
         await showDialog<void>(
           context: context,
           builder: (context) {
+            final titleText = context.t('Image is blurry');
+            final contentText = context.t(
+              'Please retake the image for a clearer result.',
+            );
+            final okText = context.t('OK');
             return AlertDialog(
-              title: Text(context.t('Image is blurry')),
-              content: Text(
-                context.t('Please retake the image for a clearer result.'),
-              ),
+              title: Text(titleText),
+              content: Text(contentText),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: Text(context.t('OK')),
+                  child: Text(okText),
                 ),
               ],
             );
@@ -211,10 +229,21 @@ class _CropCapturePageState extends State<CropCapturePage> {
         );
         return;
       }
+      if (!mounted) {
+        return;
+      }
 
+      final fallbackTokenMessage = context.tRead(
+        'Missing access token. Please log in again.',
+      );
       final accessToken = await _tokenStorage.readAccessToken();
+
+      if (!mounted) {
+        return;
+      }
+
       if (accessToken == null || accessToken.isEmpty) {
-        _showError(context.tRead('Missing access token. Please log in again.'));
+        _showError(fallbackTokenMessage);
         return;
       }
 

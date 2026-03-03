@@ -194,17 +194,18 @@ class _ChatbotPageState extends State<ChatbotPage> {
         _scrollToBottom();
       }
     } catch (e) {
-      // Add error message
-      final errorMessage = ChatMessage(
-        content: context.t(
-          'Sorry, I\'m having trouble right now. Please try again later.',
-        ),
-        isUser: false,
-        timestamp: DateTime.now(),
-        intent: 'error',
-      );
-
       if (mounted) {
+        final errorText = context.t(
+          'Sorry, I\'m having trouble right now. Please try again later.',
+        );
+
+        final errorMessage = ChatMessage(
+          content: errorText,
+          isUser: false,
+          timestamp: DateTime.now(),
+          intent: 'error',
+        );
+
         setState(() {
           _messages.add(errorMessage);
         });
