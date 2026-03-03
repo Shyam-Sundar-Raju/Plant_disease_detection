@@ -78,7 +78,10 @@ class PlantDiseaseApp extends StatelessWidget {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: Color(0xFF1B5E20), width: 1.6),
+              borderSide: const BorderSide(
+                color: Color(0xFF1B5E20),
+                width: 1.6,
+              ),
             ),
           ),
           elevatedButtonTheme: ElevatedButtonThemeData(
