@@ -61,9 +61,32 @@ class NotificationService:
             raise
 
 
-
+    @staticmethod
+    async def delete_notification(
+        db: AsyncIOMotorDatabase,
+        notification_id: str,
+        user_id: str
+    ) -> bool:
+        """
+        Delete a notification
         
-    
+        Args:
+            db: Database connection
+            notification_id: Notification ID
+            user_id: User ID
+            
+        Returns:
+            Success status
+        """
+        try:
+            result = await db.notifications.delete_one({
+                "_id": ObjectId(notification_id),
+                "user_id": user_id
+            })
+            return result.deleted_count > 0
+        except Exception as e:
+            logger.error(f"Error deleting notification: {e}")
+            return False
     @staticmethod
     async def get_user_notifications(
         db: AsyncIOMotorDatabase,

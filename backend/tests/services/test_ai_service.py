@@ -14,8 +14,9 @@ class TestAIServiceInitialization:
         service2 = ai_service
         assert service1 is service2
     
+    @patch('pathlib.Path.exists', return_value=True)
     @patch('tensorflow.keras.models.load_model')
-    def test_load_models(self, mock_load_model):
+    def test_load_models(self, mock_load_model, mock_exists):
         """Test model loading"""
         mock_model = Mock()
         mock_load_model.return_value = mock_model
@@ -49,7 +50,7 @@ class TestDiseaseDetection:
     """Test disease detection"""
     
     @pytest.mark.asyncio
-    @patch('app.services.ai_service.AIModelService._mock_predict')
+    @patch.object(AIService, '_mock_predict')
     async def test_predict_disease(self, mock_predict, mock_image):
         """Test disease prediction fallback to mock"""
         mock_predict.return_value = {

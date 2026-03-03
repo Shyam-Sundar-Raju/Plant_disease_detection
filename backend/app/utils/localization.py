@@ -143,12 +143,19 @@ class Localizer:
         localized = {}
         
         for key, value in treatment_data.items():
-            if isinstance(value, dict) and language in value:
-                localized[key] = value[language]
-            elif isinstance(value, dict) and settings.DEFAULT_LANGUAGE in value:
-                localized[key] = value[settings.DEFAULT_LANGUAGE]
+            if isinstance(value, dict):
+                # If this dict is a language map (e.g., {"en": "...", "hi": "..."})
+                if language in value or settings.DEFAULT_LANGUAGE in value:
+                    localized[key] = cls.get_localized_dict(value, language)
+                else:
+                    # Otherwise, it's a nested dictionary, recurse
+                    localized[key] = cls.localize_remediation(value, language)
             elif isinstance(value, list):
-                localized[key] = [cls.get_localized_dict(item, language) if isinstance(item, dict) else item for item in value]
+                # Process lists which might contain dictionaries
+                localized[key] = [
+                    cls.localize_remediation(item, language) if isinstance(item, dict) else item 
+                    for item in value
+                ]
             else:
                 localized[key] = value
         
