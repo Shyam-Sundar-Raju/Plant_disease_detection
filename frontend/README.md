@@ -1,4 +1,8 @@
-# Plant Disease Detection Frontend (Flutter)
+# Plant Disease Detection App
+> [!NOTE]
+> CI/CD testing in progress on `setup-cicd` branch.
+
+Frontend (Flutter)
 
 Mobile client for the Plant Disease Detection platform. The app handles user auth, crop image capture, diagnosis results, remediation guidance, and profile/history views.
 

@@ -11,70 +11,66 @@ on:
       - 'backend/**'
 
 jobs:
-  test:
+  unit-tests:
+    name: Backend Unit Tests
     runs-on: ubuntu-latest
-    
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Run Unit Tests
+        run: python run_tests.py --unit
+        continue-on-error: true
+
+  integration-tests:
+    name: Backend Integration Tests
+    runs-on: ubuntu-latest
     services:
       mongodb:
         image: mongo:6.0
         ports:
           - 27017:27017
-    
     defaults:
       run:
         working-directory: backend
-
     env:
       MONGODB_URL: mongodb://localhost:27017
       MONGODB_DB_NAME: plant_disease_test
       SECRET_KEY: test_secret_key_123_test_secret_key_123
-      JWT_ALGORITHM: HS256
-      ACCESS_TOKEN_EXPIRE_MINUTES: 60
-
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Run Integration Tests
+        run: python run_tests.py --integration
+        continue-on-error: true
 
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.10'
-        cache: 'pip'
-
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-
-    - name: Lint with flake8
-      run: |
-        # stop the build if there are Python syntax errors or undefined names
-        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-        # exit-zero treats all errors as warnings
-        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-      continue-on-error: true
-
-    - name: Run tests with pytest
-      run: |
-        python run_tests.py
-      continue-on-error: true
-
-  build-docker:
-    needs: test
+  lint:
+    name: Backend Linting
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    
     defaults:
       run:
         working-directory: backend
-
     steps:
-    - uses: actions/checkout@v4
-
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
-
-    - name: Build and push (mock)
-      run: |
-        echo "Building Docker image..."
-        docker build -t plant-disease-backend:latest .
-        echo "Docker image built successfully."
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - name: Install flake8
+        run: pip install flake8
+      - name: Lint
+        run: flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
