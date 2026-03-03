@@ -108,11 +108,18 @@ jobs:
           cache: true
       - name: Install dependencies
         run: flutter pub get
+      - name: Install ChromeDriver
+        uses: nanasess/setup-chromedriver@v2
       - name: Run Integration Tests (Web)
         run: |
-          # Use chromebot for flutter integration tests in headless mode
-          # Note: Real hardware or emulator tests usually happen in a specialized lab
-          flutter test integration_test/app_test.dart -d chrome --no-pub --web-browser-flag="--headless"
+          # Start ChromeDriver in the background
+          chromedriver --port=4444 &
+          # Run flutter drive targeting the web server device
+          flutter drive \
+            --driver=test_driver/integration_test.dart \
+            --target=integration_test/app_test.dart \
+            -d web-server \
+            --no-pub
 
   security-scan:
     name: Build & Security Check
