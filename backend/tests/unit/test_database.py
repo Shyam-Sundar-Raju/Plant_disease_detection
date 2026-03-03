@@ -2,7 +2,8 @@
 Unit Tests for Database Module
 """
 import pytest
-from app.core.database import get_database, close_database_connection
+from app.core.database import get_database, Database
+close_database_connection = Database.close_db
 
 
 @pytest.mark.unit

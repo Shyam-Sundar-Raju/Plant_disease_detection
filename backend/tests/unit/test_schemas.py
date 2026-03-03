@@ -9,7 +9,7 @@ from app.models.schemas import (
     UserLogin,
     DiagnosisResponse,
     NotificationCreate,
-    PasswordResetRequest
+    PasswordReset as PasswordResetRequest
 )
 
 

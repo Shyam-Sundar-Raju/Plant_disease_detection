@@ -4,7 +4,7 @@ Unit Tests for AI Service
 import pytest
 import numpy as np
 from unittest.mock import Mock, patch, MagicMock
-from app.services.ai_service import AIService
+from app.services.ai_service import AIModelService as AIService
 
 
 @pytest.mark.unit

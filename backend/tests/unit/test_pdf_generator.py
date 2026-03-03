@@ -3,7 +3,7 @@ Unit Tests for PDF Generator Module
 """
 import pytest
 from unittest.mock import Mock, patch
-from app.utils.pdf_generator import PDFGenerator
+from app.utils.pdf_generator import PDFReportGenerator as PDFGenerator
 
 
 @pytest.mark.unit
