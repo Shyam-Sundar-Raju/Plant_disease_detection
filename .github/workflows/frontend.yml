@@ -25,12 +25,15 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
+          flutter-version: '3.27.0'
           channel: 'stable'
           cache: true
       - name: Install dependencies
         run: flutter pub get
       - name: Verify formatting
-        run: dart format --output=none --set-exit-if-changed .
+        run: |
+          dart format .
+          git diff --exit-code || (echo "❌ Formatting issues found. Please run 'dart format .' locally." && exit 1)
       - name: Analyze project source
         run: flutter analyze
 
@@ -46,6 +49,7 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
+          flutter-version: '3.27.0'
           channel: 'stable'
           cache: true
       - name: Install dependencies
@@ -102,6 +106,7 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
+          flutter-version: '3.27.0'
           channel: 'stable'
           cache: true
       - name: Install dependencies
@@ -138,6 +143,7 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
+          flutter-version: '3.27.0'
           channel: 'stable'
           cache: true
       - name: Install dependencies
@@ -168,6 +174,7 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
+          flutter-version: '3.27.0'
           channel: 'stable'
           cache: true
       - name: Install dependencies
