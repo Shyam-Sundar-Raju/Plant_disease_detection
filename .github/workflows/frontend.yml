@@ -112,7 +112,7 @@ jobs:
         run: |
           # Use chromebot for flutter integration tests in headless mode
           # Note: Real hardware or emulator tests usually happen in a specialized lab
-          flutter test integration_test/app_test.dart -d chrome --no-pub --headless
+          flutter test integration_test/app_test.dart -d chrome --no-pub --web-browser-flag="--headless"
 
   security-scan:
     name: Build & Security Check
