@@ -5,6 +5,7 @@ on:
     branches: [ main, setup-cicd ]
     paths:
       - 'backend/**'
+      - '.github/workflows/backend.yml'
   pull_request:
     branches: [ main, setup-cicd ]
     paths:
