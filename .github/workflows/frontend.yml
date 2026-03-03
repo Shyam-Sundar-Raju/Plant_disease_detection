@@ -184,7 +184,13 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
       - name: Build APK
-        run: flutter build apk --release --no-pub
+        run: |
+          # Remove stale plugin registrant before release build.
+          # integration_test is a dev-only package whose Android classes are
+          # not available at release compile time, so we must let flutter
+          # regenerate the file fresh during the release build.
+          rm -f android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java
+          flutter build apk --release --no-pub
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
