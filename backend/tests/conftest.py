@@ -33,8 +33,12 @@ def event_loop():
 @pytest_asyncio.fixture(scope="function")
 async def test_db():
     """Test database instance"""
+    from app.core.database import Database
     client = AsyncIOMotorClient(settings.MONGODB_URL)
     db = client[f"{settings.MONGODB_DB_NAME}_test"]
+    
+    Database.client = client
+    Database.db = db
     
     # Clean before test
     await db.users.delete_many({})
@@ -57,7 +61,7 @@ async def test_db():
 
 # HTTP client fixture
 @pytest_asyncio.fixture
-async def client():
+async def client(test_db):
     """Async HTTP test client"""
     async with AsyncClient(app=app, base_url="http://test") as ac:
         yield ac
