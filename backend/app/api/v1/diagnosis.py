@@ -341,16 +341,24 @@ async def diagnose_from_video(
 async def list_diagnoses(
     skip: int = 0,
     limit: int = 20,
+    crop_type: Optional[str] = None,
+    disease_name: Optional[str] = None,
     current_user: dict = Depends(get_current_user),
     db: AsyncIOMotorDatabase = Depends(get_database)
 ):
     """
-    List all diagnoses for current user
+    List all diagnoses for current user, with optional filters
     """
     try:
         user_id = str(current_user["_id"])
         
-        cursor = db.diagnoses.find({"user_id": user_id}).sort("created_at", -1).skip(skip).limit(limit)
+        query = {"user_id": user_id}
+        if crop_type:
+            query["crop_type"] = crop_type
+        if disease_name:
+            query["disease_name"] = {"$regex": disease_name, "$options": "i"}
+        
+        cursor = db.diagnoses.find(query).sort("created_at", -1).skip(skip).limit(limit)
         diagnoses = await cursor.to_list(length=limit)
         
         for diagnosis in diagnoses:
@@ -364,3 +372,4 @@ async def list_diagnoses(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to list diagnoses"
         )
+
