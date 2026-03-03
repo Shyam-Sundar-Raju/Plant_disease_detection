@@ -2,6 +2,7 @@
 Global Test Fixtures and Configuration
 """
 import pytest
+import pytest_asyncio
 import asyncio
 import sys
 from pathlib import Path
@@ -29,7 +30,7 @@ def event_loop():
     loop.close()
 
 # Database fixture
-@pytest.fixture(scope="function")
+@pytest_asyncio.fixture(scope="function")
 async def test_db():
     """Test database instance"""
     client = AsyncIOMotorClient(settings.MONGODB_URL)
@@ -55,14 +56,14 @@ async def test_db():
     client.close()
 
 # HTTP client fixture
-@pytest.fixture
+@pytest_asyncio.fixture
 async def client():
     """Async HTTP test client"""
     async with AsyncClient(app=app, base_url="http://test") as ac:
         yield ac
 
 # Authenticated client fixture
-@pytest.fixture
+@pytest_asyncio.fixture
 async def authenticated_client(test_db):
     """HTTP client with authentication"""
     # Create test user
