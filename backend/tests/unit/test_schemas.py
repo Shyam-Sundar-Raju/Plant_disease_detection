@@ -43,17 +43,17 @@ class TestUserSchemas:
     def test_user_login_valid(self):
         """Test valid login schema"""
         login = UserLogin(
-            email="test@example.com",
+            username="test@example.com",
             password="password123"
         )
         
-        assert login.email == "test@example.com"
+        assert login.username == "test@example.com"
     
     def test_user_login_invalid(self):
         """Test invalid login schema"""
         with pytest.raises(ValidationError):
             UserLogin(
-                email="invalid",
+                username="invalid",
                 password="pass"
             )
 

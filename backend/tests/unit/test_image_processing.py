@@ -88,7 +88,7 @@ class TestSeverityCalculation:
         """Test severity calculation with no boxes"""
         severity = ImageProcessor.calculate_severity(mock_image, [])
         
-        assert severity == "low"
+        assert severity == "healthy"
     
     def test_calculate_severity_multiple_boxes(self, mock_image):
         """Test severity with multiple boxes"""
