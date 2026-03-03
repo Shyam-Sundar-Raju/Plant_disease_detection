@@ -1,0 +1,5 @@
+﻿frontend/lib/screens/auth/forgot_password_page.dart
+frontend/lib/services/app_localizations.dart
+frontend/lib/services/blur_detector.dart
+frontend/lib/services/chatbot_api.dart
+frontend/lib/services/weather_api.dart

@@ -52,7 +52,7 @@ class BlurDetector {
   }
 
   img.Image _prepareImage(img.Image image) {
-    final targetWidth = 256;
+    const targetWidth = 256;
     final resized = image.width > targetWidth
         ? img.copyResize(image, width: targetWidth)
         : image;

@@ -1,0 +1,20 @@
+﻿Analyzing frontend...                                           
+
+   info - Don't use 'BuildContext's across async gaps - lib\screens\crop_capture_page.dart:111:31 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\screens\crop_capture_page.dart:229:36 - use_build_context_synchronously
+
+flutter : 2 issues found. 
+(ran in 2.1s)
+At line:1 char:1
++ flutter analyze --no-pub > 
+analyze_output_final.txt 2>&1
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo           
+   : NotSpecified: (2 issue  
+  s found. (ran in 2.1s):S   
+ tring) [], RemoteExcepti    
+on
+    + FullyQualifiedErrorId  
+   : NativeCommandError
+ 

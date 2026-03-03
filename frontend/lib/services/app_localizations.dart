@@ -197,7 +197,7 @@ class AppLocalizations {
           'Convert technical terms to farmer-friendly words',
       'Example: "fungicide" → "fungus medicine"':
           'Example: "fungicide" → "fungus medicine"',
-      
+
       // Chatbot strings
       'AI Assistant': 'AI Assistant',
       'AI Farm Assistant': 'AI Farm Assistant',
@@ -353,7 +353,7 @@ class AppLocalizations {
       'Frequency {value}': 'आवृत्ति {value}',
       'Cost {value}': 'लागत {value}',
       'Crop image': 'छवि क्रॉप करें',
-      
+
       // Chatbot strings
       'AI Assistant': 'एआई सहायक',
       'AI Farm Assistant': 'एआई कृषि सहायक',
@@ -511,7 +511,7 @@ class AppLocalizations {
       'Frequency {value}': 'அடிக்கடி {value}',
       'Cost {value}': 'செலவு {value}',
       'Crop image': 'படத்தை குரைத்தல்',
-      
+
       // Chatbot strings
       'AI Assistant': 'AI உதவியாளர்',
       'AI Farm Assistant': 'AI விவசாய உதவியாளர்',
@@ -668,7 +668,7 @@ class AppLocalizations {
       'Frequency {value}': 'తరచుదనం {value}',
       'Cost {value}': 'ఖర్చు {value}',
       'Crop image': 'చిత్రాన్ని క్రాప్ చేయండి',
-      
+
       // Chatbot strings
       'AI Assistant': 'AI సహాయకుడు',
       'AI Farm Assistant': 'AI వ్యవసాయ సహాయకుడు',
@@ -826,7 +826,7 @@ class AppLocalizations {
       'Frequency {value}': 'ಆವೃತ್ತಿ {value}',
       'Cost {value}': 'ವೆಚ್ಚ {value}',
       'Crop image': 'ಚಿತ್ರವನ್ನು ಕ್ರಾಪ್ ಮಾಡಿ',
-      
+
       // Chatbot strings
       'AI Assistant': 'AI ಸಹಾಯಕ',
       'AI Farm Assistant': 'AI ಕೃಷಿ ಸಹಾಯಕ',
@@ -985,13 +985,14 @@ class AppLocalizations {
       'Frequency {value}': 'ആവർത്തനം {value}',
       'Cost {value}': 'ചെലവ് {value}',
       'Crop image': 'ചിത്രം ക്രോപ് ചെയ്യുക',
-      
+
       // Chatbot strings
       'AI Assistant': 'AI സഹായി',
       'AI Farm Assistant': 'AI കൃഷി സഹായി',
       'Type your message...': 'നിങ്ങളുടെ സന്ദേശം ടൈപ്പ് ചെയ്യുക...',
       'Chat history cleared': 'ചാറ്റ് ചരിത്രം മായ്ച്ചു',
-      'Failed to clear chat history': 'ചാറ്റ് ചരിത്രം മായ്ക്കുന്നതിൽ പരാജയപ്പെട്ടു',
+      'Failed to clear chat history':
+          'ചാറ്റ് ചരിത്രം മായ്ക്കുന്നതിൽ പരാജയപ്പെട്ടു',
       'Clear chat': 'ചാറ്റ് മായ്ക്കുക',
       'Sorry, I\'m having trouble right now. Please try again later.':
           'ക്ഷമിക്കണം, എനിക്ക് ഇപ്പോൾ പ്രശ്നമുണ്ട്. ദയവായി പിന്നീട് വീണ്ടും ശ്രമിക്കുക.',

@@ -27,10 +27,7 @@ class ChatbotApi {
       headers['Accept-Language'] = language;
     }
 
-    final requestData = {
-      'message': message,
-      'language': language ?? 'en',
-    };
+    final requestData = {'message': message, 'language': language ?? 'en'};
 
     final response = await _dio.post(
       '/chatbot/message',
@@ -66,15 +63,10 @@ class ChatbotApi {
   }
 
   /// Clear conversation history
-  Future<void> clearChatHistory({
-    required String accessToken,
-  }) async {
+  Future<void> clearChatHistory({required String accessToken}) async {
     final headers = <String, dynamic>{'Authorization': 'Bearer $accessToken'};
 
-    await _dio.delete(
-      '/chatbot/history',
-      options: Options(headers: headers),
-    );
+    await _dio.delete('/chatbot/history', options: Options(headers: headers));
   }
 
   /// Get supported intents and features

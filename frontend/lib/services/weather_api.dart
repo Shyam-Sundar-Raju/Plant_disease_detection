@@ -45,10 +45,7 @@ class WeatherInfo {
         'feelslike_c': feelsLikeC,
         'humidity': humidity,
         'wind_kph': windKph,
-        'condition': {
-          'text': conditionText,
-          'icon': conditionIconUrl,
-        },
+        'condition': {'text': conditionText, 'icon': conditionIconUrl},
       },
     };
   }

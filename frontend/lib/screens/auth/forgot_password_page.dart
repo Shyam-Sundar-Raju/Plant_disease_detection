@@ -48,17 +48,18 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
     });
 
     try {
+      final fallbackMessage = context.tRead(
+        'If the account exists, a reset code will be sent.',
+      );
       final result = await _api.forgotPassword(
         username: _usernameController.text.trim(),
       );
 
-      final message =
-          result['message']?.toString() ??
-          context.tRead('If the account exists, a reset code will be sent.');
-
       if (!mounted) {
         return;
       }
+
+      final message = result['message']?.toString() ?? fallbackMessage;
 
       setState(() {
         _message = message;
@@ -72,6 +73,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
         }
       });
     } catch (error) {
+      if (!mounted) return;
       setState(() {
         _errorMessage = _friendlyError(error);
       });
@@ -100,24 +102,27 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
         throw Exception('Reset token is missing.');
       }
 
+      final fallbackMessage = context.tRead(
+        'Password reset successful. You can log in now.',
+      );
+
       final result = await _api.resetPassword(
         token: _resetToken!,
         otp: _otpController.text.trim(),
         newPassword: _newPasswordController.text,
       );
 
-      final message =
-          result['message']?.toString() ??
-          context.tRead('Password reset successful. You can log in now.');
-
       if (!mounted) {
         return;
       }
+
+      final message = result['message']?.toString() ?? fallbackMessage;
 
       setState(() {
         _message = message;
       });
     } catch (error) {
+      if (!mounted) return;
       setState(() {
         _errorMessage = _friendlyError(error);
       });
@@ -172,7 +177,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                           radius: 24,
                           backgroundColor: Theme.of(
                             context,
-                          ).colorScheme.primary.withOpacity(0.12),
+                          ).colorScheme.primary.withValues(alpha: 0.12),
                           child: Icon(
                             Icons.lock_reset,
                             color: Theme.of(context).colorScheme.primary,
