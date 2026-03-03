@@ -6,6 +6,8 @@ import 'package:image/image.dart' as img;
 class BlurDetector {
   const BlurDetector();
 
+  static const int _targetWidth = 256;
+
   Future<bool> isBlurry(File imageFile, {double threshold = 200.0}) async {
     final bytes = await imageFile.readAsBytes();
     return isBlurryBytes(bytes, threshold: threshold);
@@ -52,9 +54,8 @@ class BlurDetector {
   }
 
   img.Image _prepareImage(img.Image image) {
-    const targetWidth = 256;
-    final resized = image.width > targetWidth
-        ? img.copyResize(image, width: targetWidth)
+    final resized = image.width > _targetWidth
+        ? img.copyResize(image, width: _targetWidth)
         : image;
     return img.grayscale(resized);
   }

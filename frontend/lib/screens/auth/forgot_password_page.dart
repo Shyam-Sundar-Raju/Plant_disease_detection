@@ -74,8 +74,9 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
       });
     } catch (error) {
       if (!mounted) return;
+      final fallback = context.tRead('Something went wrong. Please try again.');
       setState(() {
-        _errorMessage = _friendlyError(error);
+        _errorMessage = _friendlyError(error, fallback);
       });
     } finally {
       if (mounted) {
@@ -123,8 +124,9 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
       });
     } catch (error) {
       if (!mounted) return;
+      final fallback = context.tRead('Something went wrong. Please try again.');
       setState(() {
-        _errorMessage = _friendlyError(error);
+        _errorMessage = _friendlyError(error, fallback);
       });
     } finally {
       if (mounted) {
@@ -135,7 +137,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
     }
   }
 
-  String _friendlyError(Object error) {
+  String _friendlyError(Object error, String fallback) {
     // Try to extract a human-readable message from DioException.
     if (error is Exception) {
       final raw = error.toString();
@@ -146,7 +148,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
         return detailMatch.group(1)!;
       }
     }
-    return context.tRead('Something went wrong. Please try again.');
+    return fallback;
   }
 
   @override
