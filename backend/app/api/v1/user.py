@@ -53,6 +53,8 @@ async def update_profile(
             update_data["preferred_language"] = user_update.preferred_language
         if user_update.location is not None:
             update_data["location"] = user_update.location
+        if user_update.phone is not None:
+            update_data["phone"] = user_update.phone
         
         if not update_data:
             raise HTTPException(

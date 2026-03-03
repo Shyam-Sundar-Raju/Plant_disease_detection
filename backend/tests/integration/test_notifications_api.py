@@ -20,8 +20,9 @@ class TestNotificationEndpoints:
                 "user_id": user_id,
                 "title": f"Notification {i}",
                 "message": "Test message",
-                "type": "info",
-                "read": False,
+                "notification_type": "system",
+                "priority": "normal",
+                "is_read": False,
                 "created_at": datetime.utcnow()
             })
         
@@ -41,8 +42,9 @@ class TestNotificationEndpoints:
             "user_id": user_id,
             "title": "Test",
             "message": "Test",
-            "type": "info",
-            "read": False,
+            "notification_type": "system",
+            "priority": "normal",
+            "is_read": False,
             "created_at": datetime.utcnow()
         })
         notification_id = str(result.inserted_id)
@@ -53,7 +55,7 @@ class TestNotificationEndpoints:
         
         # Verify marked as read
         notif = await test_db.notifications.find_one({"_id": result.inserted_id})
-        assert notif["read"] is True
+        assert notif["is_read"] is True
     
     @pytest.mark.asyncio
     async def test_mark_all_as_read(self, authenticated_client, test_db):
@@ -66,7 +68,9 @@ class TestNotificationEndpoints:
                 "user_id": user_id,
                 "title": f"Notif {i}",
                 "message": "Test",
-                "read": False,
+                "notification_type": "system",
+                "priority": "normal",
+                "is_read": False,
                 "created_at": datetime.utcnow()
             })
         
@@ -77,7 +81,7 @@ class TestNotificationEndpoints:
         # Verify all marked as read
         unread_count = await test_db.notifications.count_documents({
             "user_id": user_id,
-            "read": False
+            "is_read": False
         })
         assert unread_count == 0
     
@@ -94,7 +98,9 @@ class TestNotificationEndpoints:
                 "user_id": user_id,
                 "title": f"Notif {i}",
                 "message": "Test",
-                "read": False,
+                "notification_type": "system",
+                "priority": "normal",
+                "is_read": False,
                 "created_at": datetime.utcnow()
             })
         

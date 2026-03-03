@@ -19,7 +19,10 @@ class TestHistoryEndpoints:
             await test_db.history.insert_one({
                 "user_id": user_id,
                 "diagnosis_id": f"diag_{i}",
-                "action": "view",
+                "crop_type": "tomato",
+                "disease_name": f"Disease {i}",
+                "confidence": 0.9,
+                "severity": "medium",
                 "created_at": datetime.utcnow()
             })
         
@@ -38,12 +41,20 @@ class TestHistoryEndpoints:
         # Insert old and new records
         await test_db.history.insert_one({
             "user_id": user_id,
-            "action": "view",
+            "diagnosis_id": "diag_old",
+            "crop_type": "tomato",
+            "disease_name": "Disease 1",
+            "confidence": 0.9,
+            "severity": "high",
             "created_at": datetime.utcnow() - timedelta(days=10)
         })
         await test_db.history.insert_one({
             "user_id": user_id,
-            "action": "view",
+            "diagnosis_id": "diag_new",
+            "crop_type": "tomato",
+            "disease_name": "Disease 2",
+            "confidence": 0.8,
+            "severity": "low",
             "created_at": datetime.utcnow()
         })
         
@@ -61,7 +72,11 @@ class TestHistoryEndpoints:
         
         result = await test_db.history.insert_one({
             "user_id": user_id,
-            "action": "view",
+            "diagnosis_id": "diag_del",
+            "crop_type": "tomato",
+            "disease_name": "Disease 3",
+            "confidence": 0.9,
+            "severity": "high",
             "created_at": datetime.utcnow()
         })
         history_id = str(result.inserted_id)

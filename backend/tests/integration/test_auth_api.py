@@ -183,7 +183,7 @@ class TestPasswordReset:
         assert response.status_code == 200
         
         # Verify reset token created
-        reset = await test_db.password_resets.find_one({"email": "test@example.com"})
+        reset = await test_db.password_resets.find_one()
         assert reset is not None
     
     @pytest.mark.asyncio

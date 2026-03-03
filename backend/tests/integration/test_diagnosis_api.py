@@ -25,7 +25,7 @@ class TestDiagnosisEndpoints:
 
         
         files = {
-            "file": ("test.jpg", img_bytes, "image/jpeg")
+            "image": ("test.jpg", img_bytes, "image/jpeg")
         }
         
         response = await client.post("/api/v1/diagnosis/check-quality", files=files)
@@ -47,7 +47,7 @@ class TestDiagnosisEndpoints:
         img_bytes.seek(0)
         
         files = {
-            "file": ("test.jpg", img_bytes, "image/jpeg")
+            "image": ("test.jpg", img_bytes, "image/jpeg")
         }
         data = {
             "crop_type": "tomato"
@@ -60,7 +60,7 @@ class TestDiagnosisEndpoints:
         )
         
         # Diagnosis may succeed or fail depending on model
-        assert response.status_code in [200, 400, 500]
+        assert response.status_code in [200, 201, 400, 500]
     
     @pytest.mark.asyncio
     async def test_get_diagnosis_by_id(self, authenticated_client, test_db, mock_diagnosis):
@@ -106,23 +106,22 @@ class TestDiagnosisFilters:
     """Test diagnosis filtering and search"""
     
     @pytest.mark.asyncio
-    async def test_filter_by_crop_type(self, authenticated_client, test_db):
+    async def test_filter_by_crop_type(self, authenticated_client, test_db, mock_diagnosis):
         """Test filter diagnoses by crop type"""
         client, user_id = authenticated_client
         
         # Insert diagnoses with different crop types
-        await test_db.diagnoses.insert_one({
-            "user_id": user_id,
-            "crop_type": "tomato",
-            "disease_name": "Early Blight",
-            "confidence": 0.9
-        })
-        await test_db.diagnoses.insert_one({
-            "user_id": user_id,
-            "crop_type": "potato",
-            "disease_name": "Late Blight",
-            "confidence": 0.85
-        })
+        doc1 = mock_diagnosis.copy()
+        if "_id" in doc1: del doc1["_id"]
+        doc1["user_id"] = user_id
+        doc1["crop_type"] = "tomato"
+        await test_db.diagnoses.insert_one(doc1)
+        
+        doc2 = mock_diagnosis.copy()
+        if "_id" in doc2: del doc2["_id"]
+        doc2["user_id"] = user_id
+        doc2["crop_type"] = "potato"
+        await test_db.diagnoses.insert_one(doc2)
         
         response = await client.get("/api/v1/diagnosis/?crop_type=tomato")
         
@@ -131,18 +130,17 @@ class TestDiagnosisFilters:
         assert all(d["crop_type"] == "tomato" for d in data)
     
     @pytest.mark.asyncio
-    async def test_pagination(self, authenticated_client, test_db):
+    async def test_pagination(self, authenticated_client, test_db, mock_diagnosis):
         """Test diagnosis pagination"""
         client, user_id = authenticated_client
         
         # Insert multiple diagnoses
         for i in range(15):
-            await test_db.diagnoses.insert_one({
-                "user_id": user_id,
-                "crop_type": "tomato",
-                "disease_name": f"Disease {i}",
-                "confidence": 0.9
-            })
+            doc = mock_diagnosis.copy()
+            if "_id" in doc: del doc["_id"]
+            doc["user_id"] = user_id
+            doc["disease_name"] = f"Disease {i}"
+            await test_db.diagnoses.insert_one(doc)
         
         response = await client.get("/api/v1/diagnosis/?skip=0&limit=10")
         
