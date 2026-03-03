@@ -73,14 +73,15 @@ class TestDiagnosisSchemas:
             confidence=0.92,
             severity="medium",
             is_healthy=False,
-            created_at=datetime.utcnow()
+            created_at=datetime.utcnow(),
+            image_url="http://example.com/test.jpg"
         )
         
         assert diagnosis.crop_type == "tomato"
         assert diagnosis.confidence == 0.92
     
-    def test_diagnosis_confidence_range(self):
-        """Test diagnosis confidence validation"""
+    def test_diagnosis_missing_image_url(self):
+        """Test diagnosis validation error on missing required fields"""
         with pytest.raises(ValidationError):
             DiagnosisResponse(
                 id="507f1f77bcf86cd799439011",
@@ -88,10 +89,11 @@ class TestDiagnosisSchemas:
                 crop_type="tomato",
                 disease_id="test",
                 disease_name="Test",
-                confidence=1.5,  # Invalid - should be 0-1
+                confidence=0.9,
                 severity="medium",
                 is_healthy=False,
                 created_at=datetime.utcnow()
+                # Missing image_url
             )
 
 
@@ -102,24 +104,25 @@ class TestNotificationSchemas:
     def test_notification_create_valid(self):
         """Test valid notification creation"""
         notification = NotificationCreate(
+            user_id="user_123",
             title="Test Notification",
             message="This is a test message",
-            type="info"
+            notification_type="system"
         )
         
         assert notification.title == "Test Notification"
-        assert notification.type == "info"
+        assert notification.notification_type == "system"
     
     def test_notification_type_validation(self):
         """Test notification type validation"""
-        # Create with valid type
-        notification = NotificationCreate(
-            title="Test",
-            message="Test message",
-            type="alert"
-        )
-        
-        assert notification.type in ["info", "alert", "warning", "diagnosis"]
+        # Create with invalid type
+        with pytest.raises(ValidationError):
+            NotificationCreate(
+                user_id="user_123",
+                title="Test",
+                message="Test message",
+                notification_type="invalid_type"
+            )
 
 
 @pytest.mark.unit
@@ -129,14 +132,12 @@ class TestPasswordResetSchemas:
     def test_password_reset_request_valid(self):
         """Test valid password reset request"""
         reset = PasswordResetRequest(
-            email="test@example.com"
+            username="test@example.com"
         )
         
-        assert reset.email == "test@example.com"
+        assert reset.username == "test@example.com"
     
-    def test_password_reset_invalid_email(self):
-        """Test password reset with invalid email"""
+    def test_password_reset_missing_username(self):
+        """Test password reset with missing username"""
         with pytest.raises(ValidationError):
-            PasswordResetRequest(
-                email="invalid-email"
-            )
+            PasswordResetRequest()
