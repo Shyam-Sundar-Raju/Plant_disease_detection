@@ -11,8 +11,26 @@ on:
       - 'backend/**'
 
 jobs:
+  lint:
+    name: Code Quality Check
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - name: Install flake8
+        run: pip install flake8
+      - name: Lint
+        run: flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
   unit-tests:
     name: Backend Unit Tests
+    needs: lint
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -31,7 +49,8 @@ jobs:
         continue-on-error: true
 
   integration-tests:
-    name: Backend Integration Tests
+    name: Integration Tests (with MongoDB)
+    needs: unit-tests
     runs-on: ubuntu-latest
     services:
       mongodb:
@@ -58,19 +77,18 @@ jobs:
         run: python run_tests.py --integration
         continue-on-error: true
 
-  lint:
-    name: Backend Linting
+  security-scan:
+    name: Build & Security Check
+    needs: integration-tests
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Vulnerability Scan
+        uses: aquasecurity/trivy-action@master
         with:
-          python-version: '3.10'
-      - name: Install flake8
-        run: pip install flake8
-      - name: Lint
-        run: flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+          image-ref: 'backend'
+          scan-type: 'fs'
+          ignore-unfixed: true
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
+
