@@ -14,7 +14,7 @@ class TestAIServiceInitialization:
         service2 = ai_service
         assert service1 is service2
     
-    @patch('app.services.ai_service.tf.keras.models.load_model')
+    @patch('tensorflow.keras.models.load_model')
     def test_load_models(self, mock_load_model):
         """Test model loading"""
         mock_model = Mock()
@@ -74,7 +74,7 @@ class TestDiseaseDetection:
 class TestGradCAM:
     """Test Grad-CAM heatmap generation"""
     
-    @patch('app.services.ai_service.AIModelService._get_last_conv_layer_name')
+    @patch.object(AIService, '_get_last_conv_layer_name')
     def test_compute_grad_cam(self, mock_conv_layer, mock_image):
         """Test heatmap generation"""
         service = AIService()

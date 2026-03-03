@@ -14,7 +14,7 @@ class TestNotificationService:
     @pytest.mark.asyncio
     async def test_create_notification(self, test_db):
         """Test create notification"""
-        service = NotificationService(test_db)
+        service = NotificationService()
         user_id = str(ObjectId())
         
         notification = await service.create_notification(
@@ -32,7 +32,7 @@ class TestNotificationService:
     @pytest.mark.asyncio
     async def test_get_user_notifications(self, test_db):
         """Test get user notifications"""
-        service = NotificationService(test_db)
+        service = NotificationService()
         user_id = str(ObjectId())
         
         # Create notifications
@@ -46,7 +46,7 @@ class TestNotificationService:
     @pytest.mark.asyncio
     async def test_mark_as_read(self, test_db):
         """Test mark notification as read"""
-        service = NotificationService(test_db)
+        service = NotificationService()
         user_id = str(ObjectId())
         
         notification = await service.create_notification(
@@ -63,7 +63,7 @@ class TestNotificationService:
     @pytest.mark.asyncio
     async def test_mark_all_as_read(self, test_db):
         """Test mark all notifications as read"""
-        service = NotificationService(test_db)
+        service = NotificationService()
         user_id = str(ObjectId())
         
         # Create multiple notifications
@@ -82,7 +82,7 @@ class TestNotificationService:
     @pytest.mark.asyncio
     async def test_delete_notification(self, test_db):
         """Test delete notification"""
-        service = NotificationService(test_db)
+        service = NotificationService()
         user_id = str(ObjectId())
         
         notification = await service.create_notification(
@@ -99,7 +99,7 @@ class TestNotificationService:
     @pytest.mark.asyncio
     async def test_get_unread_count(self, test_db):
         """Test get unread notification count"""
-        service = NotificationService(test_db)
+        service = NotificationService()
         user_id = str(ObjectId())
         
         # Create notifications
@@ -118,7 +118,7 @@ class TestNotificationTypes:
     @pytest.mark.asyncio
     async def test_diagnosis_notification(self, test_db):
         """Test diagnosis completion notification"""
-        service = NotificationService(test_db)
+        service = NotificationService()
         user_id = str(ObjectId())
         
         notification = await service.create_notification(
@@ -133,7 +133,7 @@ class TestNotificationTypes:
     @pytest.mark.asyncio
     async def test_alert_notification(self, test_db):
         """Test alert notification"""
-        service = NotificationService(test_db)
+        service = NotificationService()
         user_id = str(ObjectId())
         
         notification = await service.create_notification(

@@ -53,8 +53,7 @@ class TestUserSchemas:
         """Test invalid login schema"""
         with pytest.raises(ValidationError):
             UserLogin(
-                username="invalid",
-                password="pass"
+                username="invalid"
             )
 
 

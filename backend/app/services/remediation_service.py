@@ -230,7 +230,7 @@ class RemediationService:
             else:
                 treatment_data = knowledge.get("organic_treatment", {})
 
-            localized_treatment = RemediationService._localize_treatment(treatment_data, language)
+            localized_treatment = Localizer.localize_remediation(treatment_data, language)
             
             # Get prevention tips
             prevention_tips = knowledge.get("prevention_steps", {}).get(language, [])

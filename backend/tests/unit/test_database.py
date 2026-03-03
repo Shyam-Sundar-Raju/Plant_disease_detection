@@ -8,7 +8,7 @@ class TestDatabaseConnection:
     """Test database connection utilities"""
     
     @pytest.mark.asyncio
-    @patch('app.core.database.db.client')
+    @patch('app.core.database.Database.client')
     async def test_get_database(self, mock_client):
         """Test database connection initialization check"""
         # Set explicitly to simulate initialization
