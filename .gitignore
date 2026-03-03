@@ -1,0 +1,74 @@
+# === Python ===
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+.venv/
+venv/
+env/
+ENV/
+pip-wheel-metadata/
+
+# === Environment & Secrets ===
+.env
+.env.*
+!.env.example
+*.secret
+secrets.yaml
+# Never commit real tfvars
+terraform/terraform.tfvars
+
+# === Terraform ===
+terraform/.terraform/
+terraform/.terraform.lock.hcl
+terraform/*.tfstate
+terraform/*.tfstate.backup
+terraform/crash.log
+terraform/override.tf
+terraform/override.tf.json
+
+# === Kubernetes ===
+# Don't ignore k8s/ — manifests are safe to commit
+# But ignore any local kube config overrides
+kubeconfig
+*.kubeconfig
+
+# === Docker ===
+.dockerignore
+
+# === IDE ===
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# === Logs ===
+*.log
+logs/
+
+# === Uploads (generated at runtime) ===
+backend/uploads/
+backend/models/*.h5
+backend/models/*.keras
+backend/models/*.tflite
+
+# === Flutter / Dart ===
+frontend/.dart_tool/
+frontend/.packages
+frontend/build/
+frontend/pubspec.lock
+frontend/.flutter-plugins
+frontend/.flutter-plugins-dependencies
+
+# === Test artifacts ===
+.pytest_cache/
+.coverage
+htmlcov/

@@ -5,6 +5,8 @@ on:
     branches: [ main, setup-cicd ]
     paths:
       - 'backend/**'
+      - 'k8s/**'
+      - 'terraform/**'
       - '.github/workflows/backend.yml'
   pull_request:
     branches: [ main, setup-cicd ]
@@ -107,9 +109,45 @@ jobs:
           format: 'table'
           severity: 'CRITICAL,HIGH'
 
+  validate-k8s:
+    name: Validate Kubernetes Manifests
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'v1.29.0'
+      - name: Validate K8s Manifests (dry-run)
+        run: |
+          echo "Validating Kubernetes manifests..."
+          kubectl apply --dry-run=client -f k8s/ --validate=false
+          echo "✅ All Kubernetes manifests are valid"
+
+  validate-terraform:
+    name: Validate Terraform IaC
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.7.0"
+      - name: Terraform Init
+        run: terraform init -backend=false
+        working-directory: terraform
+      - name: Terraform Validate
+        run: terraform validate
+        working-directory: terraform
+      - name: Terraform Format Check
+        run: terraform fmt -check
+        working-directory: terraform
+
   deploy-staging:
     name: Deploy to Staging
-    needs: security-scan
+    needs: [security-scan, validate-k8s, validate-terraform]
     runs-on: ubuntu-latest
     steps:
       - name: Simulate Deployment

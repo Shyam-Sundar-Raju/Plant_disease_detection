@@ -1,0 +1,137 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: plant-disease-backend
+  namespace: plant-disease
+  labels:
+    app: plant-disease-backend
+    version: "1.0"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: plant-disease-backend
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1        # One extra pod during update (Blue-Green style)
+      maxUnavailable: 0  # Zero downtime — never kill old pod before new is ready
+  template:
+    metadata:
+      labels:
+        app: plant-disease-backend
+        version: "1.0"
+    spec:
+      containers:
+        - name: backend
+          image: plant-disease-backend:latest
+          # In production, pull from your registry:
+          # image: ghcr.io/shyam-sundar-raju/plant-disease-backend:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8000
+              name: http
+
+          # === Environment variables from Secret ===
+          env:
+            - name: MONGODB_URL
+              valueFrom:
+                secretKeyRef:
+                  name: plant-disease-secrets
+                  key: MONGODB_URL
+            - name: MONGODB_DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: plant-disease-secrets
+                  key: MONGODB_DB_NAME
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: plant-disease-secrets
+                  key: SECRET_KEY
+            - name: ALLOWED_ORIGINS
+              valueFrom:
+                secretKeyRef:
+                  name: plant-disease-secrets
+                  key: ALLOWED_ORIGINS
+
+          # === Resource Limits (prevents runaway memory/CPU) ===
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+
+          # === Health Probes ===
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            failureThreshold: 3
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+
+          # === Persistent Volume for uploads ===
+          volumeMounts:
+            - name: uploads-storage
+              mountPath: /app/uploads
+            - name: models-storage
+              mountPath: /app/models
+
+      volumes:
+        - name: uploads-storage
+          persistentVolumeClaim:
+            claimName: uploads-pvc
+        - name: models-storage
+          persistentVolumeClaim:
+            claimName: models-pvc
+
+      # Spread pods across nodes for high availability
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - plant-disease-backend
+                topologyKey: kubernetes.io/hostname
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: uploads-pvc
+  namespace: plant-disease
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: models-pvc
+  namespace: plant-disease
+spec:
+  accessModes:
+    - ReadOnlyMany
+  resources:
+    requests:
+      storage: 5Gi
