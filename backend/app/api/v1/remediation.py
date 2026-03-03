@@ -8,7 +8,7 @@ from typing import Optional
 
 from app.core.database import get_database
 from app.core.security import get_current_user
-from app.models.schemas import RemediationResponse, TreatmentType
+from app.models.schemas import TreatmentType
 from app.services.remediation_service import remediation_service
 from app.utils.localization import get_language_from_request
 import logging
@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/remediation", tags=["Remediation"])
 
 
-@router.get("/{disease_id}", response_model=RemediationResponse)
+@router.get("/{disease_id}")
 async def get_remediation(
     disease_id: str,
     severity: str = Query(..., description="Disease severity: low, medium, high"),

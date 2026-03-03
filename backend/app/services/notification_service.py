@@ -127,8 +127,8 @@ class NotificationService:
                     or notif.get("type"),
                     "priority": notif.get("priority", "normal"),
                     "type": notif.get("type"),
-                    "title": Localizer.get_localized_dict(notif.get("title", {}), language),
-                    "message": Localizer.get_localized_dict(notif.get("message", {}), language),
+                    "title": notif["title"] if isinstance(notif.get("title"), str) else Localizer.get_localized_dict(notif.get("title", {}), language),
+                    "message": notif["message"] if isinstance(notif.get("message"), str) else Localizer.get_localized_dict(notif.get("message", {}), language),
                     "data": notif.get("data", {}),
                     "is_read": notif.get("is_read", False),
                     "created_at": notif["created_at"]

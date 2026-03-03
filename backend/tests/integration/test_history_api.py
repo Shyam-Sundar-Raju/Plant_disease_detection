@@ -30,8 +30,10 @@ class TestHistoryEndpoints:
         
         assert response.status_code == 200
         data = response.json()
-        assert isinstance(data, list)
-        assert len(data) >= 3
+        # API returns a paginated response: {"items": [...], "total": N, ...}
+        items = data.get("items", data) if isinstance(data, dict) else data
+        assert isinstance(items, list)
+        assert len(items) >= 3
     
     @pytest.mark.asyncio
     async def test_filter_history_by_date(self, authenticated_client, test_db):
