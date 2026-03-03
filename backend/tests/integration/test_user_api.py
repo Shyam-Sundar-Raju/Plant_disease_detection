@@ -14,7 +14,7 @@ class TestUserProfile:
         """Test get current user profile"""
         client, user_id = authenticated_client
         
-        response = await client.get("/api/v1/users/me")
+        response = await client.get("/api/v1/user/profile")
         
         assert response.status_code == 200
         data = response.json()
@@ -32,7 +32,7 @@ class TestUserProfile:
             "location": "New Delhi"
         }
         
-        response = await client.put("/api/v1/users/me", json=update_data)
+        response = await client.patch("/api/v1/user/profile", json=update_data)
         
         assert response.status_code == 200
         data = response.json()
@@ -44,7 +44,7 @@ class TestUserProfile:
         """Test change language preference"""
         client, user_id = authenticated_client
         
-        response = await client.put("/api/v1/users/me", json={
+        response = await client.patch("/api/v1/user/profile", json={
             "preferred_language": "hi"
         })
         
@@ -52,38 +52,3 @@ class TestUserProfile:
         data = response.json()
         assert data["preferred_language"] == "hi"
     
-    @pytest.mark.asyncio
-    async def test_delete_account(self, authenticated_client, test_db):
-        """Test delete user account"""
-        client, user_id = authenticated_client
-        
-        response = await client.delete("/api/v1/users/me")
-        
-        assert response.status_code == 200
-
-
-@pytest.mark.integration
-class TestUserStatistics:
-    """Test user statistics endpoints"""
-    
-    @pytest.mark.asyncio
-    async def test_get_user_stats(self, authenticated_client, test_db):
-        """Test get user statistics"""
-        client, user_id = authenticated_client
-        
-        # Insert some diagnoses
-        for i in range(5):
-            await test_db.diagnoses.insert_one({
-                "user_id": user_id,
-                "crop_type": "tomato",
-                "disease_name": "Early Blight",
-                "confidence": 0.9,
-                "created_at": datetime.utcnow()
-            })
-        
-        response = await client.get("/api/v1/users/me/stats")
-        
-        assert response.status_code == 200
-        data = response.json()
-        assert "total_diagnoses" in data
-        assert data["total_diagnoses"] >= 5

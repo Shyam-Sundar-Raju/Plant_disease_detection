@@ -23,7 +23,7 @@ class TestHistoryEndpoints:
                 "created_at": datetime.utcnow()
             })
         
-        response = await client.get("/api/v1/history")
+        response = await client.get("/api/v1/history/")
         
         assert response.status_code == 200
         data = response.json()
@@ -50,7 +50,7 @@ class TestHistoryEndpoints:
         start_date = (datetime.utcnow() - timedelta(days=2)).isoformat()
         end_date = datetime.utcnow().isoformat()
         
-        response = await client.get(f"/api/v1/history?start_date={start_date}&end_date={end_date}")
+        response = await client.get(f"/api/v1/history/?start_date={start_date}&end_date={end_date}")
         
         assert response.status_code == 200
     

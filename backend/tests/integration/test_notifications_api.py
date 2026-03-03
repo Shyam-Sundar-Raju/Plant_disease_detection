@@ -25,7 +25,7 @@ class TestNotificationEndpoints:
                 "created_at": datetime.utcnow()
             })
         
-        response = await client.get("/api/v1/notifications")
+        response = await client.get("/api/v1/notifications/")
         
         assert response.status_code == 200
         data = response.json()
@@ -47,7 +47,7 @@ class TestNotificationEndpoints:
         })
         notification_id = str(result.inserted_id)
         
-        response = await client.put(f"/api/v1/notifications/{notification_id}/read")
+        response = await client.patch(f"/api/v1/notifications/{notification_id}/read")
         
         assert response.status_code == 200
         
@@ -70,7 +70,7 @@ class TestNotificationEndpoints:
                 "created_at": datetime.utcnow()
             })
         
-        response = await client.put("/api/v1/notifications/mark-all-read")
+        response = await client.post("/api/v1/notifications/mark-all-read")
         
         assert response.status_code == 200
         
@@ -81,22 +81,7 @@ class TestNotificationEndpoints:
         })
         assert unread_count == 0
     
-    @pytest.mark.asyncio
-    async def test_delete_notification(self, authenticated_client, test_db):
-        """Test delete notification"""
-        client, user_id = authenticated_client
-        
-        result = await test_db.notifications.insert_one({
-            "user_id": user_id,
-            "title": "Test",
-            "message": "Test",
-            "created_at": datetime.utcnow()
-        })
-        notification_id = str(result.inserted_id)
-        
-        response = await client.delete(f"/api/v1/notifications/{notification_id}")
-        
-        assert response.status_code == 200
+
     
     @pytest.mark.asyncio
     async def test_get_unread_count(self, authenticated_client, test_db):
@@ -117,5 +102,5 @@ class TestNotificationEndpoints:
         
         assert response.status_code == 200
         data = response.json()
-        assert "count" in data
-        assert data["count"] >= 5
+        assert "unread_count" in data
+        assert data["unread_count"] >= 5

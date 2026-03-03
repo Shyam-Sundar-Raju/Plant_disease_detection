@@ -122,7 +122,7 @@ def mock_diagnosis():
         "is_healthy": False,
         "image_url": "/uploads/images/test.jpg",
         "heatmap_url": "/uploads/heatmaps/test.jpg",
-        "bounding_boxes": [{"x": 100, "y": 150, "width": 80, "height": 100}],
+        "bounding_boxes": [{"x": 100, "y": 150, "width": 80, "height": 100, "confidence": 0.9}],
         "created_at": datetime.utcnow()
     }
 
