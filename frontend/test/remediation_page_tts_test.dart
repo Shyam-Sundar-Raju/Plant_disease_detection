@@ -1,20 +1,22 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../lib/services/tts_service.dart';
+import 'test_helpers/mock_flutter_plugins.dart';
 
 /// Tests for Text-to-Speech functionality in remediation page
 /// This verifies that TTS works offline in the preferred language
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  setUpAll(setupMockFlutterPlugins);
+  tearDownAll(tearDownMockFlutterPlugins);
+
   group('Remediation Page TTS Feature Tests', () {
     late TtsService ttsService;
 
     setUp(() async {
       // Setup SharedPreferences mock
-      SharedPreferences.setMockInitialValues({
-        'preferred_language': 'en',
-      });
+      SharedPreferences.setMockInitialValues({'preferred_language': 'en'});
       ttsService = TtsService();
     });
 
@@ -88,33 +90,34 @@ void main() {
       final languages = ['en', 'hi', 'ta', 'te', 'kn', 'ml'];
 
       for (final lang in languages) {
-        SharedPreferences.setMockInitialValues({
-          'preferred_language': lang,
-        });
+        SharedPreferences.setMockInitialValues({'preferred_language': lang});
 
         final service = TtsService();
         final success = await service.initialize();
-        expect(success, isA<bool>(),
-            reason: 'Should initialize with language: $lang');
+        expect(
+          success,
+          isA<bool>(),
+          reason: 'Should initialize with language: $lang',
+        );
 
         await service.speak('Test message in $lang');
         await service.dispose();
       }
     });
 
-    test('TTS should fallback to English when preferred language unavailable',
-        () async {
-      // Simulating device without Hindi TTS support
-      SharedPreferences.setMockInitialValues({
-        'preferred_language': 'hi',
-      });
+    test(
+      'TTS should fallback to English when preferred language unavailable',
+      () async {
+        // Simulating device without Hindi TTS support
+        SharedPreferences.setMockInitialValues({'preferred_language': 'hi'});
 
-      final service = TtsService();
-      await service.initialize();
+        final service = TtsService();
+        await service.initialize();
 
-      // Check if fallback occurred (this depends on device TTS support)
-      expect(service.isInitialized, isTrue);
-    });
+        // Check if fallback occurred (this depends on device TTS support)
+        expect(service.isInitialized, isTrue);
+      },
+    );
 
     test('Remediation content types should be speakable', () async {
       await ttsService.initialize();
@@ -162,8 +165,11 @@ void main() {
       };
 
       // Verify all features are implemented
-      expect(features.values.every((v) => v == true), isTrue,
-          reason: 'All TTS features should be implemented');
+      expect(
+        features.values.every((v) => v == true),
+        isTrue,
+        reason: 'All TTS features should be implemented',
+      );
 
       print('\n=== TTS FEATURE IMPLEMENTATION STATUS ===');
       features.forEach((feature, implemented) {
@@ -217,17 +223,6 @@ void main() {
       print('====================================\n');
 
       expect(speakableSections.length, greaterThan(0));
-    });
-  });
-
-  group('Example Failed Test (for demonstration)', () {
-    test('Example: TTS should support 10 languages (WILL FAIL)', () {
-      // This test intentionally fails to demonstrate test failure
-      final supportedLanguages = ['en', 'hi', 'ta', 'te', 'kn', 'ml'];
-
-      // FAILS: We only support 6 languages, not 10
-      expect(supportedLanguages.length, equals(10),
-          reason: 'Expected 10 languages but only 6 are supported');
     });
   });
 }

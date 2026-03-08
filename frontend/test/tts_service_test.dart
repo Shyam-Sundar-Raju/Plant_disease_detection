@@ -1,10 +1,13 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter/services.dart';
 import '../lib/services/tts_service.dart';
+import 'test_helpers/mock_flutter_plugins.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  setUpAll(setupMockFlutterPlugins);
+  tearDownAll(tearDownMockFlutterPlugins);
 
   group('TtsService Tests', () {
     late TtsService ttsService;
