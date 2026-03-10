@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 
 import '../../services/auth_api.dart';
+import '../../services/passkey_auth_service.dart';
 import '../../services/location_service.dart';
 import '../../services/app_localizations.dart';
 
@@ -41,6 +42,7 @@ class _RegisterPageState extends State<RegisterPage> {
   String _selectedLanguage = 'en';
 
   final _api = AuthApi();
+  final _passkeyAuth = PasskeyAuthService();
   final _locationService = const LocationService();
 
   bool _isLoading = false;
@@ -72,10 +74,13 @@ class _RegisterPageState extends State<RegisterPage> {
       final location = await _locationService.getCurrentLocation();
       _location = location;
 
+      final email = _emailController.text.trim();
+      final phone = '$_selectedCountryCode${_phoneController.text.trim()}';
+
       await _api.register(
         name: _nameController.text.trim(),
-        email: _emailController.text.trim(),
-        phone: '$_selectedCountryCode${_phoneController.text.trim()}',
+        email: email,
+        phone: phone,
         password: _passwordController.text,
         preferredLanguage: _selectedLanguage,
         latitude: location.latitude,
@@ -90,6 +95,13 @@ class _RegisterPageState extends State<RegisterPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(context.tRead('Registration complete.'))),
       );
+
+      final shouldEnroll = await _askToEnrollPasskey();
+      if (shouldEnroll == true) {
+        final username = email.isNotEmpty ? email : phone;
+        await _enrollPasskey(username);
+      }
+
       Navigator.pop(context);
     } catch (error) {
       setState(() {
@@ -101,6 +113,51 @@ class _RegisterPageState extends State<RegisterPage> {
           _isLoading = false;
         });
       }
+    }
+  }
+
+  Future<bool?> _askToEnrollPasskey() {
+    return showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Set up passkey?'),
+          content: const Text(
+            'You can add a passkey now for passwordless sign-in next time.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Not now'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('Set up'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _enrollPasskey(String username) async {
+    try {
+      await _passkeyAuth.registerPasskey(username: username);
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Passkey registered successfully.')),
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Passkey setup skipped: ${_friendlyError(error)}'),
+        ),
+      );
     }
   }
 
@@ -204,7 +261,9 @@ class _RegisterPageState extends State<RegisterPage> {
                                     return context.tRead('Name is required.');
                                   }
                                   if (value.trim().length < 2) {
-                                    return context.tRead('Name must be at least 2 characters.');
+                                    return context.tRead(
+                                      'Name must be at least 2 characters.',
+                                    );
                                   }
                                   return null;
                                 },
@@ -296,7 +355,9 @@ class _RegisterPageState extends State<RegisterPage> {
                                 textInputAction: TextInputAction.next,
                                 validator: (value) {
                                   if (value == null || value.isEmpty) {
-                                    return context.tRead('Password is required.');
+                                    return context.tRead(
+                                      'Password is required.',
+                                    );
                                   }
                                   if (value.length < 8) {
                                     return context.tRead(
@@ -315,7 +376,9 @@ class _RegisterPageState extends State<RegisterPage> {
                                 textInputAction: TextInputAction.next,
                                 validator: (value) {
                                   if (value == null || value.trim().isEmpty) {
-                                    return context.tRead('Address is required.');
+                                    return context.tRead(
+                                      'Address is required.',
+                                    );
                                   }
                                   return null;
                                 },

@@ -143,6 +143,28 @@ class SessionInfo(BaseModel):
         populate_by_name = True
 
 
+class PasskeyBeginRequest(BaseModel):
+    """Request payload for beginning passkey registration/authentication."""
+    username: str
+
+
+class PasskeyFinishRequest(BaseModel):
+    """Request payload for completing passkey registration/authentication."""
+    username: str
+    credential: Dict[str, Any]
+
+
+class PasskeyRegistrationResult(BaseModel):
+    """Response after a passkey is successfully registered."""
+    message: str
+    credential_id: str
+
+
+class PasskeyLoginResult(Token):
+    """Token response for successful passkey authentication."""
+    passkey: bool = True
+
+
 # ============ DIAGNOSIS SCHEMAS ============
 
 class ImageQualityCheck(BaseModel):

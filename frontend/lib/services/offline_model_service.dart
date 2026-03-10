@@ -26,6 +26,7 @@ class OfflineModelService {
   static const double entropyThreshold = 2.0;
   static const double marginThreshold = 0.10;
   static const int inputSize = 224;
+  static const int _heatmapGridSize = 224;
 
   /// Copy an asset file to the app's local directory so TFLite can read it.
   Future<File> _copyAssetToLocal(String assetPath, String filename) async {
@@ -158,6 +159,11 @@ class OfflineModelService {
       severity = 'low';
     }
 
+    String localHeatmapPath = '';
+    if (!isHealthy) {
+      localHeatmapPath = await _generateHeatmap(decoded);
+    }
+
     return {
       'disease_id': diseaseId,
       'disease_name': diseaseName,
@@ -167,12 +173,91 @@ class OfflineModelService {
       'is_uncertain': isUncertain,
       'is_offline': true,
       'crop_type': cropType,
+      'local_image_path': imageFile.path,
+      'local_heatmap_path': localHeatmapPath,
       'image_url': '',
       'heatmap_url': '',
       'bounding_boxes': <dynamic>[],
       'secondary_diagnoses': <dynamic>[],
       'created_at': DateTime.now().toIso8601String(),
     };
+  }
+
+  Future<String> _generateHeatmap(img.Image source) async {
+    final analysis = img.copyResize(
+      source,
+      width: _heatmapGridSize,
+      height: _heatmapGridSize,
+    );
+
+    final scores = List<double>.filled(
+      _heatmapGridSize * _heatmapGridSize,
+      0.0,
+    );
+    double meanGreenIndex = 0.0;
+
+    for (int y = 0; y < _heatmapGridSize; y++) {
+      for (int x = 0; x < _heatmapGridSize; x++) {
+        final p = analysis.getPixel(x, y);
+        final gi = p.g - ((p.r + p.b) / 2.0);
+        meanGreenIndex += gi;
+      }
+    }
+    meanGreenIndex /= (_heatmapGridSize * _heatmapGridSize);
+
+    double maxScore = 0.0;
+    for (int y = 0; y < _heatmapGridSize; y++) {
+      for (int x = 0; x < _heatmapGridSize; x++) {
+        final p = analysis.getPixel(x, y);
+        final gi = p.g - ((p.r + p.b) / 2.0);
+        final score = max(0.0, meanGreenIndex - gi);
+        final idx = y * _heatmapGridSize + x;
+        scores[idx] = score;
+        if (score > maxScore) {
+          maxScore = score;
+        }
+      }
+    }
+
+    if (maxScore > 0) {
+      for (int i = 0; i < scores.length; i++) {
+        scores[i] = scores[i] / maxScore;
+      }
+    }
+
+    final heatmap = img.Image.from(source);
+    for (int y = 0; y < heatmap.height; y++) {
+      final sy = ((y * _heatmapGridSize) / heatmap.height).floor().clamp(
+        0,
+        _heatmapGridSize - 1,
+      );
+      for (int x = 0; x < heatmap.width; x++) {
+        final sx = ((x * _heatmapGridSize) / heatmap.width).floor().clamp(
+          0,
+          _heatmapGridSize - 1,
+        );
+
+        final score = scores[sy * _heatmapGridSize + sx];
+        if (score < 0.05) {
+          continue;
+        }
+
+        final p = heatmap.getPixel(x, y);
+        final intensity = (score * 180).clamp(0, 180).toInt();
+        final nr = (p.r + intensity).clamp(0, 255).toInt();
+        final ng = (p.g - (intensity * 0.35)).clamp(0, 255).toInt();
+        final nb = (p.b - (intensity * 0.35)).clamp(0, 255).toInt();
+        heatmap.setPixelRgb(x, y, nr, ng, nb);
+      }
+    }
+
+    final dir = await getTemporaryDirectory();
+    final outFile = File(
+      '${dir.path}/offline_heatmap_${DateTime.now().millisecondsSinceEpoch}.jpg',
+    );
+    await outFile.writeAsBytes(img.encodeJpg(heatmap, quality: 90));
+
+    return outFile.path;
   }
 
   String _formatDiseaseName(String diseaseId) {
