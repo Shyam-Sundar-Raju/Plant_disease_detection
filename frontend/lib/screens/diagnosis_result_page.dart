@@ -264,19 +264,6 @@ class DiagnosisResultPage extends StatelessWidget {
     return '${ApiConfig.baseHost}/$path';
   }
 
-  String _resolveImageSource(String? urlOrPath) {
-    // Use cached local path if available, otherwise use network URL.
-    if (urlOrPath == null || urlOrPath.isEmpty) {
-      return '';
-    }
-    // If path starts with / and contains diagnosis_cache, it's a local file path
-    if (urlOrPath.startsWith('/') && urlOrPath.contains('diagnosis_cache')) {
-      return urlOrPath;
-    }
-    // Otherwise resolve to URL
-    return _resolveUrl(urlOrPath);
-  }
-
   List<_BoundingBox> _parseBoxes(dynamic data) {
     if (data is! List) {
       return [];
@@ -361,7 +348,6 @@ class _MultiInfectionSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -517,42 +503,13 @@ class _ImageSection extends StatelessWidget {
         const SizedBox(height: 8),
         ClipRRect(
           borderRadius: BorderRadius.circular(16),
-          child: boxes.isEmpty
-              ? _buildImage(url, isLocalPath)
-              : _ImageWithBoxes(
-                  url: url,
-                  isLocalPath: isLocalPath,
-                  boxes: boxes,
-                ),
+          child: _ImageWithBoxes(
+            url: url,
+            isLocalPath: isLocalPath,
+            boxes: boxes,
+          ),
         ),
       ],
-    );
-  }
-
-  Widget _buildImage(String source, bool isLocal) {
-    if (isLocal) {
-      return Image.file(
-        File(source),
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) {
-          return Container(
-            color: Theme.of(context).colorScheme.surfaceContainerHighest,
-            padding: const EdgeInsets.all(20),
-            child: const Center(child: Icon(Icons.broken_image)),
-          );
-        },
-      );
-    }
-    return Image.network(
-      source,
-      fit: BoxFit.cover,
-      errorBuilder: (context, error, stackTrace) {
-        return Container(
-          color: Theme.of(context).colorScheme.surfaceContainerHighest,
-          padding: const EdgeInsets.all(20),
-          child: const Center(child: Icon(Icons.broken_image)),
-        );
-      },
     );
   }
 }
@@ -567,9 +524,9 @@ class _StatusChip extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return Chip(
       label: Text(label),
-      backgroundColor: scheme.primary.withOpacity(0.1),
+      backgroundColor: scheme.primary.withValues(alpha: 0.1),
       labelStyle: TextStyle(color: scheme.primary, fontWeight: FontWeight.w600),
-      side: BorderSide(color: scheme.primary.withOpacity(0.4)),
+      side: BorderSide(color: scheme.primary.withValues(alpha: 0.4)),
     );
   }
 }
