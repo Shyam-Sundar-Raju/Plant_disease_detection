@@ -180,6 +180,39 @@ async def root():
     }
 
 
+@app.get("/.well-known/assetlinks.json", include_in_schema=False)
+async def assetlinks():
+    """Android Digital Asset Links for passkey association with this domain."""
+    package_name = settings.ANDROID_APP_PACKAGE_NAME
+    fingerprints = settings.ANDROID_APP_SHA256_CERT_FINGERPRINTS
+    if isinstance(fingerprints, str):
+        fingerprints = [fingerprints]
+
+    normalized_fingerprints = [fp.strip().upper() for fp in fingerprints if fp and fp.strip()]
+
+    if not package_name or not normalized_fingerprints:
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content={
+                "detail": (
+                    "Asset links not configured. Set ANDROID_APP_PACKAGE_NAME and "
+                    "ANDROID_APP_SHA256_CERT_FINGERPRINTS."
+                )
+            },
+        )
+
+    return [
+        {
+            "relation": ["delegate_permission/common.get_login_creds"],
+            "target": {
+                "namespace": "android_app",
+                "package_name": package_name,
+                "sha256_cert_fingerprints": normalized_fingerprints,
+            },
+        }
+    ]
+
+
 # Mount static files for uploads
 try:
     app.mount("/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads")

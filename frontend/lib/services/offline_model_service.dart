@@ -27,6 +27,8 @@ class OfflineModelService {
   static const double marginThreshold = 0.10;
   static const int inputSize = 224;
   static const int _heatmapGridSize = 224;
+  static const double _leafMaskThreshold = 0.16;
+  static const double _overlayThreshold = 0.18;
 
   /// Copy an asset file to the app's local directory so TFLite can read it.
   Future<File> _copyAssetToLocal(String assetPath, String filename) async {
@@ -190,40 +192,73 @@ class OfflineModelService {
       height: _heatmapGridSize,
     );
 
-    final scores = List<double>.filled(
-      _heatmapGridSize * _heatmapGridSize,
-      0.0,
-    );
-    double meanGreenIndex = 0.0;
+    const totalPixels = _heatmapGridSize * _heatmapGridSize;
+    final leafMask = List<double>.filled(totalPixels, 0.0);
+    final greenness = List<double>.filled(totalPixels, 0.0);
+    final brightness = List<double>.filled(totalPixels, 0.0);
+    final baseScores = List<double>.filled(totalPixels, 0.0);
 
     for (int y = 0; y < _heatmapGridSize; y++) {
       for (int x = 0; x < _heatmapGridSize; x++) {
         final p = analysis.getPixel(x, y);
-        final gi = p.g - ((p.r + p.b) / 2.0);
-        meanGreenIndex += gi;
-      }
-    }
-    meanGreenIndex /= (_heatmapGridSize * _heatmapGridSize);
-
-    double maxScore = 0.0;
-    for (int y = 0; y < _heatmapGridSize; y++) {
-      for (int x = 0; x < _heatmapGridSize; x++) {
-        final p = analysis.getPixel(x, y);
-        final gi = p.g - ((p.r + p.b) / 2.0);
-        final score = max(0.0, meanGreenIndex - gi);
         final idx = y * _heatmapGridSize + x;
-        scores[idx] = score;
-        if (score > maxScore) {
-          maxScore = score;
-        }
+
+        final rf = p.r / 255.0;
+        final gf = p.g / 255.0;
+        final bf = p.b / 255.0;
+        final maxChannel = max(rf, max(gf, bf));
+        final minChannel = min(rf, min(gf, bf));
+        final saturation = maxChannel <= 1e-6
+            ? 0.0
+            : (maxChannel - minChannel) / maxChannel;
+        final value = maxChannel;
+
+        final greenAdvantage = gf - max(rf, bf);
+        final yellowCue =
+            max(0.0, min(rf, gf) - bf) *
+            (1.0 - (gf - rf).abs()).clamp(0.0, 1.0);
+        final brownCue =
+            max(0.0, rf - gf * 0.7) * max(0.0, gf - bf * 0.6) * 1.4;
+        final darkCue = (1.0 - value) * saturation;
+
+        final leafLikelihood =
+            (saturation * 0.85) +
+            (max(0.0, gf - bf) * 0.75) +
+            (max(0.0, rf - bf) * 0.25) +
+            (max(0.0, greenAdvantage) * 0.9);
+
+        final isLeafPixel = leafLikelihood > _leafMaskThreshold;
+        leafMask[idx] = isLeafPixel ? 1.0 : 0.0;
+        greenness[idx] = greenAdvantage;
+        brightness[idx] = value;
+        baseScores[idx] = isLeafPixel
+            ? max(0.0, -greenAdvantage) * 0.65 +
+                  yellowCue * 0.9 +
+                  brownCue +
+                  darkCue * 0.35
+            : 0.0;
       }
     }
 
-    if (maxScore > 0) {
-      for (int i = 0; i < scores.length; i++) {
-        scores[i] = scores[i] / maxScore;
+    final smoothedLeafMask = _blurGrid(leafMask, radius: 4);
+    final localGreenness = _blurGrid(greenness, radius: 5);
+    final localBrightness = _blurGrid(brightness, radius: 5);
+
+    final scores = List<double>.filled(totalPixels, 0.0);
+    for (int i = 0; i < totalPixels; i++) {
+      if (smoothedLeafMask[i] < 0.18) {
+        continue;
       }
+
+      final contrastCue = max(0.0, localGreenness[i] - greenness[i]);
+      final darkSpotCue = max(0.0, localBrightness[i] - brightness[i]);
+      scores[i] =
+          (baseScores[i] * 0.7 + contrastCue * 1.05 + darkSpotCue * 0.45) *
+          smoothedLeafMask[i];
     }
+
+    final smoothedScores = _blurGrid(scores, radius: 4);
+    final normalizedScores = _normalizeHotspots(smoothedScores);
 
     final heatmap = img.Image.from(source);
     for (int y = 0; y < heatmap.height; y++) {
@@ -237,16 +272,27 @@ class OfflineModelService {
           _heatmapGridSize - 1,
         );
 
-        final score = scores[sy * _heatmapGridSize + sx];
-        if (score < 0.05) {
+        final idx = sy * _heatmapGridSize + sx;
+        final score = normalizedScores[idx];
+        final maskStrength = smoothedLeafMask[idx];
+        if (maskStrength < 0.18 || score < _overlayThreshold) {
           continue;
         }
 
         final p = heatmap.getPixel(x, y);
-        final intensity = (score * 180).clamp(0, 180).toInt();
-        final nr = (p.r + intensity).clamp(0, 255).toInt();
-        final ng = (p.g - (intensity * 0.35)).clamp(0, 255).toInt();
-        final nb = (p.b - (intensity * 0.35)).clamp(0, 255).toInt();
+        final overlay = _heatColor(score);
+        final alpha =
+            (pow(
+                      ((score - _overlayThreshold) / (1 - _overlayThreshold))
+                          .clamp(0.0, 1.0),
+                      1.15,
+                    ).toDouble() *
+                    0.82 *
+                    maskStrength)
+                .clamp(0.0, 0.82);
+        final nr = _blendChannel(p.r, overlay[0], alpha);
+        final ng = _blendChannel(p.g, overlay[1], alpha);
+        final nb = _blendChannel(p.b, overlay[2], alpha);
         heatmap.setPixelRgb(x, y, nr, ng, nb);
       }
     }
@@ -258,6 +304,87 @@ class OfflineModelService {
     await outFile.writeAsBytes(img.encodeJpg(heatmap, quality: 90));
 
     return outFile.path;
+  }
+
+  List<double> _blurGrid(List<double> values, {required int radius}) {
+    final result = List<double>.filled(values.length, 0.0);
+    const side = _heatmapGridSize;
+
+    for (int y = 0; y < side; y++) {
+      final startY = max(0, y - radius);
+      final endY = min(side - 1, y + radius);
+      for (int x = 0; x < side; x++) {
+        final startX = max(0, x - radius);
+        final endX = min(side - 1, x + radius);
+
+        double total = 0.0;
+        int count = 0;
+        for (int ny = startY; ny <= endY; ny++) {
+          for (int nx = startX; nx <= endX; nx++) {
+            total += values[ny * side + nx];
+            count++;
+          }
+        }
+        result[y * side + x] = count == 0 ? 0.0 : total / count;
+      }
+    }
+
+    return result;
+  }
+
+  List<double> _normalizeHotspots(List<double> values) {
+    final active = values.where((value) => value > 0).toList()..sort();
+    if (active.isEmpty) {
+      return List<double>.filled(values.length, 0.0);
+    }
+
+    final lowerIndex = ((active.length - 1) * 0.60).floor();
+    final upperIndex = ((active.length - 1) * 0.98).floor();
+    final lower = active[lowerIndex];
+    final upper = active[upperIndex] <= lower
+        ? active.last
+        : active[upperIndex];
+    final scale = max(upper - lower, 1e-6);
+
+    return values.map((value) {
+      final normalized = ((value - lower) / scale).clamp(0.0, 1.0);
+      return pow(normalized, 1.1).toDouble();
+    }).toList();
+  }
+
+  int _blendChannel(num original, int overlay, double alpha) {
+    return (original * (1.0 - alpha) + overlay * alpha).round().clamp(0, 255);
+  }
+
+  List<int> _heatColor(double score) {
+    if (score < 0.33) {
+      return _interpolateColor(
+        const [0, 150, 255],
+        const [50, 220, 180],
+        score / 0.33,
+      );
+    }
+    if (score < 0.66) {
+      return _interpolateColor(
+        const [50, 220, 180],
+        const [255, 210, 0],
+        (score - 0.33) / 0.33,
+      );
+    }
+    return _interpolateColor(
+      const [255, 210, 0],
+      const [225, 20, 20],
+      (score - 0.66) / 0.34,
+    );
+  }
+
+  List<int> _interpolateColor(List<int> a, List<int> b, double t) {
+    final clamped = t.clamp(0.0, 1.0);
+    return [
+      (a[0] + (b[0] - a[0]) * clamped).round(),
+      (a[1] + (b[1] - a[1]) * clamped).round(),
+      (a[2] + (b[2] - a[2]) * clamped).round(),
+    ];
   }
 
   String _formatDiseaseName(String diseaseId) {
