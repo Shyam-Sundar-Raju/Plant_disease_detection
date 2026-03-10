@@ -526,7 +526,13 @@ class _HomePageState extends State<HomePage> {
           children: [
             Image.asset('assets/logo.png', width: 28, height: 28),
             const SizedBox(width: 10),
-            Text(context.t('AgroScan')),
+            Flexible(
+              child: Text(
+                context.t('AgroScan'),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
           ],
         ),
         actions: [
