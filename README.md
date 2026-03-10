@@ -359,7 +359,55 @@ Plant_disease_detection/
 
 ---
 
-## 🚀 Installation & Setup
+## 🐳 Quick Start with Docker (Recommended)
+
+> The fastest way to run the entire stack — no Python, Flutter, or MongoDB installation needed on your machine.
+
+### Prerequisites
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (v24+)
+- Git
+
+### Steps
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/Shyam-Sundar-Raju/Plant_disease_detection.git
+cd Plant_disease_detection
+
+# 2. Copy and fill in environment variables
+cp .env.example .env
+# (Optional: edit .env to set a strong SECRET_KEY)
+
+# 3. Copy the AI model into place (required for inference)
+#    Get crop_disease_master_model.keras from the team / Google Drive
+#    and place it at:  backend/models/crop_disease_master_model.keras
+
+# 4. Start everything
+docker compose up --build
+```
+
+After a minute or two, access:
+
+| Service | URL |
+|---------|-----|
+| 🌐 **Web App** (Flutter) | http://localhost |
+| 🔧 **API docs** (Swagger) | http://localhost:8000/docs |
+| 🗄️ **MongoDB** | localhost:27017 |
+
+To stop all services:
+```bash
+docker compose down          # stop (keeps data volumes)
+docker compose down -v       # stop + wipe database volumes
+```
+
+> **Note for teammates**: If you only want to run the backend (e.g., while working on the Flutter app locally):
+> ```bash
+> docker compose up mongodb redis backend
+> ```
+
+---
+
+## 🚀 Manual Installation & Setup
 
 ### Prerequisites
 

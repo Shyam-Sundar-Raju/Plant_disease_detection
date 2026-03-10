@@ -4,7 +4,6 @@ Handles multilingual conversational AI for crop and agriculture assistance
 """
 import logging
 from typing import Dict, Any, Optional, List
-from transformers import pipeline
 from deep_translator import GoogleTranslator
 from app.core.config import settings
 
@@ -15,20 +14,31 @@ class ChatbotService:
     """
     Chatbot service for multilingual agricultural assistance
     """
-    
+
     def __init__(self):
         """Initialize the chatbot service with AI models"""
         try:
-            # Initialize intent classifier for understanding user queries
-            self.classifier = pipeline(
-                "zero-shot-classification", 
-                model="facebook/bart-large-mnli"
-            )
-            
+            # Lazy import — transformers is optional (not installed in Docker slim image).
+            # The service falls back to rule-based responses when unavailable.
+            try:
+                from transformers import pipeline as hf_pipeline
+                self.classifier = hf_pipeline(
+                    "zero-shot-classification",
+                    model="facebook/bart-large-mnli"
+                )
+                self._transformers_available = True
+            except (ImportError, Exception) as e:
+                logger.warning(
+                    f"Transformers not available ({e}). "
+                    "Chatbot will use rule-based intent detection."
+                )
+                self.classifier = None
+                self._transformers_available = False
+
             # Define supported conversation intents
             self.supported_intents = [
                 "crop disease diagnosis",
-                "weather inquiry", 
+                "weather inquiry",
                 "farming advice",
                 "fertilizer guidance",
                 "irrigation tips",
@@ -37,7 +47,7 @@ class ChatbotService:
                 "general greeting",
                 "goodbye"
             ]
-            
+
             # Intent descriptions for better classification
             self.intent_descriptions = {
                 "crop disease diagnosis": "Asking about plant health, diseases, symptoms, or leaf problems",
@@ -50,7 +60,7 @@ class ChatbotService:
                 "general greeting": "Saying hello, hi, introducing oneself, or asking who the assistant is",
                 "goodbye": "Saying goodbye, thanks, or ending the conversation"
             }
-            
+
             # Supported languages (matching existing app languages)
             self.supported_languages = {
                 'en': 'english',
@@ -60,37 +70,42 @@ class ChatbotService:
                 'kn': 'kannada',
                 'ml': 'malayalam'
             }
-            
+
             logger.info("Chatbot service initialized successfully")
-            
+
         except Exception as e:
             logger.error(f"Failed to initialize chatbot service: {e}")
             raise
 
+
     def detect_intent(self, user_message: str) -> Dict[str, Any]:
         """
         Detect user intent from their message
-        
+
         Args:
             user_message: User's input message
-            
+
         Returns:
             Dict containing intent and confidence score
         """
+        # If transformers not available, use keyword-based fallback
+        if not self._transformers_available or self.classifier is None:
+            return self._keyword_intent(user_message)
+
         try:
             # Use descriptions for better intent classification
             descriptions = list(self.intent_descriptions.values())
-            
+
             result = self.classifier(user_message, candidate_labels=descriptions)
-            
+
             # Map back from description to intent name
             best_description = result['labels'][0]
             best_intent = next(
-                (intent for intent, desc in self.intent_descriptions.items() 
-                 if desc == best_description), 
+                (intent for intent, desc in self.intent_descriptions.items()
+                 if desc == best_description),
                 "general_greeting"
             )
-            
+
             return {
                 "intent": best_intent,
                 "confidence": result['scores'][0],
@@ -103,6 +118,29 @@ class ChatbotService:
                 "confidence": 0.5,
                 "description": "Default greeting"
             }
+
+    def _keyword_intent(self, user_message: str) -> Dict[str, Any]:
+        """Simple keyword-based intent detection (fallback when transformers unavailable)"""
+        msg = user_message.lower()
+        if any(w in msg for w in ["disease", "sick", "leaf", "spot", "blight", "rot", "diagnos", "plant health"]):
+            intent = "crop disease diagnosis"
+        elif any(w in msg for w in ["weather", "rain", "temperature", "climate", "forecast"]):
+            intent = "weather inquiry"
+        elif any(w in msg for w in ["fertilizer", "nutrient", "npk", "compost", "manure", "soil"]):
+            intent = "fertilizer guidance"
+        elif any(w in msg for w in ["water", "irrigat", "drip", "moisture"]):
+            intent = "irrigation tips"
+        elif any(w in msg for w in ["pest", "insect", "bug", "worm", "neem"]):
+            intent = "pest control"
+        elif any(w in msg for w in ["season", "plant", "harvest", "monsoon", "kharif", "rabi"]):
+            intent = "seasonal farming"
+        elif any(w in msg for w in ["farm", "crop", "cultivat", "grow", "agri"]):
+            intent = "farming advice"
+        elif any(w in msg for w in ["bye", "goodbye", "thanks", "thank you", "later"]):
+            intent = "goodbye"
+        else:
+            intent = "general greeting"
+        return {"intent": intent, "confidence": 0.7, "description": f"Keyword match: {intent}"}
 
     def generate_response(self, intent: str, user_message: str, language: str = "en") -> str:
         """

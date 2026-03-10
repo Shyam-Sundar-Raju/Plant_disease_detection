@@ -91,9 +91,8 @@ app = FastAPI(
 # CORS Middleware - Must be added before other middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.BACKEND_CORS_ORIGINS,
-    allow_origin_regex='https?://.*',
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,  # MUST be False when allow_origins=["*"]
     allow_methods=["*"],
     allow_headers=["*"],
     expose_headers=["*"],
@@ -173,7 +172,8 @@ async def root():
     Root endpoint
     """
     return {
-        "message": "Welcome to Crop Disease Detection API",
+        "message": "Welcome to Crop Disease Detection API (Dockerized)",
+        "local_ip": "172.20.10.2",
         "version": settings.APP_VERSION,
         "docs": "/docs",
         "health": "/health"

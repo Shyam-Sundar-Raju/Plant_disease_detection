@@ -1,0 +1,122 @@
+﻿Run Flutter unit tests for the current project.
+
+Global options:
+-h, --help                      Print this usage information.
+-v, --verbose                   Noisy logging, including all shell commands executed.
+                                If used with "--help", shows hidden options. If used with "flutter doctor", shows additional diagnostic information. (Use "-vv" to force verbose logging in those cases.)
+    --prefixed-errors           Causes lines sent to stderr to be prefixed with "ERROR:".
+    --quiet                     Reduce the amount of output from some commands.
+    --[no-]wrap                 Toggles output word wrapping, regardless of whether or not the output is a terminal.
+                                (defaults to on)
+    --wrap-column               Sets the output wrap column. If not set, uses the width of the terminal. No wrapping occurs if not writing to a terminal. Use "--no-wrap" to turn off wrapping when connected to a terminal.
+-d, --device-id                 Target device id or name (prefixes allowed).
+    --version                   Reports the version of this tool.
+    --machine                   When used with the "--version" flag, outputs the information using JSON.
+    --[no-]color                Whether to use terminal colors (requires support for ANSI escape sequences).
+                                (defaults to on)
+    --[no-]version-check        Allow Flutter to check for updates when this command runs.
+                                (defaults to on)
+    --enable-analytics          Enable telemetry reporting each time a flutter or dart command runs.
+    --disable-analytics         Disable telemetry reporting each time a flutter or dart command runs, until it is re-enabled.
+    --suppress-analytics        Suppress analytics reporting for the current CLI invocation.
+    --packages                  Path to your "package_config.json" file.
+    --print-dtd                 Print the address of the Dart Tooling Daemon, if one is hosted by the Flutter CLI.
+
+Local build selection options (not normally required):
+    --local-engine-src-path     Path to your engine src directory, if you are building Flutter locally.
+                                Defaults to $FLUTTER_ENGINE if set, otherwise defaults to the path given in your pubspec.yaml dependency_overrides for sky_engine, if any.
+    --local-engine              Name of a build output within the engine out directory, if you are building Flutter locally.
+                                Use this to select a specific version of the engine if you have built multiple engine targets.
+                                This path is relative to "--local-engine-src-path" (see above).
+    --local-engine-host         The host operating system for which engine artifacts should be selected, if you are building Flutter locally.
+                                This is only used when "--local-engine" is also specified.
+                                By default, the host is determined automatically, but you may need to specify this if you are building on one platform (e.g. MacOS ARM64) but intend to run Flutter on another (e.g. Android).
+    --local-web-sdk             Name of a build output within the engine out directory, if you are building Flutter locally.
+                                Use this to select a specific version of the web sdk if you have built multiple engine targets.
+                                This path is relative to "--local-engine-src-path" (see above).
+
+Options for testing the "flutter" tool itself:
+    --show-test-device          List the special "flutter-tester" device in device listings. This headless device is used to test Flutter tooling.
+    --show-web-server-device    List the special "web-server" device in device listings.
+    --ci                        Enable a set of CI-specific test debug settings.
+    --debug-logs-dir            Path to a directory where logs for debugging may be added.
+
+Usage: flutter test [arguments]
+-h, --help                                                   Print this usage information.
+    --[no-]pub                                               Whether to run "flutter pub get" before executing this command.
+                                                             (defaults to on)
+    --frontend-server-starter-path                           When this value is provided, the frontend server will be started in JIT mode from the specified file, instead of from the AOT snapshot shipped with the Dart SDK. The specified file can either be a Dart source file, or an AppJIT snapshot. This option does not affect web builds.
+    --[no-]track-widget-creation                             Track widget creation locations. This enables features such as the widget inspector. This parameter is only functional in debug mode (i.e. when compiling JIT, not AOT).
+                                                             (defaults to on)
+    --enable-experiment                                      The name of an experimental Dart feature to enable. For more information see: https://github.com/dart-lang/sdk/blob/main/docs/process/experimental-flags.md
+-D, --dart-define=<foo=bar>                                  Additional key-value pairs that will be available as constants from the String.fromEnvironment, bool.fromEnvironment, and int.fromEnvironment constructors.
+                                                             Multiple defines can be passed by repeating "--dart-define" multiple times.
+    --dart-define-from-file=<use-define-config.json|.env>    The path of a .json or .env file containing key-value pairs that will be available as environment variables.
+                                                             These can be accessed using the String.fromEnvironment, bool.fromEnvironment, and int.fromEnvironment constructors.
+                                                             Multiple defines can be passed by repeating "--dart-define-from-file" multiple times.
+                                                             Entries from "--dart-define" with identical keys take precedence over entries from these files.
+    --device-user=<10>                                       Identifier number for a user or work profile on Android only. Run "adb shell pm list users" for available identifiers.
+    --flavor                                                 Build a custom app flavor as defined by platform-specific build setup.
+                                                             Supports the use of product flavors in Android Gradle scripts, and the use of custom Xcode schemes.
+                                                             Overrides the value of the "default-flavor" entry in the flutter pubspec.
+    --[no-]enable-impeller                                   Whether to enable the Impeller rendering engine. Impeller is the default renderer on iOS. On Android, Impeller is available but not the default. This flag will cause Impeller to be used on Android. On other platforms, this flag will be ignored.
+    --machine                                                Outputs in a machine readable structured JSON format.
+    --[no-]enable-flutter-gpu                                Whether to enable the Flutter GPU API (https://api.flutter.dev/flutter/flutter_gpu/). This feature is only supported with the Impeller rendering engine, which can be enabled via the "--enable-impeller" option.
+    --experimental-faster-testing                            Run each test in a separate lightweight Flutter Engine to speed up testing.
+    --name=<regexp>                                          A regular expression matching substrings of the names of tests to run.
+    --plain-name=<substring>                                 A plain-text substring of the names of tests to run.
+-t, --tags                                                   Run only tests associated with the specified tags. See: https://pub.dev/packages/test#tagging-tests
+-x, --exclude-tags                                           Run only tests that do not have the specified tags. See: https://pub.dev/packages/test#tagging-tests
+    --start-paused                                           Start in a paused mode and wait for a debugger to connect.
+                                                             You must specify a single test file to run, explicitly.
+                                                             Instructions for connecting with a debugger are printed to the console once the test has started.
+    --[no-]fail-fast                                         Stop running tests after the first failure.
+    --[no-]run-skipped                                       Run skipped tests instead of skipping them.
+    --disable-service-auth-codes                             (deprecated) Allow connections to the VM service without using authentication codes. (Not recommended! This can open your device to remote code execution attacks!)
+    --coverage                                               Whether to collect coverage information.
+    --merge-coverage                                         Whether to merge coverage data with "coverage/lcov.base.info".
+                                                             Implies collecting coverage data. (Requires lcov.)
+    --branch-coverage                                        Whether to collect branch coverage information. Implies collecting coverage data.
+    --ipv6                                                   Whether to use IPv6 for the test harness server socket.
+    --coverage-path                                          Where to store coverage information (if coverage is enabled).
+                                                             (defaults to "coverage/lcov.info")
+    --coverage-package=<package-name-regexp>                 A regular expression matching packages names to include in the coverage report (if coverage is enabled). If unset, matches the current package name.
+    --update-goldens                                         Whether "matchesGoldenFile()" calls within your test methods should update the golden files rather than test for an existing match.
+-j, --concurrency=<jobs>                                     The number of concurrent test processes to run. This will be ignored when running integration tests.
+    --[no-]test-assets                                       Whether to build the assets bundle for testing. This takes additional time before running the tests. Consider using "--no-test-assets" if assets are not required.
+                                                             (defaults to on)
+    --platform                                               Selects the test backend.
+
+          [tester] (default)                                 Run tests using the VM-based test environment.
+          [chrome]                                           (deprecated) Run tests using the Google Chrome web browser. This value is intended for testing the Flutter framework itself and may be removed at any time.
+
+    --test-randomize-ordering-seed                           The seed to randomize the execution order of test cases within test files. Must be a 32bit unsigned integer or the string "random", which indicates that a seed should be selected randomly. By default, tests run in the order they are declared.
+    --total-shards                                           Tests can be sharded with the "--total-shards" and "--shard-index" arguments, allowing you to split up your test suites and run them separately.
+    --shard-index                                            Tests can be sharded with the "--total-shards" and "--shard-index" arguments, allowing you to split up your test suites and run them separately.
+    --[no-]enable-vmservice                                  Enables the VM service without "--start-paused". This flag is intended for use with tests that will use "dart:developer" to interact with the VM service at runtime.
+                                                             This flag is ignored if "--start-paused" or coverage are requested, as the VM service will be enabled in those cases regardless.
+-r, --reporter                                               Set how to print test results. If unset, value will default to either compact or expanded.
+
+          [compact]                                          A single line, updated continuously (the default).
+          [expanded]                                         A separate line for each update. May be preferred when logging to a file or in continuous integration.
+          [failures-only]                                    A separate line for failing tests, with no output for passing tests.
+          [github]                                           A custom reporter for GitHub Actions (the default reporter when running on GitHub Actions).
+          [json]                                             A machine-readable format. See: https://dart.dev/go/test-docs/json_reporter.md
+          [silent]                                           A reporter with no output. May be useful when only the exit code is meaningful.
+
+    --file-reporter                                          Enable an additional reporter writing test results to a file.
+                                                             Should be in the form <reporter>:<filepath>, Example: "json:reports/tests.json".
+    --timeout                                                The default timeout for individual tests, specified either in seconds (e.g. "60s"), as a multiplier of the default test timeout (e.g. "2x"), or as the string "none" to disable test timeouts entirely. This value does not apply to the default test suite loading timeout.
+    --ignore-timeouts                                        Ignore all timeouts. Useful when testing a big application that requires a longer time to compile (e.g. running integration tests for a Flutter app).
+    --wasm                                                   Compile to WebAssembly rather than JavaScript.
+                                                             See https://flutter.dev/to/wasm for more information.
+    --dds-port                                               When this value is provided, the Dart Development Service (DDS) will be bound to the provided port.
+                                                             Specifying port 0 (the default) will find a random free port.
+    --[no-]dds                                               Enable the Dart Developer Service (DDS).
+                                                             It may be necessary to disable this when attaching to an application with an existing DDS instance (e.g., attaching to an application currently connected to by "flutter run"), or when running certain tests.
+                                                             Disabling this feature may degrade IDE functionality if a DDS instance is not already connected to the target application.
+                                                             (defaults to on)
+    --[no-]disable-dds                                       (deprecated; use "--no-dds" instead) Disable the Dart Developer Service (DDS).
+    --[no-]fatal-warnings                                    Causes the command to fail if warnings are sent to the console during its execution.
+
+Run "flutter help" to see global options.

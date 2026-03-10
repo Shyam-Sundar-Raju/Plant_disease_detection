@@ -1,0 +1,74 @@
+﻿Run Flutter unit tests for the current project.
+
+Global options:
+-h, --help                  Print this usage information.
+-v, --verbose               Noisy logging, including all shell commands executed.
+                            If used with "--help", shows hidden options. If used with "flutter doctor", shows additional diagnostic information. (Use "-vv" to force verbose logging in those cases.)
+-d, --device-id             Target device id or name (prefixes allowed).
+    --version               Reports the version of this tool.
+    --enable-analytics      Enable telemetry reporting each time a flutter or dart command runs.
+    --disable-analytics     Disable telemetry reporting each time a flutter or dart command runs, until it is re-enabled.
+    --suppress-analytics    Suppress analytics reporting for the current CLI invocation.
+
+Usage: flutter test [arguments]
+-h, --help                                                   Print this usage information.
+    --[no-]pub                                               Whether to run "flutter pub get" before executing this command.
+                                                             (defaults to on)
+    --[no-]track-widget-creation                             Track widget creation locations. This enables features such as the widget inspector. This parameter is only functional in debug mode (i.e. when compiling JIT, not AOT).
+                                                             (defaults to on)
+-D, --dart-define=<foo=bar>                                  Additional key-value pairs that will be available as constants from the String.fromEnvironment, bool.fromEnvironment, and int.fromEnvironment constructors.
+                                                             Multiple defines can be passed by repeating "--dart-define" multiple times.
+    --dart-define-from-file=<use-define-config.json|.env>    The path of a .json or .env file containing key-value pairs that will be available as environment variables.
+                                                             These can be accessed using the String.fromEnvironment, bool.fromEnvironment, and int.fromEnvironment constructors.
+                                                             Multiple defines can be passed by repeating "--dart-define-from-file" multiple times.
+                                                             Entries from "--dart-define" with identical keys take precedence over entries from these files.
+    --device-user=<10>                                       Identifier number for a user or work profile on Android only. Run "adb shell pm list users" for available identifiers.
+    --flavor                                                 Build a custom app flavor as defined by platform-specific build setup.
+                                                             Supports the use of product flavors in Android Gradle scripts, and the use of custom Xcode schemes.
+                                                             Overrides the value of the "default-flavor" entry in the flutter pubspec.
+    --name=<regexp>                                          A regular expression matching substrings of the names of tests to run.
+    --plain-name=<substring>                                 A plain-text substring of the names of tests to run.
+-t, --tags                                                   Run only tests associated with the specified tags. See: https://pub.dev/packages/test#tagging-tests
+-x, --exclude-tags                                           Run only tests that do not have the specified tags. See: https://pub.dev/packages/test#tagging-tests
+    --start-paused                                           Start in a paused mode and wait for a debugger to connect.
+                                                             You must specify a single test file to run, explicitly.
+                                                             Instructions for connecting with a debugger are printed to the console once the test has started.
+    --[no-]fail-fast                                         Stop running tests after the first failure.
+    --[no-]run-skipped                                       Run skipped tests instead of skipping them.
+    --coverage                                               Whether to collect coverage information.
+    --merge-coverage                                         Whether to merge coverage data with "coverage/lcov.base.info".
+                                                             Implies collecting coverage data. (Requires lcov.)
+    --branch-coverage                                        Whether to collect branch coverage information. Implies collecting coverage data.
+    --coverage-path                                          Where to store coverage information (if coverage is enabled).
+                                                             (defaults to "coverage/lcov.info")
+    --coverage-package=<package-name-regexp>                 A regular expression matching packages names to include in the coverage report (if coverage is enabled). If unset, matches the current package name.
+    --update-goldens                                         Whether "matchesGoldenFile()" calls within your test methods should update the golden files rather than test for an existing match.
+-j, --concurrency=<jobs>                                     The number of concurrent test processes to run. This will be ignored when running integration tests.
+    --[no-]test-assets                                       Whether to build the assets bundle for testing. This takes additional time before running the tests. Consider using "--no-test-assets" if assets are not required.
+                                                             (defaults to on)
+    --test-randomize-ordering-seed                           The seed to randomize the execution order of test cases within test files. Must be a 32bit unsigned integer or the string "random", which indicates that a seed should be selected randomly. By default, tests run in the order they are declared.
+    --total-shards                                           Tests can be sharded with the "--total-shards" and "--shard-index" arguments, allowing you to split up your test suites and run them separately.
+    --shard-index                                            Tests can be sharded with the "--total-shards" and "--shard-index" arguments, allowing you to split up your test suites and run them separately.
+-r, --reporter                                               Set how to print test results. If unset, value will default to either compact or expanded.
+
+          [compact]                                          A single line, updated continuously (the default).
+          [expanded]                                         A separate line for each update. May be preferred when logging to a file or in continuous integration.
+          [failures-only]                                    A separate line for failing tests, with no output for passing tests.
+          [github]                                           A custom reporter for GitHub Actions (the default reporter when running on GitHub Actions).
+          [json]                                             A machine-readable format. See: https://dart.dev/go/test-docs/json_reporter.md
+          [silent]                                           A reporter with no output. May be useful when only the exit code is meaningful.
+
+    --file-reporter                                          Enable an additional reporter writing test results to a file.
+                                                             Should be in the form <reporter>:<filepath>, Example: "json:reports/tests.json".
+    --timeout                                                The default timeout for individual tests, specified either in seconds (e.g. "60s"), as a multiplier of the default test timeout (e.g. "2x"), or as the string "none" to disable test timeouts entirely. This value does not apply to the default test suite loading timeout.
+    --ignore-timeouts                                        Ignore all timeouts. Useful when testing a big application that requires a longer time to compile (e.g. running integration tests for a Flutter app).
+    --wasm                                                   Compile to WebAssembly rather than JavaScript.
+                                                             See https://flutter.dev/to/wasm for more information.
+    --dds-port                                               When this value is provided, the Dart Development Service (DDS) will be bound to the provided port.
+                                                             Specifying port 0 (the default) will find a random free port.
+    --[no-]dds                                               Enable the Dart Developer Service (DDS).
+                                                             It may be necessary to disable this when attaching to an application with an existing DDS instance (e.g., attaching to an application currently connected to by "flutter run"), or when running certain tests.
+                                                             Disabling this feature may degrade IDE functionality if a DDS instance is not already connected to the target application.
+                                                             (defaults to on)
+
+Run "flutter help" to see global options.

@@ -1,0 +1,57 @@
+# =============================================================
+# Docker-optimised requirements (excludes heavy ML training deps)
+# Use this file inside the Docker image to keep image size small.
+# Heavy training libraries (torch, transformers) are NOT needed
+# at inference time — the model is loaded as a .keras file only.
+# =============================================================
+
+# FastAPI and Server
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+gunicorn==21.2.0
+python-multipart==0.0.6
+python-dotenv==1.0.0
+
+# Database
+motor==3.3.2
+pymongo==4.6.1
+
+# Security
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+bcrypt==4.1.2
+
+# Pydantic
+pydantic==2.5.3
+pydantic-settings==2.1.0
+email-validator==2.1.0
+
+# Image Processing (headless — no GUI/display needed in Docker)
+opencv-python-headless==4.9.0.80
+numpy==1.26.3
+Pillow==10.2.0
+
+# PDF Generation
+reportlab==4.0.9
+
+# Async file operations
+aiofiles==23.2.1
+
+# HTTP client
+httpx==0.26.0
+
+# Caching / Background tasks
+redis==5.0.1
+
+# Utilities
+python-dateutil==2.8.2
+pytz==2024.1
+
+# Monitoring
+prometheus-fastapi-instrumentator==6.1.0
+
+# AI/ML Inference only (no training deps)
+# tensorflow-cpu is much smaller than full tensorflow (~500MB vs ~2GB)
+tensorflow-cpu==2.15.0
+scikit-learn==1.4.0
+deep-translator==1.11.4
