@@ -1,0 +1,50 @@
+# ============================================================
+# Hugging Face Spaces Multi-Container Single-Dockerfile
+# ============================================================
+FROM ghcr.io/cirruslabs/flutter:3.19.0 AS frontend_builder
+WORKDIR /app
+COPY frontend/pubspec.yaml frontend/pubspec.lock ./
+RUN flutter pub get
+COPY frontend/ .
+RUN flutter build web --release
+
+# ============================================================
+# Main Stage: Bundle Everything
+# ============================================================
+FROM python:3.10-slim
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    nginx mongodb-server redis-server supervisor curl \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Setup MongoDB
+RUN mkdir -p /data/db /data/configdb /var/log/mongodb
+
+# Install Backend
+WORKDIR /app/backend
+COPY backend/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy Backend Source
+COPY backend/ .
+
+# Setup Frontend (via Nginx)
+COPY --from=frontend_builder /app/build/web /usr/share/nginx/html
+COPY frontend/nginx.conf /etc/nginx/sites-available/default
+
+# Supervisor Config
+RUN mkdir -p /var/log/supervisor
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
+# Env for Backend (Direct link to locals)
+ENV MONGODB_URL=mongodb://localhost:27017/crop_disease_db
+ENV REDIS_URL=redis://localhost:6379/0
+
+# Port for Hugging Face (Must be 7860)
+EXPOSE 7860
+
+# CMD to start the supervisor
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
