@@ -13,8 +13,8 @@ class AuthInterceptor extends QueuedInterceptorsWrapper {
   AuthInterceptor({
     required TokenStorage tokenStorage,
     required GlobalKey<NavigatorState> navigatorKey,
-  }) : _tokenStorage = tokenStorage,
-       _navigatorKey = navigatorKey;
+  })  : _tokenStorage = tokenStorage,
+        _navigatorKey = navigatorKey;
 
   final TokenStorage _tokenStorage;
   final GlobalKey<NavigatorState> _navigatorKey;
@@ -28,9 +28,8 @@ class AuthInterceptor extends QueuedInterceptorsWrapper {
     // Extract the token that was used in the failed request.
     final failedAuth =
         err.requestOptions.headers['Authorization']?.toString() ?? '';
-    final failedToken = failedAuth.startsWith('Bearer ')
-        ? failedAuth.substring(7)
-        : '';
+    final failedToken =
+        failedAuth.startsWith('Bearer ') ? failedAuth.substring(7) : '';
 
     // Read the latest stored token. If it differs from the one that
     // failed, another queued request already refreshed it — simply retry.

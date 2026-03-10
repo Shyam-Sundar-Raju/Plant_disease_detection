@@ -10,8 +10,8 @@ import '../home_page.dart';
 // Screen for user sign-in.
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key, AuthApi? api, TokenStorage? storage})
-    : _api = api,
-      _storage = storage;
+      : _api = api,
+        _storage = storage;
 
   final AuthApi? _api;
   final TokenStorage? _storage;

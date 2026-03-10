@@ -83,15 +83,13 @@ class _ChatbotPageState extends State<ChatbotPage> {
                   ChatMessage(
                     content: h['message'] ?? '',
                     isUser: true,
-                    timestamp:
-                        DateTime.tryParse(h['timestamp'] ?? '') ??
+                    timestamp: DateTime.tryParse(h['timestamp'] ?? '') ??
                         DateTime.now(),
                   ),
                   ChatMessage(
                     content: h['response'] ?? '',
                     isUser: false,
-                    timestamp:
-                        DateTime.tryParse(h['timestamp'] ?? '') ??
+                    timestamp: DateTime.tryParse(h['timestamp'] ?? '') ??
                         DateTime.now(),
                     intent: h['intent'],
                   ),
@@ -362,9 +360,8 @@ class _ChatbotPageState extends State<ChatbotPage> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
-        mainAxisAlignment: message.isUser
-            ? MainAxisAlignment.end
-            : MainAxisAlignment.start,
+        mainAxisAlignment:
+            message.isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (!message.isUser) ...[
@@ -410,11 +407,10 @@ class _ChatbotPageState extends State<ChatbotPage> {
                       Text(
                         _formatTime(message.timestamp),
                         style: TextStyle(
-                          color:
-                              (message.isUser
-                                      ? scheme.onPrimary
-                                      : scheme.onSurfaceVariant)
-                                  .withValues(alpha: 0.7),
+                          color: (message.isUser
+                                  ? scheme.onPrimary
+                                  : scheme.onSurfaceVariant)
+                              .withValues(alpha: 0.7),
                           fontSize: 12,
                         ),
                       ),

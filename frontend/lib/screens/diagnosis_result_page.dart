@@ -31,9 +31,8 @@ class DiagnosisResultPage extends StatelessWidget {
         ? context.t('Unknown disease')
         : (isHealthy ? context.t('Healthy') : diseaseName);
     final displaySeverity = isLowConfidence ? 'unknown' : severity;
-    final diseaseId = isLowConfidence
-        ? ''
-        : _resolveDiseaseId(result, isHealthy);
+    final diseaseId =
+        isLowConfidence ? '' : _resolveDiseaseId(result, isHealthy);
     final confidenceLabel = confidencePercent > 0
         ? context.t(
             'Confidence {value}%',
@@ -137,9 +136,8 @@ class DiagnosisResultPage extends StatelessWidget {
                     imageUrl: localHeatmapPath.isNotEmpty
                         ? localHeatmapPath
                         : heatmapUrl,
-                    matchUrl: localImagePath.isNotEmpty
-                        ? localImagePath
-                        : imageUrl,
+                    matchUrl:
+                        localImagePath.isNotEmpty ? localImagePath : imageUrl,
                     isLocalImage: localHeatmapPath.isNotEmpty,
                     isLocalMatch: localImagePath.isNotEmpty,
                   )
@@ -156,9 +154,8 @@ class DiagnosisResultPage extends StatelessWidget {
                   diseaseId.isNotEmpty) ...[
                 const SizedBox(height: 20),
                 _SideBySideComparison(
-                  capturedUrl: localImagePath.isNotEmpty
-                      ? localImagePath
-                      : imageUrl,
+                  capturedUrl:
+                      localImagePath.isNotEmpty ? localImagePath : imageUrl,
                   isLocalPath: localImagePath.isNotEmpty,
                   referenceAsset:
                       'assets/images/reference_diseases/$diseaseId.jpeg',

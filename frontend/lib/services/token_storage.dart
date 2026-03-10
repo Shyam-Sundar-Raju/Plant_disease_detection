@@ -14,7 +14,7 @@ class TokenStorage {
   static const String weatherCacheKey = 'weather_cache';
 
   const TokenStorage({FlutterSecureStorage? storage})
-    : _injectedStorage = storage;
+      : _injectedStorage = storage;
 
   final FlutterSecureStorage? _injectedStorage;
   FlutterSecureStorage get _storage =>

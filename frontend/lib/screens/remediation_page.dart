@@ -66,8 +66,7 @@ class RemediationPage extends StatelessWidget {
               }
 
               final data = snapshot.data!;
-              final disease =
-                  data.findDisease(diseaseId) ??
+              final disease = data.findDisease(diseaseId) ??
                   (isHealthy ? data.findHealthyFallback() : null);
 
               if (disease == null) {
@@ -93,7 +92,7 @@ class RemediationPage extends StatelessWidget {
               final treatments = data.resolveTreatments(disease);
               final noTreatmentNeeded =
                   disease['no_treatment_needed'] == true ||
-                  (treatments == null && isHealthy);
+                      (treatments == null && isHealthy);
               final riskFactors = data.localizeList(
                 disease['environmental_risk_factors'],
               );

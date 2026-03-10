@@ -83,8 +83,8 @@ class _HomePageState extends State<HomePage> {
         return;
       }
       context.read<AppLanguage>().setLanguage(
-        profile['preferred_language']?.toString(),
-      );
+            profile['preferred_language']?.toString(),
+          );
       setState(() {
         _profile = profile;
       });
@@ -103,8 +103,8 @@ class _HomePageState extends State<HomePage> {
     final cached = await _tokenStorage.readUserProfile();
     if (cached != null && mounted) {
       context.read<AppLanguage>().setLanguage(
-        cached['preferred_language']?.toString(),
-      );
+            cached['preferred_language']?.toString(),
+          );
       setState(() {
         _profile = cached;
       });
@@ -138,8 +138,7 @@ class _HomePageState extends State<HomePage> {
       return;
     }
     setState(() {
-      _isOnline =
-          connectivity.contains(ConnectivityResult.wifi) ||
+      _isOnline = connectivity.contains(ConnectivityResult.wifi) ||
           connectivity.contains(ConnectivityResult.mobile);
     });
   }
@@ -499,20 +498,19 @@ class _HomePageState extends State<HomePage> {
     final scheme = Theme.of(context).colorScheme;
     final profileMenuLabel = context.t('Profile menu');
     final logoutLabel = context.t('Logout');
-    final cropOptions =
-        _historyItems
-            .map((item) => item['crop_type']?.toString() ?? '')
-            .where((value) => value.isNotEmpty)
-            .toSet()
-            .toList()
-          ..sort();
+    final cropOptions = _historyItems
+        .map((item) => item['crop_type']?.toString() ?? '')
+        .where((value) => value.isNotEmpty)
+        .toSet()
+        .toList()
+      ..sort();
     final filteredHistory = _selectedCropFilter == null
         ? _historyItems
         : _historyItems
-              .where(
-                (item) => item['crop_type']?.toString() == _selectedCropFilter,
-              )
-              .toList();
+            .where(
+              (item) => item['crop_type']?.toString() == _selectedCropFilter,
+            )
+            .toList();
     return Scaffold(
       appBar: AppBar(
         title: Row(
@@ -944,9 +942,8 @@ class _HistoryCard extends StatelessWidget {
                 context.t(
                   'Crop: {crop}',
                   args: {
-                    'crop': cropType.isEmpty
-                        ? context.t('Unknown crop')
-                        : cropType,
+                    'crop':
+                        cropType.isEmpty ? context.t('Unknown crop') : cropType,
                   },
                 ),
               ),

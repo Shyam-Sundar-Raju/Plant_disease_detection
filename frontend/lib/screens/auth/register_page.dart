@@ -238,22 +238,21 @@ class _RegisterPageState extends State<RegisterPage> {
                                         isDense: true,
                                         contentPadding:
                                             const EdgeInsets.symmetric(
-                                              horizontal: 12,
-                                              vertical: 12,
-                                            ),
+                                          horizontal: 12,
+                                          vertical: 12,
+                                        ),
                                       ),
                                       isExpanded: true,
                                       items: _countryCodes
                                           .map(
                                             (country) =>
                                                 DropdownMenuItem<String>(
-                                                  value: country['code'],
-                                                  child: Text(
-                                                    country['label'] ?? '',
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
-                                                  ),
-                                                ),
+                                              value: country['code'],
+                                              child: Text(
+                                                country['label'] ?? '',
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
                                           )
                                           .toList(),
                                       onChanged: (value) {
