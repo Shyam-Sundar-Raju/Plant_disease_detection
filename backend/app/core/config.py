@@ -95,6 +95,29 @@ class Settings(BaseSettings):
                 # Single language
                 return [v]
         return v
+
+    # WebAuthn / Passkey
+    WEBAUTHN_RP_ID: str = "localhost"
+    WEBAUTHN_RP_NAME: str = "AgroScan"
+    WEBAUTHN_ALLOWED_ORIGINS: Union[str, List[str]] = [
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+    ]
+
+    @field_validator('WEBAUTHN_ALLOWED_ORIGINS', mode='before')
+    @classmethod
+    def parse_webauthn_allowed_origins(cls, v):
+        """Parse WebAuthn origins from string or list."""
+        if isinstance(v, str):
+            try:
+                parsed = json.loads(v)
+                if isinstance(parsed, list):
+                    return parsed
+            except json.JSONDecodeError:
+                if ',' in v:
+                    return [origin.strip() for origin in v.split(',')]
+                return [v]
+        return v
     
     # Email Configuration (for password reset)
     SMTP_HOST: Optional[str] = None

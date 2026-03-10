@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 
 import '../../services/auth_api.dart';
+import '../../services/passkey_auth_service.dart';
 import '../../services/token_storage.dart';
 import '../../services/app_localizations.dart';
 import 'forgot_password_page.dart';
@@ -23,9 +24,11 @@ class _LoginPageState extends State<LoginPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _api = AuthApi();
+  final _passkeyAuth = PasskeyAuthService();
   final _tokenStorage = const TokenStorage();
 
   bool _isLoading = false;
+  bool _isPasskeyLoading = false;
   String? _errorMessage;
 
   @override
@@ -109,6 +112,57 @@ class _LoginPageState extends State<LoginPage> {
     return message.replaceFirst('Exception: ', '');
   }
 
+  Future<void> _submitPasskeyLogin() async {
+    final username = _emailController.text.trim();
+    if (username.isEmpty) {
+      setState(() {
+        _errorMessage = 'Enter your email or phone to use passkey login.';
+      });
+      return;
+    }
+
+    setState(() {
+      _isPasskeyLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final result = await _passkeyAuth.loginWithPasskey(username: username);
+      final accessToken = result['access_token']?.toString();
+      final refreshToken = result['refresh_token']?.toString();
+      final tokenType = result['token_type']?.toString();
+
+      if (accessToken == null || refreshToken == null) {
+        throw Exception('Missing tokens in passkey response.');
+      }
+
+      await _tokenStorage.saveTokens(
+        accessToken: accessToken,
+        refreshToken: refreshToken,
+        tokenType: tokenType,
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Passkey login successful.')),
+      );
+      Navigator.pushReplacementNamed(context, HomePage.routeName);
+    } catch (error) {
+      setState(() {
+        _errorMessage = _friendlyError(error);
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isPasskeyLoading = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -183,7 +237,9 @@ class _LoginPageState extends State<LoginPage> {
                                 textInputAction: TextInputAction.done,
                                 validator: (value) {
                                   if (value == null || value.isEmpty) {
-                                    return context.tRead('Password is required.');
+                                    return context.tRead(
+                                      'Password is required.',
+                                    );
                                   }
                                   if (value.length < 6) {
                                     return context.tRead(
@@ -213,6 +269,22 @@ class _LoginPageState extends State<LoginPage> {
                                         ),
                                       )
                                     : Text(context.t('Login')),
+                              ),
+                              const SizedBox(height: 8),
+                              OutlinedButton.icon(
+                                onPressed: (_isLoading || _isPasskeyLoading)
+                                    ? null
+                                    : _submitPasskeyLogin,
+                                icon: _isPasskeyLoading
+                                    ? const SizedBox(
+                                        height: 16,
+                                        width: 16,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                        ),
+                                      )
+                                    : const Icon(Icons.key),
+                                label: const Text('Use Passkey'),
                               ),
                               const SizedBox(height: 8),
                               TextButton(

@@ -8,6 +8,8 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from datetime import datetime, timedelta
 from typing import Optional
 from bson import ObjectId
+import json
+import secrets
 
 from app.core.database import get_database
 from app.core.security import (
@@ -31,15 +33,130 @@ from app.models.schemas import (
     TokenRefresh,
     PasswordReset,
     PasswordResetConfirm,
-    SessionInfo
+    SessionInfo,
+    PasskeyBeginRequest,
+    PasskeyFinishRequest,
+    PasskeyRegistrationResult,
+    PasskeyLoginResult,
 )
 from app.core.config import settings
 from app.utils.email_sender import send_password_reset_email
 import logging
 
+try:
+    from webauthn import (
+        generate_registration_options,
+        verify_registration_response,
+        generate_authentication_options,
+        verify_authentication_response,
+        options_to_json,
+    )
+    from webauthn.helpers import base64url_to_bytes, bytes_to_base64url
+    from webauthn.helpers.structs import PublicKeyCredentialDescriptor
+except Exception:  # pragma: no cover - optional dependency at runtime
+    generate_registration_options = None
+    verify_registration_response = None
+    generate_authentication_options = None
+    verify_authentication_response = None
+    options_to_json = None
+    base64url_to_bytes = None
+    bytes_to_base64url = None
+    PublicKeyCredentialDescriptor = None
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
+
+
+def _ensure_passkeys_available() -> None:
+    if generate_registration_options is None:
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="Passkey support is not available on the server.",
+        )
+
+
+async def _find_user_by_username(db: AsyncIOMotorDatabase, username: str):
+    return await db.users.find_one(
+        {
+            "$or": [
+                {"email": username},
+                {"phone": username},
+            ]
+        }
+    )
+
+
+def _pick_expected_origin(origin: Optional[str]) -> str:
+    allowed = settings.WEBAUTHN_ALLOWED_ORIGINS
+    if isinstance(allowed, str):
+        allowed = [allowed]
+
+    cleaned_allowed = [item.strip() for item in allowed if item]
+    if origin and origin in cleaned_allowed:
+        return origin
+    if cleaned_allowed:
+        return cleaned_allowed[0]
+    raise HTTPException(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        detail="No WebAuthn origins configured on server.",
+    )
+
+
+async def _store_passkey_challenge(
+    db: AsyncIOMotorDatabase,
+    *,
+    username: str,
+    challenge: str,
+    flow: str,
+) -> None:
+    await db.passkey_challenges.insert_one(
+        {
+            "username": username,
+            "flow": flow,
+            "challenge": challenge,
+            "created_at": datetime.utcnow(),
+            "expires_at": datetime.utcnow() + timedelta(minutes=5),
+            "is_used": False,
+        }
+    )
+
+
+async def _consume_passkey_challenge(
+    db: AsyncIOMotorDatabase,
+    *,
+    username: str,
+    flow: str,
+) -> bytes:
+    challenge_doc = await db.passkey_challenges.find_one(
+        {
+            "username": username,
+            "flow": flow,
+            "is_used": False,
+            "expires_at": {"$gt": datetime.utcnow()},
+        },
+        sort=[("created_at", -1)],
+    )
+
+    if not challenge_doc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Passkey challenge expired. Please retry.",
+        )
+
+    await db.passkey_challenges.update_one(
+        {"_id": challenge_doc["_id"]},
+        {"$set": {"is_used": True}},
+    )
+    challenge = challenge_doc.get("challenge")
+    if not challenge:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Passkey challenge is missing. Please retry.",
+        )
+
+    # Stored challenge is base64url from WebAuthn options JSON.
+    return base64url_to_bytes(challenge)
 
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
@@ -429,6 +546,228 @@ async def reset_password(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Password reset failed"
         )
+
+
+@router.post("/passkeys/register/begin")
+async def begin_passkey_registration(
+    payload: PasskeyBeginRequest,
+    db: AsyncIOMotorDatabase = Depends(get_database),
+):
+    """Start WebAuthn registration ceremony for an existing user."""
+    _ensure_passkeys_available()
+
+    user = await _find_user_by_username(db, payload.username)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found",
+        )
+
+    credential_docs = await db.passkeys.find({"user_id": str(user["_id"])}).to_list(length=50)
+    exclude_creds = [
+        PublicKeyCredentialDescriptor(id=base64url_to_bytes(doc["credential_id"]))
+        for doc in credential_docs
+        if doc.get("credential_id")
+    ]
+
+    options = generate_registration_options(
+        rp_id=settings.WEBAUTHN_RP_ID,
+        rp_name=settings.WEBAUTHN_RP_NAME,
+        user_id=str(user["_id"]).encode("utf-8"),
+        user_name=user.get("email") or user.get("phone") or str(user["_id"]),
+        user_display_name=user.get("name") or "AgroScan User",
+        challenge=secrets.token_bytes(32),
+        exclude_credentials=exclude_creds,
+    )
+
+    options_json = json.loads(options_to_json(options))
+    await _store_passkey_challenge(
+        db,
+        username=payload.username,
+        challenge=options_json.get("challenge", ""),
+        flow="register",
+    )
+    return options_json
+
+
+@router.post("/passkeys/register/finish", response_model=PasskeyRegistrationResult)
+async def finish_passkey_registration(
+    payload: PasskeyFinishRequest,
+    origin: Optional[str] = Header(None),
+    db: AsyncIOMotorDatabase = Depends(get_database),
+):
+    """Verify WebAuthn attestation and bind passkey to user account."""
+    _ensure_passkeys_available()
+
+    user = await _find_user_by_username(db, payload.username)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found",
+        )
+
+    expected_challenge = await _consume_passkey_challenge(
+        db,
+        username=payload.username,
+        flow="register",
+    )
+
+    verification = verify_registration_response(
+        credential=payload.credential,
+        expected_challenge=expected_challenge,
+        expected_rp_id=settings.WEBAUTHN_RP_ID,
+        expected_origin=_pick_expected_origin(origin),
+        require_user_verification=True,
+    )
+
+    credential_id = bytes_to_base64url(verification.credential_id)
+    existing = await db.passkeys.find_one({"credential_id": credential_id})
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This passkey is already registered.",
+        )
+
+    await db.passkeys.insert_one(
+        {
+            "user_id": str(user["_id"]),
+            "credential_id": credential_id,
+            "public_key": bytes_to_base64url(verification.credential_public_key),
+            "sign_count": verification.sign_count,
+            "created_at": datetime.utcnow(),
+            "last_used_at": None,
+        }
+    )
+
+    return {
+        "message": "Passkey registered successfully.",
+        "credential_id": credential_id,
+    }
+
+
+@router.post("/passkeys/login/begin")
+async def begin_passkey_login(
+    payload: PasskeyBeginRequest,
+    db: AsyncIOMotorDatabase = Depends(get_database),
+):
+    """Start WebAuthn authentication ceremony."""
+    _ensure_passkeys_available()
+
+    user = await _find_user_by_username(db, payload.username)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found",
+        )
+
+    credential_docs = await db.passkeys.find({"user_id": str(user["_id"])}).to_list(length=50)
+    if not credential_docs:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No passkey registered for this account.",
+        )
+
+    allow_creds = [
+        PublicKeyCredentialDescriptor(id=base64url_to_bytes(doc["credential_id"]))
+        for doc in credential_docs
+        if doc.get("credential_id")
+    ]
+
+    options = generate_authentication_options(
+        rp_id=settings.WEBAUTHN_RP_ID,
+        challenge=secrets.token_bytes(32),
+        allow_credentials=allow_creds,
+    )
+
+    options_json = json.loads(options_to_json(options))
+    await _store_passkey_challenge(
+        db,
+        username=payload.username,
+        challenge=options_json.get("challenge", ""),
+        flow="login",
+    )
+    return options_json
+
+
+@router.post("/passkeys/login/finish", response_model=PasskeyLoginResult)
+async def finish_passkey_login(
+    payload: PasskeyFinishRequest,
+    user_agent: Optional[str] = Header(None),
+    origin: Optional[str] = Header(None),
+    db: AsyncIOMotorDatabase = Depends(get_database),
+):
+    """Verify WebAuthn assertion and issue JWT tokens."""
+    _ensure_passkeys_available()
+
+    user = await _find_user_by_username(db, payload.username)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found",
+        )
+
+    expected_challenge = await _consume_passkey_challenge(
+        db,
+        username=payload.username,
+        flow="login",
+    )
+
+    credential_id = payload.credential.get("id")
+    if not credential_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Credential ID is missing.",
+        )
+
+    stored_passkey = await db.passkeys.find_one(
+        {
+            "user_id": str(user["_id"]),
+            "credential_id": credential_id,
+        }
+    )
+    if not stored_passkey:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Passkey not recognized for this account.",
+        )
+
+    auth_verification = verify_authentication_response(
+        credential=payload.credential,
+        expected_challenge=expected_challenge,
+        expected_rp_id=settings.WEBAUTHN_RP_ID,
+        expected_origin=_pick_expected_origin(origin),
+        credential_public_key=base64url_to_bytes(stored_passkey["public_key"]),
+        credential_current_sign_count=int(stored_passkey.get("sign_count", 0)),
+        require_user_verification=True,
+    )
+
+    await db.passkeys.update_one(
+        {"_id": stored_passkey["_id"]},
+        {
+            "$set": {
+                "sign_count": auth_verification.new_sign_count,
+                "last_used_at": datetime.utcnow(),
+            }
+        },
+    )
+
+    user_id = str(user["_id"])
+    access_token = create_access_token(data={"sub": user_id})
+    refresh_token = create_refresh_token(data={"sub": user_id})
+
+    device_info = {
+        "device_type": "passkey",
+        "user_agent": user_agent,
+        "login_time": datetime.utcnow(),
+    }
+    await create_session(db, user_id, device_info, access_token)
+
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer",
+        "passkey": True,
+    }
 
 
 @router.get("/me", response_model=UserResponse)
