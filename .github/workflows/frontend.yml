@@ -114,11 +114,11 @@ jobs:
         run: |
           # Start ChromeDriver in the background
           chromedriver --port=4444 &
-          # Run flutter drive targeting the web server device
+          # Run flutter drive targeting the chrome device
           flutter drive \
             --driver=test_driver/integration_test.dart \
             --target=integration_test/app_test.dart \
-            -d web-server \
+            -d chrome \
             --no-pub
 
   security-scan:
