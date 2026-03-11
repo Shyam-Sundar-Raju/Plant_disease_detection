@@ -110,7 +110,13 @@ class _CropCapturePageState extends State<CropCapturePage> {
         return;
       }
 
+      if (!mounted) {
+        return;
+      }
       final frameFile = await _extractFrame(File(video.path));
+      if (!mounted) {
+        return;
+      }
       if (frameFile == null) {
         _showError(context.tRead('Unable to extract a frame from video.'));
         return;
@@ -193,6 +199,9 @@ class _CropCapturePageState extends State<CropCapturePage> {
         imageFile,
         threshold: 200.0,
       );
+      if (!mounted) {
+        return;
+      }
       if (isBlurry) {
         await showDialog<void>(
           context: context,
@@ -231,6 +240,9 @@ class _CropCapturePageState extends State<CropCapturePage> {
       } else {
         // --- Online: use backend API ---
         final accessToken = await _tokenStorage.readAccessToken();
+        if (!mounted) {
+          return;
+        }
         if (accessToken == null || accessToken.isEmpty) {
           _showError(
               context.tRead('Missing access token. Please log in again.'));

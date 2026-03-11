@@ -11,7 +11,10 @@ import '../home_page.dart';
 
 // Screen for user sign-in.
 class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+  final AuthApi? api;
+  final TokenStorage? storage;
+
+  const LoginPage({super.key, this.api, this.storage});
 
   static const String routeName = '/login';
 
@@ -23,9 +26,16 @@ class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _api = AuthApi();
+  late final AuthApi _api;
   final _passkeyAuth = PasskeyAuthService();
-  final _tokenStorage = const TokenStorage();
+  late final TokenStorage _tokenStorage;
+
+  @override
+  void initState() {
+    super.initState();
+    _api = widget.api ?? AuthApi();
+    _tokenStorage = widget.storage ?? const TokenStorage();
+  }
 
   bool _isLoading = false;
   bool _isPasskeyLoading = false;

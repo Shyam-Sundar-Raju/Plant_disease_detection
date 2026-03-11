@@ -97,9 +97,17 @@ class _RegisterPageState extends State<RegisterPage> {
       );
 
       final shouldEnroll = await _askToEnrollPasskey();
+      if (!mounted) {
+        return;
+      }
+
       if (shouldEnroll == true) {
         final username = email.isNotEmpty ? email : phone;
         await _enrollPasskey(username);
+      }
+
+      if (!mounted) {
+        return;
       }
 
       Navigator.pop(context);
