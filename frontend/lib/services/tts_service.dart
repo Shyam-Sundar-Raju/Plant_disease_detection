@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -101,14 +102,14 @@ class TtsService {
       _flutterTts.setErrorHandler((msg) {
         _isSpeaking = false;
         // Silently handle error - don't crash the app
-        print('TTS Error: $msg');
+        debugPrint('TTS Error: $msg');
       });
 
       _isInitialized = true;
       return true;
     } catch (e) {
       // Silently fail - TTS is a nice-to-have feature
-      print('TTS initialization failed: $e');
+      debugPrint('TTS initialization failed: $e');
       _isInitialized = false;
       return false;
     }
@@ -136,7 +137,7 @@ class TtsService {
       await _flutterTts.speak(text);
     } catch (e) {
       // Silently handle error
-      print('TTS speak error: $e');
+      debugPrint('TTS speak error: $e');
       _isSpeaking = false;
     }
   }
@@ -152,7 +153,7 @@ class TtsService {
       _isSpeaking = false;
     } catch (e) {
       // Silently handle error
-      print('TTS stop error: $e');
+      debugPrint('TTS stop error: $e');
       _isSpeaking = false;
     }
   }
@@ -169,7 +170,7 @@ class TtsService {
       _isInitialized = false;
     } catch (e) {
       // Silently handle error
-      print('TTS dispose error: $e');
+      debugPrint('TTS dispose error: $e');
     }
   }
 }

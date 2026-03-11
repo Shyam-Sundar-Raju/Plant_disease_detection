@@ -288,7 +288,8 @@ class _RemediationPageState extends State<RemediationPage> {
                             Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Icon(Icons.warning_amber, color: Colors.orange),
+                                const Icon(Icons.warning_amber,
+                                    color: Colors.orange),
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
@@ -901,9 +902,9 @@ class _InfoChip extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return Chip(
       label: Text(label),
-      backgroundColor: scheme.primary.withOpacity(0.08),
+      backgroundColor: scheme.primary.withValues(alpha: 0.08),
       labelStyle: TextStyle(color: scheme.primary, fontWeight: FontWeight.w600),
-      side: BorderSide(color: scheme.primary.withOpacity(0.4)),
+      side: BorderSide(color: scheme.primary.withValues(alpha: 0.4)),
     );
   }
 }

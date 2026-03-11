@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:frontend/services/tts_service.dart';
@@ -171,11 +172,11 @@ void main() {
         reason: 'All TTS features should be implemented',
       );
 
-      print('\n=== TTS FEATURE IMPLEMENTATION STATUS ===');
+      debugPrint('\n=== TTS FEATURE IMPLEMENTATION STATUS ===');
       features.forEach((feature, implemented) {
-        print('${implemented ? "✓" : "✗"} $feature');
+        debugPrint('${implemented ? "✓" : "✗"} $feature');
       });
-      print('==========================================\n');
+      debugPrint('==========================================\n');
     });
   });
 
@@ -195,11 +196,11 @@ void main() {
 
       expect(integrationChecklist.values.every((v) => v == true), isTrue);
 
-      print('\n=== TTS INTEGRATION CHECKLIST ===');
+      debugPrint('\n=== TTS INTEGRATION CHECKLIST ===');
       integrationChecklist.forEach((item, done) {
-        print('${done ? "✓" : "✗"} $item');
+        debugPrint('${done ? "✓" : "✗"} $item');
       });
-      print('===================================\n');
+      debugPrint('===================================\n');
     });
 
     test('TTS should be available for all remediation content sections', () {
@@ -216,11 +217,11 @@ void main() {
         'Application frequency',
       ];
 
-      print('\n=== SPEAKABLE CONTENT SECTIONS ===');
+      debugPrint('\n=== SPEAKABLE CONTENT SECTIONS ===');
       for (final section in speakableSections) {
-        print('✓ $section');
+        debugPrint('✓ $section');
       }
-      print('====================================\n');
+      debugPrint('====================================\n');
 
       expect(speakableSections.length, greaterThan(0));
     });

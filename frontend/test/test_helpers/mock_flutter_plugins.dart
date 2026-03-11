@@ -7,7 +7,8 @@ const MethodChannel _secureStorageChannel = MethodChannel(
 );
 
 void setupMockFlutterPlugins() {
-  _ttsChannel.setMockMethodCallHandler((call) async {
+  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+      .setMockMethodCallHandler(_ttsChannel, (call) async {
     switch (call.method) {
       case 'getLanguages':
         return <String>['en-US', 'hi-IN', 'ta-IN', 'te-IN', 'kn-IN', 'ml-IN'];
@@ -28,7 +29,8 @@ void setupMockFlutterPlugins() {
     }
   });
 
-  _secureStorageChannel.setMockMethodCallHandler((call) async {
+  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+      .setMockMethodCallHandler(_secureStorageChannel, (call) async {
     switch (call.method) {
       case 'read':
         return null;
@@ -47,6 +49,8 @@ void setupMockFlutterPlugins() {
 }
 
 void tearDownMockFlutterPlugins() {
-  _ttsChannel.setMockMethodCallHandler(null);
-  _secureStorageChannel.setMockMethodCallHandler(null);
+  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+      .setMockMethodCallHandler(_ttsChannel, null);
+  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+      .setMockMethodCallHandler(_secureStorageChannel, null);
 }
