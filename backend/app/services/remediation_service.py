@@ -85,7 +85,20 @@ class RemediationService:
             
             # Fall back to local knowledge base (remediation.json)
             if not knowledge:
-                knowledge = RemediationService.KNOWLEDGE_BASE.get(disease_id, {})
+                # Try direct match from KNOWLEDGE_BASE
+                knowledge = RemediationService.KNOWLEDGE_BASE.get(disease_id)
+                
+            if not knowledge:
+                # Robust fallback for ID format mismatches (e.g. "tomato_early_blight" vs "Tomato___Early_blight")
+                # Normalize both to lowercase and remove underscores for comparison
+                def normalize(sid):
+                    return sid.lower().replace("_", "").replace(" ", "")
+                
+                target_norm = normalize(disease_id)
+                for k, v in RemediationService.KNOWLEDGE_BASE.items():
+                    if normalize(k) == target_norm:
+                        knowledge = v
+                        break
             
             if not knowledge:
                 raise ValueError(f"No knowledge base found for disease: {disease_id}")

@@ -32,7 +32,8 @@ class TestDatabaseConnection:
     @pytest.mark.asyncio
     async def test_close_database_connection(self):
         """Test closing database connection"""
-        Database.client = AsyncMock()
+        from unittest.mock import MagicMock
+        Database.client = MagicMock()
         await close_database_connection()
         assert True
 
