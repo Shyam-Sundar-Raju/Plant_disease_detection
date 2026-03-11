@@ -45,6 +45,7 @@ class _HomePageState extends State<HomePage> {
   bool _isLoadingWeather = false;
   Map<String, dynamic>? _historyAnalytics;
   List<Map<String, dynamic>> _historyItems = [];
+  List<Map<String, dynamic>> _offlineHistoryItems = [];
   bool _isLoadingHistory = false;
   bool _isOnline = false;
   String? _selectedCropFilter;
@@ -128,6 +129,7 @@ class _HomePageState extends State<HomePage> {
     _loadCachedWeather();
     _loadWeather();
     _loadCachedHistory();
+    _loadCachedOfflineHistory();
     _loadCachedAnalytics();
     _loadHistory();
     _loadAnalytics();
@@ -184,6 +186,15 @@ class _HomePageState extends State<HomePage> {
     if (cached != null && mounted) {
       setState(() {
         _historyItems = cached;
+      });
+    }
+  }
+
+  Future<void> _loadCachedOfflineHistory() async {
+    final cached = await _tokenStorage.readOfflineHistory();
+    if (cached != null && mounted) {
+      setState(() {
+        _offlineHistoryItems = cached;
       });
     }
   }
@@ -270,8 +281,14 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _openHistoryDiagnosis(Map<String, dynamic> item) async {
     // Try live fetch, fall back to cached diagnosis.
-    final diagnosisId = item['diagnosis_id']?.toString() ?? '';
+    final diagnosisId = _resolveHistoryDiagnosisId(item);
     if (diagnosisId.isEmpty) {
+      return;
+    }
+
+    final isOfflineItem = item['is_offline'] == true;
+    if (isOfflineItem) {
+      await _openCachedDiagnosis(diagnosisId, item);
       return;
     }
 
@@ -323,6 +340,18 @@ class _HomePageState extends State<HomePage> {
         );
       }
     }
+  }
+
+  String _resolveHistoryDiagnosisId(Map<String, dynamic> item) {
+    final diagnosisId = item['diagnosis_id']?.toString();
+    if (diagnosisId != null && diagnosisId.isNotEmpty) {
+      return diagnosisId;
+    }
+    final id = item['_id']?.toString();
+    if (id != null && id.isNotEmpty) {
+      return id;
+    }
+    return '';
   }
 
   Future<bool> _openCachedDiagnosis(
@@ -418,6 +447,41 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  Future<void> _deleteOfflineHistoryItem(String historyId) async {
+    if (historyId.isEmpty) {
+      return;
+    }
+
+    final updated = _offlineHistoryItems.where((item) {
+      final currentId = item['_id']?.toString();
+      final currentDiagnosisId = item['diagnosis_id']?.toString();
+      return currentId != historyId && currentDiagnosisId != historyId;
+    }).toList();
+
+    final removedDiagnosisIds = _offlineHistoryItems
+        .where((item) {
+          final currentId = item['_id']?.toString();
+          final currentDiagnosisId = item['diagnosis_id']?.toString();
+          return currentId == historyId || currentDiagnosisId == historyId;
+        })
+        .map(_resolveHistoryDiagnosisId)
+        .where((id) => id.isNotEmpty)
+        .toSet();
+
+    await _tokenStorage.saveOfflineHistory(updated);
+    for (final diagnosisId in removedDiagnosisIds) {
+      await _tokenStorage.removeDiagnosisResult(diagnosisId);
+    }
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _offlineHistoryItems = updated;
+    });
+  }
+
   Future<void> _loadWeather() async {
     if (_isLoadingWeather) {
       return;
@@ -507,15 +571,30 @@ class _HomePageState extends State<HomePage> {
     final profileMenuLabel = context.t('Profile menu');
     final logoutLabel = context.t('Logout');
     final cropOptions =
-        _historyItems
+        [..._offlineHistoryItems, ..._historyItems]
             .map((item) => item['crop_type']?.toString() ?? '')
             .where((value) => value.isNotEmpty)
             .toSet()
             .toList()
           ..sort();
+    final allHistoryItems = [..._offlineHistoryItems, ..._historyItems]
+      ..sort((a, b) {
+        final aDate = DateTime.tryParse(a['created_at']?.toString() ?? '');
+        final bDate = DateTime.tryParse(b['created_at']?.toString() ?? '');
+        if (aDate == null && bDate == null) {
+          return 0;
+        }
+        if (aDate == null) {
+          return 1;
+        }
+        if (bDate == null) {
+          return -1;
+        }
+        return bDate.compareTo(aDate);
+      });
     final filteredHistory = _selectedCropFilter == null
-        ? _historyItems
-        : _historyItems
+        ? allHistoryItems
+        : allHistoryItems
               .where(
                 (item) => item['crop_type']?.toString() == _selectedCropFilter,
               )
@@ -714,17 +793,22 @@ class _HomePageState extends State<HomePage> {
               else if (filteredHistory.isEmpty)
                 Text(context.t('No history yet.'))
               else
-                ...filteredHistory.map(
-                  (item) => _HistoryCard(
+                ...filteredHistory.map((item) {
+                  final isOfflineItem = item['is_offline'] == true;
+                  final historyId = _resolveHistoryDiagnosisId(item);
+                  final diagnosisId = _resolveHistoryDiagnosisId(item);
+                  return _HistoryCard(
                     item: item,
                     onOpen: () => _openHistoryDiagnosis(item),
-                    onDelete: () =>
-                        _deleteHistoryItem(item['_id']?.toString() ?? ''),
-                    onDownload: () =>
-                        _downloadReport(item['diagnosis_id']?.toString() ?? ''),
-                    actionsEnabled: _isOnline,
-                  ),
-                ),
+                    onDelete: () => isOfflineItem
+                        ? _deleteOfflineHistoryItem(historyId)
+                        : _deleteHistoryItem(historyId),
+                    onDownload: isOfflineItem
+                        ? null
+                        : () => _downloadReport(diagnosisId),
+                    actionsEnabled: isOfflineItem ? true : _isOnline,
+                  );
+                }),
             ],
           ),
         ),
@@ -912,14 +996,14 @@ class _HistoryCard extends StatelessWidget {
     required this.item,
     required this.onOpen,
     required this.onDelete,
-    required this.onDownload,
+    this.onDownload,
     required this.actionsEnabled,
   });
 
   final Map<String, dynamic> item;
   final VoidCallback onOpen;
   final VoidCallback onDelete;
-  final VoidCallback onDownload;
+  final VoidCallback? onDownload;
   final bool actionsEnabled;
 
   @override
@@ -968,12 +1052,14 @@ class _HistoryCard extends StatelessWidget {
               const SizedBox(height: 12),
               Row(
                 children: [
-                  OutlinedButton.icon(
-                    onPressed: actionsEnabled ? onDownload : null,
-                    icon: const Icon(Icons.download),
-                    label: Text(context.t('Report')),
-                  ),
-                  const SizedBox(width: 12),
+                  if (onDownload != null) ...[
+                    OutlinedButton.icon(
+                      onPressed: actionsEnabled ? onDownload : null,
+                      icon: const Icon(Icons.download),
+                      label: Text(context.t('Report')),
+                    ),
+                    const SizedBox(width: 12),
+                  ],
                   TextButton.icon(
                     onPressed: actionsEnabled ? onDelete : null,
                     icon: const Icon(Icons.delete),
