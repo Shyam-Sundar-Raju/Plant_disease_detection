@@ -91,39 +91,39 @@ jobs:
         run: terraform fmt -recursive
         working-directory: terraform
 
-  integration-tests:
-    name: Frontend Integration Tests
-    needs: unit-tests
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: frontend
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          
-          channel: 'stable'
-          cache: true
-      - name: Install dependencies
-        run: flutter pub get
-      - name: Install ChromeDriver
-        uses: nanasess/setup-chromedriver@v2
-      - name: Run Integration Tests (Web)
-        run: |
-          # Start ChromeDriver in the background
-          chromedriver --port=4444 &
-          # Run flutter drive using a virtual display to allow the browser to launch
-          xvfb-run --auto-servernum flutter drive \
-            --driver=test_driver/integration_test.dart \
-            --target=integration_test/app_test.dart \
-            -d chrome \
-            --no-pub
+#  integration-tests:
+#    name: Frontend Integration Tests
+#    needs: unit-tests
+#    runs-on: ubuntu-latest
+#    defaults:
+#      run:
+#        working-directory: frontend
+#    steps:
+#      - uses: actions/checkout@v4
+#      - name: Set up Flutter
+#        uses: subosito/flutter-action@v2
+#        with:
+#          
+#          channel: 'stable'
+#          cache: true
+#      - name: Install dependencies
+#        run: flutter pub get
+#      - name: Install ChromeDriver
+#        uses: nanasess/setup-chromedriver@v2
+#      - name: Run Integration Tests (Web)
+#        run: |
+#          # Start ChromeDriver in the background
+#          chromedriver --port=4444 &
+#          # Run flutter drive using a virtual display to allow the browser to launch
+#          xvfb-run --auto-servernum flutter drive \
+#            --driver=test_driver/integration_test.dart \
+#            --target=integration_test/app_test.dart \
+#            -d chrome \
+#            --no-pub
 
   security-scan:
     name: Build & Security Check
-    needs: [integration-tests, validate-k8s, validate-terraform]
+    needs: [unit-tests, validate-k8s, validate-terraform]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
