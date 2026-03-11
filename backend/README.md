@@ -261,10 +261,10 @@ python -c "import secrets; print(secrets.token_hex(32))"
 Supported languages:
 - English (en)
 - Hindi (hi)
-- Kannada (kn)
 - Tamil (ta)
 - Telugu (te)
-- Malayalam (ma)
+- Kannada (kn)
+- Malayalam (ml)
 
 Set language via:
 1. User preference (in profile)

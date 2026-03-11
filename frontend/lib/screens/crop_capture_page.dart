@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
@@ -10,6 +11,7 @@ import 'package:video_thumbnail/video_thumbnail.dart';
 import '../services/blur_detector.dart';
 import '../services/diagnosis_api.dart';
 import '../services/diagnosis_cache.dart';
+import '../services/offline_model_service.dart';
 import '../services/token_storage.dart';
 import '../services/app_localizations.dart';
 import 'diagnosis_result_page.dart';
@@ -107,21 +109,10 @@ class _CropCapturePageState extends State<CropCapturePage> {
       if (video == null) {
         return;
       }
-      if (!mounted) {
-        return;
-      }
 
-      final fallbackMessage = context.tRead(
-        'Unable to extract a frame from video.',
-      );
       final frameFile = await _extractFrame(File(video.path));
-
-      if (!mounted) {
-        return;
-      }
-
       if (frameFile == null) {
-        _showError(fallbackMessage);
+        _showError(context.tRead('Unable to extract a frame from video.'));
         return;
       }
 
@@ -147,14 +138,13 @@ class _CropCapturePageState extends State<CropCapturePage> {
       compressQuality: 95,
       uiSettings: [
         AndroidUiSettings(
-          toolbarTitle:
-              'Crop image', // Hardcoded fallback or handle before await
+          toolbarTitle: context.tRead('Crop image'),
           toolbarColor: const Color(0xFF1B5E20),
           toolbarWidgetColor: Colors.white,
           activeControlsWidgetColor: const Color(0xFF1B5E20),
           lockAspectRatio: false,
         ),
-        IOSUiSettings(title: 'Crop image'),
+        IOSUiSettings(title: context.tRead('Crop image')),
       ],
     );
 
@@ -204,24 +194,18 @@ class _CropCapturePageState extends State<CropCapturePage> {
         threshold: 200.0,
       );
       if (isBlurry) {
-        if (!mounted) {
-          return;
-        }
         await showDialog<void>(
           context: context,
           builder: (context) {
-            final titleText = context.t('Image is blurry');
-            final contentText = context.t(
-              'Please retake the image for a clearer result.',
-            );
-            final okText = context.t('OK');
             return AlertDialog(
-              title: Text(titleText),
-              content: Text(contentText),
+              title: Text(context.t('Image is blurry')),
+              content: Text(
+                context.t('Please retake the image for a clearer result.'),
+              ),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: Text(okText),
+                  child: Text(context.t('OK')),
                 ),
               ],
             );
@@ -229,48 +213,51 @@ class _CropCapturePageState extends State<CropCapturePage> {
         );
         return;
       }
-      if (!mounted) {
-        return;
-      }
-
-      final fallbackTokenMessage = context.tRead(
-        'Missing access token. Please log in again.',
-      );
-      final accessToken = await _tokenStorage.readAccessToken();
-
-      if (!mounted) {
-        return;
-      }
-
-      if (accessToken == null || accessToken.isEmpty) {
-        _showError(fallbackTokenMessage);
-        return;
-      }
-
-      final profile = await _tokenStorage.readUserProfile();
-      final language = profile?['preferred_language']?.toString();
 
       setState(() {
         _isSubmitting = true;
       });
 
-      final result = await _diagnosisApi.createDiagnosis(
-        accessToken: accessToken,
-        cropType: crop.code,
-        imageFile: imageFile,
-        language: language,
-      );
-      var displayResult = result;
-      final diagnosisId = _extractDiagnosisId(result);
-      if (diagnosisId != null && diagnosisId.isNotEmpty) {
-        displayResult = await _diagnosisCache.cacheDiagnosisImages(
-          diagnosisId: diagnosisId,
-          result: result,
+      // Check network connectivity
+      final connectivity = await Connectivity().checkConnectivity();
+      final isOffline = connectivity.contains(ConnectivityResult.none);
+
+      Map<String, dynamic> displayResult;
+
+      if (isOffline) {
+        // --- Offline: run on-device TFLite model ---
+        final offlineService = OfflineModelService.instance;
+        displayResult = await offlineService.predict(imageFile, crop.code);
+      } else {
+        // --- Online: use backend API ---
+        final accessToken = await _tokenStorage.readAccessToken();
+        if (accessToken == null || accessToken.isEmpty) {
+          _showError(
+              context.tRead('Missing access token. Please log in again.'));
+          return;
+        }
+
+        final profile = await _tokenStorage.readUserProfile();
+        final language = profile?['preferred_language']?.toString();
+
+        final result = await _diagnosisApi.createDiagnosis(
+          accessToken: accessToken,
+          cropType: crop.code,
+          imageFile: imageFile,
+          language: language,
         );
-        await _tokenStorage.saveDiagnosisResult(
-          diagnosisId: diagnosisId,
-          result: displayResult,
-        );
+        displayResult = result;
+        final diagnosisId = _extractDiagnosisId(result);
+        if (diagnosisId != null && diagnosisId.isNotEmpty) {
+          displayResult = await _diagnosisCache.cacheDiagnosisImages(
+            diagnosisId: diagnosisId,
+            result: result,
+          );
+          await _tokenStorage.saveDiagnosisResult(
+            diagnosisId: diagnosisId,
+            result: displayResult,
+          );
+        }
       }
 
       if (!mounted) {
@@ -353,11 +340,11 @@ class _CropCapturePageState extends State<CropCapturePage> {
                           colors: [
                             Theme.of(
                               context,
-                            ).colorScheme.surface.withValues(alpha: 0.9),
+                            ).colorScheme.surface.withOpacity(0.9),
                             Theme.of(context)
                                 .colorScheme
                                 .surfaceContainerHighest
-                                .withValues(alpha: 0.95),
+                                .withOpacity(0.95),
                           ],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
@@ -366,11 +353,11 @@ class _CropCapturePageState extends State<CropCapturePage> {
                         border: Border.all(
                           color: Theme.of(
                             context,
-                          ).colorScheme.outline.withValues(alpha: 0.2),
+                          ).colorScheme.outline.withOpacity(0.2),
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.06),
+                            color: Colors.black.withOpacity(0.06),
                             blurRadius: 14,
                             offset: const Offset(0, 8),
                           ),

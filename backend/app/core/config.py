@@ -7,6 +7,7 @@ from pydantic import field_validator
 from typing import Optional, List, Union
 from functools import lru_cache
 import json
+from urllib.parse import urlparse
 
 
 
@@ -70,7 +71,7 @@ class Settings(BaseSettings):
     # AI Model Settings
     MODEL_PATH: str = "models"
     BLUR_THRESHOLD: int = 100  # Laplacian variance threshold
-    CONFIDENCE_THRESHOLD: float = 0.45
+    CONFIDENCE_THRESHOLD: float = 0.85
     SEVERITY_LOW_THRESHOLD: float = 0.10
     SEVERITY_MEDIUM_THRESHOLD: float = 0.40
     
@@ -94,6 +95,65 @@ class Settings(BaseSettings):
                     return [lang.strip() for lang in v.split(',')]
                 # Single language
                 return [v]
+        return v
+
+    # WebAuthn / Passkey
+    WEBAUTHN_RP_ID: str = "bond60-plant-disease-detection.hf.space"
+    WEBAUTHN_RP_NAME: str = "AgroScan"
+    WEBAUTHN_ALLOWED_ORIGINS: Union[str, List[str]] = [
+        "https://bond60-plant-disease-detection.hf.space",
+    ]
+
+    @field_validator('WEBAUTHN_ALLOWED_ORIGINS', mode='before')
+    @classmethod
+    def parse_webauthn_allowed_origins(cls, v):
+        """Parse WebAuthn origins from string or list."""
+        if isinstance(v, str):
+            try:
+                parsed = json.loads(v)
+                if isinstance(parsed, list):
+                    return parsed
+            except json.JSONDecodeError:
+                if ',' in v:
+                    return [origin.strip() for origin in v.split(',')]
+                return [v]
+        return v
+
+    @field_validator('WEBAUTHN_RP_ID', mode='before')
+    @classmethod
+    def normalize_webauthn_rp_id(cls, v):
+        """Accept host or full URL and normalize to host-only RP ID."""
+        if not isinstance(v, str):
+            return v
+
+        candidate = v.strip()
+        if not candidate:
+            return candidate
+
+        if '://' in candidate:
+            parsed = urlparse(candidate)
+            if parsed.hostname:
+                return parsed.hostname
+
+        return candidate
+
+    # Android Digital Asset Links (for passkey/Credential Manager association)
+    ANDROID_APP_PACKAGE_NAME: Optional[str] = None
+    ANDROID_APP_SHA256_CERT_FINGERPRINTS: Union[str, List[str]] = []
+
+    @field_validator('ANDROID_APP_SHA256_CERT_FINGERPRINTS', mode='before')
+    @classmethod
+    def parse_android_fingerprints(cls, v):
+        """Parse certificate fingerprints from JSON array or comma-separated string."""
+        if isinstance(v, str):
+            try:
+                parsed = json.loads(v)
+                if isinstance(parsed, list):
+                    return [item.strip() for item in parsed if isinstance(item, str) and item.strip()]
+            except json.JSONDecodeError:
+                if ',' in v:
+                    return [item.strip() for item in v.split(',') if item.strip()]
+                return [v.strip()] if v.strip() else []
         return v
     
     # Email Configuration (for password reset)

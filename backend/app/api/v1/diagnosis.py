@@ -128,6 +128,7 @@ async def create_diagnosis(
             "confidence": diagnosis_result["confidence"],
             "severity": diagnosis_result["severity"],
             "is_healthy": diagnosis_result["is_healthy"],
+            "is_uncertain": diagnosis_result.get("is_uncertain", False),
             "image_url": FileHandler.get_file_url(image_path),
             "heatmap_url": FileHandler.get_file_url(heatmap_path),
             "bounding_boxes": diagnosis_result.get("bounding_boxes", []),
@@ -136,7 +137,8 @@ async def create_diagnosis(
             "created_at": datetime.utcnow(),
             "metadata": {
                 "image_quality": quality_check,
-                "all_predictions": diagnosis_result.get("all_predictions", {})
+                "all_predictions": diagnosis_result.get("all_predictions", {}),
+                "original_prediction": diagnosis_result.get("disease_id", "")
             }
         }
         
@@ -282,6 +284,7 @@ async def diagnose_from_video(
             "confidence": diagnosis_result["confidence"],
             "severity": diagnosis_result["severity"],
             "is_healthy": diagnosis_result["is_healthy"],
+            "is_uncertain": diagnosis_result.get("is_uncertain", False),
             "image_url": FileHandler.get_file_url(image_path),
             "heatmap_url": FileHandler.get_file_url(heatmap_path),
             "bounding_boxes": diagnosis_result.get("bounding_boxes", []),
@@ -289,7 +292,8 @@ async def diagnose_from_video(
             "created_at": datetime.utcnow(),
             "metadata": {
                 "source": "video",
-                "frames_analyzed": len(frames)
+                "frames_analyzed": len(frames),
+                "original_prediction": diagnosis_result.get("disease_id", "")
             }
         }
         

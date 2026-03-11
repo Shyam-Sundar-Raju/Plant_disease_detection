@@ -65,7 +65,6 @@ uploads/videos/*
 !uploads/videos/.gitkeep
 
 # Models directory (ignore large model files)
-models/*.keras
 models/*.h5
 models/*.pb
 models/*.ckpt

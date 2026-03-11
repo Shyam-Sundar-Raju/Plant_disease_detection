@@ -65,9 +65,20 @@ dependencies:
   image: ^4.2.0
   video_player: ^2.9.1
   video_thumbnail: ^0.5.3
+  
+  # Text-to-Speech
+  flutter_tts: ^4.0.2
+
+  # On-device AI inference
+  tflite_flutter: ^0.11.0
+
+  # Passkeys (WebAuthn / FIDO2)
+  passkeys: ^2.17.4
 
 dev_dependencies:
   flutter_test:
+    sdk: flutter
+  integration_test:
     sdk: flutter
   flutter_launcher_icons: ^0.13.1
 
@@ -98,6 +109,7 @@ flutter:
     - assets/images/reference_diseases/
     - assets/logo.png
     - assets/remediation/remediation.json
+    - assets/model/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

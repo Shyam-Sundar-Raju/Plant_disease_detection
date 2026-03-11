@@ -90,6 +90,48 @@ class AuthApi {
     return _toJsonMap(response.data);
   }
 
+  Future<Map<String, dynamic>> beginPasskeyRegistration({
+    required String username,
+  }) async {
+    final response = await _dio.post(
+      '/auth/passkeys/register/begin',
+      data: {'username': username},
+    );
+    return _toJsonMap(response.data);
+  }
+
+  Future<Map<String, dynamic>> finishPasskeyRegistration({
+    required String username,
+    required Map<String, dynamic> credential,
+  }) async {
+    final response = await _dio.post(
+      '/auth/passkeys/register/finish',
+      data: {'username': username, 'credential': credential},
+    );
+    return _toJsonMap(response.data);
+  }
+
+  Future<Map<String, dynamic>> beginPasskeyLogin({
+    required String username,
+  }) async {
+    final response = await _dio.post(
+      '/auth/passkeys/login/begin',
+      data: {'username': username},
+    );
+    return _toJsonMap(response.data);
+  }
+
+  Future<Map<String, dynamic>> finishPasskeyLogin({
+    required String username,
+    required Map<String, dynamic> credential,
+  }) async {
+    final response = await _dio.post(
+      '/auth/passkeys/login/finish',
+      data: {'username': username, 'credential': credential},
+    );
+    return _toJsonMap(response.data);
+  }
+
   Map<String, dynamic> _toJsonMap(dynamic data) {
     // Enforce a predictable map response shape.
     if (data is Map<String, dynamic>) {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../services/location_service.dart';
+import '../services/passkey_auth_service.dart';
 import '../services/token_storage.dart';
 import '../services/user_api.dart';
 import '../services/app_localizations.dart';
@@ -24,6 +25,7 @@ class _ProfilePageState extends State<ProfilePage> {
   final _locationService = const LocationService();
   final _tokenStorage = const TokenStorage();
   final _userApi = UserApi();
+  final _passkeyAuth = PasskeyAuthService();
 
   final List<Map<String, String>> _languages = const [
     {'code': 'en', 'label': 'English'},
@@ -35,6 +37,7 @@ class _ProfilePageState extends State<ProfilePage> {
   ];
 
   bool _isLoading = false;
+  bool _isPasskeyLoading = false;
   bool _isUpdatingLocation = false;
   String? _errorMessage;
   String _selectedLanguage = 'en';
@@ -151,6 +154,46 @@ class _ProfilePageState extends State<ProfilePage> {
         setState(() {
           _isLoading = false;
           _isUpdatingLocation = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _addPasskey() async {
+    final username = _emailController.text.trim().isNotEmpty
+        ? _emailController.text.trim()
+        : _phoneController.text.trim();
+
+    if (username.isEmpty) {
+      setState(() {
+        _errorMessage = 'Email or phone is required to register a passkey.';
+      });
+      return;
+    }
+
+    setState(() {
+      _isPasskeyLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      await _passkeyAuth.registerPasskey(username: username);
+
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Passkey registered successfully.')),
+      );
+    } catch (error) {
+      setState(() {
+        _errorMessage = error.toString().replaceFirst('Exception: ', '');
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isPasskeyLoading = false;
         });
       }
     }
@@ -286,7 +329,9 @@ class _ProfilePageState extends State<ProfilePage> {
                             ),
                           const SizedBox(height: 12),
                           ElevatedButton(
-                            onPressed: _isLoading ? null : _updateProfile,
+                            onPressed: (_isLoading || _isPasskeyLoading)
+                                ? null
+                                : _updateProfile,
                             child: _isLoading
                                 ? const SizedBox(
                                     height: 18,
@@ -296,6 +341,22 @@ class _ProfilePageState extends State<ProfilePage> {
                                     ),
                                   )
                                 : Text(context.t('Update profile')),
+                          ),
+                          const SizedBox(height: 8),
+                          OutlinedButton.icon(
+                            onPressed: (_isLoading || _isPasskeyLoading)
+                                ? null
+                                : _addPasskey,
+                            icon: _isPasskeyLoading
+                                ? const SizedBox(
+                                    height: 16,
+                                    width: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Icon(Icons.key),
+                            label: const Text('Add Passkey'),
                           ),
                         ],
                       ),

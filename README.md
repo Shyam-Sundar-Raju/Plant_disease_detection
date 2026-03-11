@@ -57,7 +57,7 @@ Farmers worldwide face significant challenges in:
 
 Our platform provides:
 - **Real-time disease detection** using AI-powered image analysis
-- **Multi-language support** (English, Hindi, Kannada, Tamil, Telugu, Marathi, Bengali)
+- **Multi-language support** (English, Hindi, Tamil, Telugu, Kannada, Malayalam)
 - **Comprehensive treatment plans** with organic and chemical options
 - **Offline-first architecture** for remote farming areas
 - **Visual explanations** with heatmaps and bounding boxes
@@ -98,7 +98,7 @@ Our platform provides:
 - **Community Wisdom**: Shared farmer experiences and tips
 
 ### 🌍 Multi-Language Support (Epic 4)
-- **7+ Languages**: EN, HI, KN, TA, TE, MR, BN
+- **6 Languages**: EN, HI, TA, TE, KN, ML
 - **Automatic Detection**: Language preference from HTTP headers
 - **Localized Content**: All notifications and instructions in native language
 - **Simplified Mode**: Technical terms explained in simple vocabulary
@@ -1138,7 +1138,7 @@ When reporting bugs, please include:
 - **Total Lines of Code**: ~15,000+
 - **API Endpoints**: 30+
 - **Database Collections**: 6
-- **Supported Languages**: 7
+- **Supported Languages**: 6
 - **Disease Classes**: 19
 - **Supported Crops**: 6
 
