@@ -114,13 +114,12 @@ jobs:
         run: |
           # Start ChromeDriver in the background
           chromedriver --port=4444 &
-          # Run flutter drive in headless mode with a virtual display
+          # Run flutter drive using a virtual display to allow the browser to launch
           xvfb-run --auto-servernum flutter drive \
             --driver=test_driver/integration_test.dart \
             --target=integration_test/app_test.dart \
             -d chrome \
-            --no-pub \
-            --args="--headless --no-sandbox --disable-gpu"
+            --no-pub
 
   security-scan:
     name: Build & Security Check
