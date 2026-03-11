@@ -228,11 +228,50 @@ class _CropCapturePageState extends State<CropCapturePage> {
         // --- Offline: run on-device TFLite model ---
         final offlineService = OfflineModelService.instance;
         displayResult = await offlineService.predict(imageFile, crop.code);
+
+        // Persist offline predictions separately so they appear in home history.
+        final localDiagnosisId =
+            'offline_${DateTime.now().millisecondsSinceEpoch}';
+        displayResult = {
+          ...displayResult,
+          '_id': localDiagnosisId,
+          'diagnosis_id': localDiagnosisId,
+          'crop_type': crop.code,
+          'created_at': DateTime.now().toIso8601String(),
+          'is_offline': true,
+        };
+
+        await _tokenStorage.saveDiagnosisResult(
+          diagnosisId: localDiagnosisId,
+          result: displayResult,
+        );
+
+        final existingOfflineHistory =
+            await _tokenStorage.readOfflineHistory() ??
+            <Map<String, dynamic>>[];
+        final offlineHistoryItem = {
+          '_id': localDiagnosisId,
+          'diagnosis_id': localDiagnosisId,
+          'crop_type': crop.code,
+          'disease_name':
+              displayResult['disease_name']?.toString() ?? 'Unknown disease',
+          'severity': displayResult['severity']?.toString() ?? 'unknown',
+          'created_at':
+              displayResult['created_at']?.toString() ??
+              DateTime.now().toIso8601String(),
+          'is_offline': true,
+        };
+        await _tokenStorage.saveOfflineHistory([
+          offlineHistoryItem,
+          ...existingOfflineHistory,
+        ]);
       } else {
         // --- Online: use backend API ---
         final accessToken = await _tokenStorage.readAccessToken();
         if (accessToken == null || accessToken.isEmpty) {
-          _showError(context.tRead('Missing access token. Please log in again.'));
+          _showError(
+            context.tRead('Missing access token. Please log in again.'),
+          );
           return;
         }
 

@@ -9,6 +9,7 @@ class TokenStorage {
   static const String tokenTypeKey = 'token_type';
   static const String userProfileKey = 'user_profile';
   static const String historyCacheKey = 'history_cache';
+  static const String offlineHistoryCacheKey = 'offline_history_cache';
   static const String analyticsCacheKey = 'history_analytics_cache';
   static const String diagnosisCacheKey = 'diagnosis_cache';
   static const String weatherCacheKey = 'weather_cache';
@@ -35,6 +36,7 @@ class TokenStorage {
     await _storage.delete(key: tokenTypeKey);
     await _storage.delete(key: userProfileKey);
     await _storage.delete(key: historyCacheKey);
+    await _storage.delete(key: offlineHistoryCacheKey);
     await _storage.delete(key: analyticsCacheKey);
     await _storage.delete(key: diagnosisCacheKey);
     await _storage.delete(key: weatherCacheKey);
@@ -76,6 +78,27 @@ class TokenStorage {
 
   Future<List<Map<String, dynamic>>?> readHistory() async {
     final raw = await _storage.read(key: historyCacheKey);
+    if (raw == null || raw.isEmpty) {
+      return null;
+    }
+
+    final decoded = jsonDecode(raw);
+    if (decoded is List) {
+      return decoded.whereType<Map<String, dynamic>>().toList(growable: false);
+    }
+
+    return null;
+  }
+
+  Future<void> saveOfflineHistory(List<Map<String, dynamic>> history) async {
+    await _storage.write(
+      key: offlineHistoryCacheKey,
+      value: jsonEncode(history),
+    );
+  }
+
+  Future<List<Map<String, dynamic>>?> readOfflineHistory() async {
+    final raw = await _storage.read(key: offlineHistoryCacheKey);
     if (raw == null || raw.isEmpty) {
       return null;
     }
@@ -140,6 +163,12 @@ class TokenStorage {
       return entry;
     }
     return null;
+  }
+
+  Future<void> removeDiagnosisResult(String diagnosisId) async {
+    final cache = await _readDiagnosisCache();
+    cache.remove(diagnosisId);
+    await _storage.write(key: diagnosisCacheKey, value: jsonEncode(cache));
   }
 
   Future<Map<String, dynamic>> _readDiagnosisCache() async {
